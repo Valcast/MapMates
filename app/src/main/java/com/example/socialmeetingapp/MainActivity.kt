@@ -16,6 +16,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.compose.SocialMeetingAppTheme
 import com.example.socialmeetingapp.domain.model.navigation.Routes
 import com.example.socialmeetingapp.presentation.PermissionManager
 import com.example.socialmeetingapp.presentation.authentication.login.LoginScreen
@@ -24,7 +25,6 @@ import com.example.socialmeetingapp.presentation.map.MapScreen
 import com.example.socialmeetingapp.presentation.navigation.NavigationBar
 import com.example.socialmeetingapp.presentation.profile.ProfileScreen
 import com.example.socialmeetingapp.presentation.settings.SettingsScreen
-import com.example.socialmeetingapp.ui.theme.SocialMeetingAppTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint

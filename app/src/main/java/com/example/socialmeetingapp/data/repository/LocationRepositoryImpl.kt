@@ -24,6 +24,7 @@ class LocationRepositoryImpl @Inject constructor(
                 return if (location != null) {
                     LocationResult.Success(location)
                 } else {
+                    //Location not found in cache
                     LocationResult.Error("Location not found")
                 }
 
