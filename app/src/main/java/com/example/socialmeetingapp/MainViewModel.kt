@@ -1,47 +1,75 @@
 package com.example.socialmeetingapp
 
-import androidx.compose.runtime.mutableIntStateOf
+import android.util.Log
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.socialmeetingapp.data.repository.FirebaseUserRepositoryImpl
-import com.example.socialmeetingapp.domain.model.navigation.Routes
+import com.example.socialmeetingapp.domain.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
-    firebaseUserRepository: FirebaseUserRepositoryImpl
-): ViewModel() {
-
+    userRepository: UserRepository,
+    private val dataStore: DataStore<Preferences>
+) : ViewModel() {
     private var _state = MutableStateFlow<MainState>(MainState.Loading)
     val state = _state.asStateFlow().onStart {
-        if (firebaseUserRepository.ifUserIsLoggedIn()) {
-            _state.value = MainState.LoggedIn
-        } else {
-            _state.value = MainState.LoggedOut
+        val isFirstTime = viewModelScope.async {
+            isFirstTimeLaunch()
+        }.await()
+
+        val isLoggedIn = userRepository.isLoggedIn()
+
+        Log.d("MainViewModel", "State: isFirstTimeLaunch=$isFirstTime, isLoggedIn=$isLoggedIn")
+
+        _state.update {
+            MainState.Content(isFirstTimeLaunch = isFirstTime, isLoggedIn = isLoggedIn)
         }
+
     }.stateIn(viewModelScope, SharingStarted.Eagerly, MainState.Loading)
 
-    val routes = listOf(Routes.Map, Routes.Profile, Routes.Settings)
-    var selectedNavItem = mutableIntStateOf(0)
-        private set
 
-    fun onItemSelected(index: Int) {
-        selectedNavItem.intValue = index
+    fun disableFirstTimeLaunch() {
+        viewModelScope.launch {
+            dataStore.edit {
+                it[FIRST_TIME_LAUNCH] = false
+            }
+        }
     }
 
+    private suspend fun isFirstTimeLaunch(): Boolean {
+        return dataStore.data.first()[FIRST_TIME_LAUNCH] ?: true
+
+    }
+
+    companion object {
+        val FIRST_TIME_LAUNCH = booleanPreferencesKey("FIRST_TIME_LAUNCH")
+    }
 
 
 }
 
-sealed class MainState {
-    data object Loading: MainState()
-    data object LoggedIn: MainState()
-    data object LoggedOut: MainState()
+sealed class MainState(
+) {
+    data object Loading : MainState()
+
+    data class Content(
+        val isFirstTimeLaunch: Boolean = true,
+        val isLoggedIn: Boolean = false
+    ) : MainState()
+
 
 }

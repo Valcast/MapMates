@@ -11,7 +11,7 @@ import com.google.android.gms.location.FusedLocationProviderClient
 import kotlinx.coroutines.tasks.asDeferred
 import javax.inject.Inject
 
-class LocationRepositoryImpl @Inject constructor(
+class LocationRepositoryImpl(
     private val fusedLocationProviderClient: FusedLocationProviderClient,
     private val context: Context
 ): LocationRepository {

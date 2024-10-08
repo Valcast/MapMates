@@ -1,3 +1,54 @@
 <resources>
     <string name="app_name">SocialMeetingApp</string>
+
+
+    <string name="next_button">Continue</string>
+
+    <!-- ______________ -->
+    <!-- Authentication -->
+    <string name="email_hint">Email Address</string>
+    <string name="password_hint">Password</string>
+
+    <!-- Login Screen -->
+    <string name="login_title">Welcome Back!</string>
+    <string name="login_title_first">Welcome!</string>
+    <string name="login_description">Enter your email address and password to access your account.</string>
+
+    <string name="login_forgot_password_button">Forgot password?</string>
+    <string name="login_button">Sign in</string>
+
+    <string name="login_no_account">No account?</string>
+    <string name="login_register_button">Register here</string>
+
+    <!-- Forgot Password Screen -->
+    <string name="forgot_password_header">Forgot your password?</string>
+    <string name="forgot_password_description">No worries, enter your email address and we will send you a link to reset your password.</string>
+    <string name="send_link_button">Send link</string>
+    <string name="confirmation_text">Check your inbox, we’ve sent you instructions to reset your password.</string>
+    <string name="back_to_login_button"> \u003c- back to login</string>
+
+
+    <!-- Register Screen -->
+    <string name="register_title">Create an Account</string>
+    <string name="register_description">Join us and start organizing or discovering events around you!</string>
+    <string name="register_confirm_password_hint">Confirm Password</string>
+    <string name="register_button">Sign Up</string>
+    <string name="already_have_account">Already have an account?</string>
+    <string name="login_here">Log in here</string>
+    <string name="register_error_empty_fields">Please fill in all fields</string>
+    <string name="register_error_password_mismatch">Passwords do not match</string>
+    <string name="register_error_invalid_email">Invalid email address</string>
+
+    <!-- Register Profile Screen -->
+    <string name="register_profile_title">What\'s your name?</string>
+    <string name="register_profile_description">Your name will be showed, when you create a new event or join one</string>
+    <string name="profile_name_hint">Name</string>
+    <string name="register_profile_bio_description">Describe yourself for other people to know you better</string>
+    <string name="profile_bio_hint">Bio (optional)</string>
+    <string name="register_location_title">GPS Permissions</string>
+    <string name="register_location_description">We need to know your location to show you nearest events</string>
+    <string name="register_location_finish">Let\'s begin</string>
+    <string name="register_location_button">Grant permission</string>
+    <string name="register_location_permission_not_granted">We really need this permission :(</string>
+    <string name="register_location_skip">Skip for now...</string>
 </resources>

@@ -10,7 +10,10 @@ import androidx.compose.ui.Modifier
 
 @Composable
 fun SettingsScreen(innerPadding: PaddingValues) {
-    Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+    Box(modifier = Modifier
+        .fillMaxSize()
+        .padding(innerPadding)) {
         Text(text = "Settings Screen")
+
     }
 }

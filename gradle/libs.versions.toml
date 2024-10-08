@@ -1,16 +1,18 @@
 [versions]
-agp = "8.5.1"
+agp = "8.5.2"
+coreSplashscreen = "1.0.1"
+datastorePreferences = "1.1.1"
 kotlin = "2.0.20"
 coreKtx = "1.13.1"
 junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
-lifecycleRuntimeKtx = "2.8.5"
+lifecycleRuntimeKtx = "2.8.6"
 activityCompose = "1.9.2"
-composeBom = "2024.04.01"
-navigationCompose = "2.8.1"
+composeBom = "2024.09.03"
+navigationCompose = "2.8.2"
 googleServices = "4.4.2"
-firebase = "33.3.0"
+firebase = "33.4.0"
 hilt = "2.52"
 hiltCompose = "1.2.0"
 googleLocation = "21.3.0"
@@ -18,13 +20,14 @@ kotlinxCoroutines = "1.8.1"
 googleMaps = "19.0.0"
 googleMapsKotlin = "5.1.1"
 googleMapsCompose = "6.1.0"
+playServicesAuth = "21.2.0"
 secretsGradlePlugin = "2.0.1"
 kotlinxSerialization = "1.7.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
-firebase-auth = { module = "com.google.firebase:firebase-auth" }
-firebase-firestore = { module = "com.google.firebase:firebase-firestore" }
+androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "coreSplashscreen" }
+androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferences" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
@@ -47,13 +50,17 @@ hilt-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", vers
 kotlinx-coroutines = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinxCoroutines"}
 kotlinx-coroutines-play-services = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-play-services", version.ref = "kotlinxCoroutines"}
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization"}
+
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebase"}
 firebase-analytics = {group = "com.google.firebase", name = "firebase-analytics"}
+firebase-auth = { module = "com.google.firebase:firebase-auth" }
+firebase-firestore = { module = "com.google.firebase:firebase-firestore" }
 
 google-location = {group = "com.google.android.gms", name = "play-services-location", version.ref = "googleLocation"}
 google-maps = { group = "com.google.android.gms", name = "play-services-maps", version.ref = "googleMaps"}
 google-maps-kotlin = { group = "com.google.maps.android", name = "maps-ktx", version.ref = "googleMapsKotlin"}
 google-maps-compose = { group = "com.google.maps.android", name = "maps-compose", version.ref = "googleMapsCompose"}
+play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "playServicesAuth" }
 secrets-gradle-plugin = { module = "com.google.android.libraries.mapsplatform.secrets-gradle-plugin:secrets-gradle-plugin", version.ref = "secretsGradlePlugin" }
 
 [plugins]

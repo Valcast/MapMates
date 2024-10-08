@@ -10,7 +10,7 @@ class NetworkManager(private val connectivityManager: ConnectivityManager) {
     val isConnected: Boolean
         get() = _isConnected
 
-    private val networkRequest = NetworkRequest.Builder().addTransportType(NetworkCapabilities.TRANSPORT_WIFI).build()
+    private val networkRequest = NetworkRequest.Builder().addTransportType(NetworkCapabilities.TRANSPORT_WIFI).addTransportType(NetworkCapabilities.TRANSPORT_CELLULAR).build()
 
     init {
         registerCallback()
