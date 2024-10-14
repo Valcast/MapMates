@@ -1,4 +1,4 @@
-package com.example.socialmeetingapp.domain.model
+package com.example.socialmeetingapp.presentation.authentication
 
 sealed class AuthenticationState {
     data object Initial : AuthenticationState()

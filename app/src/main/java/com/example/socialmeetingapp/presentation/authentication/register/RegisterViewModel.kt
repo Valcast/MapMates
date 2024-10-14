@@ -2,9 +2,8 @@ package com.example.socialmeetingapp.presentation.authentication.register
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.socialmeetingapp.domain.model.UserResult
-import com.example.socialmeetingapp.domain.model.AuthenticationState
-import com.example.socialmeetingapp.domain.repository.UserRepository
+import com.example.socialmeetingapp.domain.user.usecase.RegisterUserUseCase
+import com.example.socialmeetingapp.presentation.authentication.AuthenticationState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,27 +13,16 @@ import javax.inject.Inject
 
 @HiltViewModel
 class RegisterViewModel @Inject constructor(
-    private val userRepository: UserRepository
-): ViewModel() {
-    private var _state =
-        MutableStateFlow<AuthenticationState>(AuthenticationState.Initial)
+    private val registerUserUseCase: RegisterUserUseCase
+) : ViewModel() {
+    private var _state = MutableStateFlow<AuthenticationState>(AuthenticationState.Initial)
     val state: StateFlow<AuthenticationState> = _state.asStateFlow()
 
-    suspend fun registerUser(email: String, password: String, confirmPassword: String) {
-        if (email.isBlank() || password.isBlank()) {
-            _state.value = AuthenticationState.Error("Email and password cannot be empty")
-            return
-        }
-
-        if (password != confirmPassword) {
-            _state.value = AuthenticationState.Error("Passwords do not match")
-            return
-        }
-
+    fun registerUser(email: String, password: String, confirmPassword: String) {
         _state.value = AuthenticationState.Loading
 
         viewModelScope.launch {
-            when (val registerResult = userRepository.registerUser(email, password)) {
+            when (val registerResult = registerUserUseCase(email, password, confirmPassword)) {
                 is UserResult.Success -> {
                     _state.value = AuthenticationState.Success
                 }
@@ -42,6 +30,10 @@ class RegisterViewModel @Inject constructor(
                 is UserResult.Error -> {
                     _state.value =
                         AuthenticationState.Error(registerResult.message)
+                }
+
+                else -> {
+                    return@launch
                 }
             }
         }

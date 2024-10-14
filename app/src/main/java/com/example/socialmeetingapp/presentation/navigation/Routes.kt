@@ -1,4 +1,4 @@
-package com.example.socialmeetingapp.domain.model.navigation
+package com.example.socialmeetingapp.presentation.navigation
 
 import kotlinx.serialization.Serializable
 
@@ -31,4 +31,11 @@ sealed class Routes {
     @Serializable
     data object RegisterLocation : Routes()
 
+    @Serializable
+    data class CreateEvent(val latitude: Double, val longitude: Double) : Routes()
+    
+    @Serializable
+    data class Event(val id: String) : Routes()
+
 }
+

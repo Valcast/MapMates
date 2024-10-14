@@ -1,13 +1,10 @@
 package com.example.socialmeetingapp.presentation.profile
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import com.example.socialmeetingapp.data.repository.FirebaseUserRepositoryImpl
-import com.example.socialmeetingapp.domain.repository.UserRepository
+import com.example.socialmeetingapp.domain.user.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel

@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.socialmeetingapp.R
-import com.example.socialmeetingapp.domain.model.AuthenticationState
+import com.example.socialmeetingapp.presentation.authentication.AuthenticationState
 import kotlinx.coroutines.launch
 
 @Composable

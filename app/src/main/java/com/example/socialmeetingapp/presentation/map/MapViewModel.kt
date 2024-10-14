@@ -1,13 +1,15 @@
 package com.example.socialmeetingapp.presentation.map
 
 import android.location.Location
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.socialmeetingapp.domain.model.LocationResult
-import com.example.socialmeetingapp.domain.repository.LocationRepository
+import com.example.socialmeetingapp.domain.common.model.Resource
+import com.example.socialmeetingapp.domain.event.model.Event
+import com.example.socialmeetingapp.domain.location.model.LocationResult
+import com.example.socialmeetingapp.domain.event.repository.EventRepository
+import com.example.socialmeetingapp.domain.event.usecase.GetAllEventsUseCase
+import com.example.socialmeetingapp.domain.location.repository.LocationRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.onStart
@@ -15,31 +17,44 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-sealed class MapState {
-    data object Loading : MapState()
-    data class LocationAvailable(val location: Location) : MapState()
-    data class Error(val message: String) : MapState()
-}
-
 @HiltViewModel
 class MapViewModel @Inject constructor(
-    private val locationRepository: LocationRepository
-): ViewModel()
- {
-    private var _state = MutableStateFlow<MapState>(MapState.Loading)
-    val state = _state.onStart {
+    private val locationRepository: LocationRepository,
+    private val getAllEventsUseCase: GetAllEventsUseCase
+) : ViewModel() {
+    private var _locationState = MutableStateFlow<Resource<Location>>(Resource.Loading)
+    val locationState = _locationState.onStart {
         viewModelScope.launch {
-            while (true) {
-                when (val locationResult = locationRepository.getCurrentLocation()) {
-                    is LocationResult.Success -> {
-                        _state.value = MapState.LocationAvailable(locationResult.location)
-                    }
-                    is LocationResult.Error -> {
-                        _state.value = MapState.Error(locationResult.message)
-                    }
-                }
+            locationRepository.latestLocation.collect { locationResult ->
+                when (locationResult) {
+                    is LocationResult.Error -> _locationState.value =
+                        MapState.Error(locationResult.message)
 
-                delay(2000L)
+                    is LocationResult.Success -> _locationState.value =
+                        MapState.LocationAvailable(locationResult.location)
+                }
+            }
+
+        }
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5000),
+        MapState.Loading
+    )
+
+    private var _eventsState = MutableStateFlow<MapState>(MapState.Loading)
+    val eventsState = _eventsState.onStart {
+        viewModelScope.launch {
+            val eventsResult = getAllEventsUseCase()
+
+            when (eventsResult) {
+                is EventResult.SuccessMultiple -> _eventsState.value =
+                    MapState.EventsAvailable(eventsResult.events)
+
+                is EventResult.Error -> _eventsState.value = MapState.Error(eventsResult.message)
+                else -> {
+                    return@launch
+                }
             }
         }
     }.stateIn(

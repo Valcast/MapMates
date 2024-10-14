@@ -29,11 +29,7 @@ fun RegisterLocationScreen(
     handleLocationPermission: ((Boolean) -> Unit) -> Unit,
     navigateToMap: () -> Unit
 ) {
-    var locationPermissionGranted by rememberSaveable { mutableStateOf(true) }
-
-    LaunchedEffect(Unit) {
-        handleLocationPermission { locationPermissionGranted = it }
-    }
+    var locationPermissionGranted by rememberSaveable { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -50,14 +46,9 @@ fun RegisterLocationScreen(
 
         Button(onClick = {
             handleLocationPermission { locationPermissionGranted = it }
+            navigateToMap()
         }, modifier = Modifier.padding(vertical = 16.dp), enabled = !locationPermissionGranted) {
             Text(text = stringResource(id = R.string.register_location_button))
-        }
-
-        if (!locationPermissionGranted) {
-            Text(text = stringResource(id = R.string.register_location_permission_not_granted),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.error)
         }
 
         TextButton(onClick = { navigateToMap() }) {

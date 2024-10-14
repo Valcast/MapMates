@@ -1,4 +1,4 @@
-package com.example.socialmeetingapp.presentation
+package com.example.socialmeetingapp.data.utils
 
 import android.content.Context
 import android.content.pm.PackageManager

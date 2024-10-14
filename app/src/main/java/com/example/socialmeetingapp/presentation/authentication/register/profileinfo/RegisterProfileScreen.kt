@@ -6,10 +6,9 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -21,7 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.socialmeetingapp.R
-import com.example.socialmeetingapp.domain.model.AuthenticationState
+import com.example.socialmeetingapp.presentation.authentication.AuthenticationState
 import com.example.socialmeetingapp.presentation.authentication.components.AuthenticationError
 import com.example.socialmeetingapp.presentation.authentication.components.AuthenticationTextField
 import com.example.socialmeetingapp.presentation.authentication.components.Description
@@ -34,6 +33,12 @@ fun RegisterProfileScreen(innerPadding: PaddingValues, navigateToRegisterLocatio
 
     var name by rememberSaveable { mutableStateOf("") }
     var bio by rememberSaveable { mutableStateOf("") }
+
+    LaunchedEffect(state) {
+        if (state is AuthenticationState.Success) {
+            navigateToRegisterLocation()
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -62,14 +67,7 @@ fun RegisterProfileScreen(innerPadding: PaddingValues, navigateToRegisterLocatio
 
         AuthenticationTextField(value = bio, onValueChange = {bio = it}, labelStringResource = R.string.profile_bio_hint)
 
-        Button(onClick = {
-            if (name.isEmpty()) {
-                return@Button
-            }
-
-            viewModel.updateUsername(name)
-            navigateToRegisterLocation()
-        }, enabled = state !is AuthenticationState.Loading, modifier = Modifier.padding(top = 16.dp)) {
+        Button(onClick = { viewModel.modifyUser(name, bio) }, enabled = state !is AuthenticationState.Loading, modifier = Modifier.padding(top = 16.dp)) {
             if (state is AuthenticationState.Loading) {
                 CircularProgressIndicator()
             } else {

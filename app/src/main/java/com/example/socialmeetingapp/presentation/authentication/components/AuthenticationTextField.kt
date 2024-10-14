@@ -42,7 +42,15 @@ fun AuthenticationTextField(
                 style = MaterialTheme.typography.labelSmall
             )
         },
-        visualTransformation = if (isSensitiveData) PasswordVisualTransformation() else VisualTransformation.None,
+        visualTransformation = if (isSensitiveData) {
+            if (isSensitiveDataVisible) {
+                VisualTransformation.None
+            } else {
+                PasswordVisualTransformation()
+            }
+        } else {
+            VisualTransformation.None
+        },
         trailingIcon = {
             if (!isSensitiveData) {
                 return@OutlinedTextField

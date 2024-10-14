@@ -2,9 +2,9 @@ package com.example.socialmeetingapp.presentation.authentication.forgot
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.socialmeetingapp.domain.model.UserResult
-import com.example.socialmeetingapp.domain.model.AuthenticationState
-import com.example.socialmeetingapp.domain.repository.UserRepository
+import com.example.socialmeetingapp.presentation.authentication.AuthenticationState
+import com.example.socialmeetingapp.domain.user.repository.UserRepository
+import com.example.socialmeetingapp.presentation.authentication.AuthenticationState.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,7 +30,11 @@ class ForgotPasswordViewModel @Inject constructor(
                 }
 
                 is UserResult.Error -> {
-                    _state.value = AuthenticationState.Error(resetResult.message)
+                    _state.value = Error(resetResult.message)
+                }
+
+                else -> {
+                    return@launch
                 }
             }
         }
