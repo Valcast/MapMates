@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.socialmeetingapp.R
-import com.example.socialmeetingapp.presentation.authentication.AuthenticationState
+import com.example.socialmeetingapp.domain.common.model.Result
 import kotlinx.coroutines.launch
 
 @Composable
@@ -67,8 +67,8 @@ fun ForgotPasswordScreen(innerPadding: PaddingValues, navigateToLogin: () -> Uni
             coroutineScope.launch {
                 viewModel.resetPassword(email)
             }
-        }, enabled = state !is AuthenticationState.Loading, modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)) {
-            if (state is AuthenticationState.Loading) {
+        }, enabled = state !is Result.Success, modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)) {
+            if (state is Result.Loading) {
                 CircularProgressIndicator()
             } else {
                 Text(

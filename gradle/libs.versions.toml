@@ -1,5 +1,6 @@
 [versions]
-agp = "8.7.0"
+agp = "8.7.1"
+converterGson = "2.7.2"
 coreSplashscreen = "1.0.1"
 datastorePreferences = "1.1.1"
 kotlin = "2.0.20"
@@ -21,13 +22,16 @@ googleMaps = "19.0.0"
 googleMapsKotlin = "5.1.1"
 googleMapsCompose = "6.1.0"
 playServicesAuth = "21.2.0"
+retrofit = "2.7.2"
 secretsGradlePlugin = "2.0.1"
 kotlinxSerialization = "1.7.1"
+kotlinxDatetime = "0.6.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "coreSplashscreen" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferences" }
+converter-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "converterGson" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
@@ -50,6 +54,7 @@ hilt-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", vers
 kotlinx-coroutines = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinxCoroutines"}
 kotlinx-coroutines-play-services = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-play-services", version.ref = "kotlinxCoroutines"}
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization"}
+kotlinx-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version.ref = "kotlinxDatetime"}
 
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebase"}
 firebase-analytics = {group = "com.google.firebase", name = "firebase-analytics"}
@@ -61,6 +66,7 @@ google-maps = { group = "com.google.android.gms", name = "play-services-maps", v
 google-maps-kotlin = { group = "com.google.maps.android", name = "maps-ktx", version.ref = "googleMapsKotlin"}
 google-maps-compose = { group = "com.google.maps.android", name = "maps-compose", version.ref = "googleMapsCompose"}
 play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "playServicesAuth" }
+retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }
 secrets-gradle-plugin = { module = "com.google.android.libraries.mapsplatform.secrets-gradle-plugin:secrets-gradle-plugin", version.ref = "secretsGradlePlugin" }
 
 [plugins]

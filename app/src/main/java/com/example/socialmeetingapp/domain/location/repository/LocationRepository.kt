@@ -1,11 +1,15 @@
 package com.example.socialmeetingapp.domain.location.repository
 
-import com.example.socialmeetingapp.domain.location.model.LocationResult
+import android.location.Location
+import com.example.socialmeetingapp.domain.common.model.Result
+import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.flow.Flow
 
 interface LocationRepository {
-    val latestLocation: Flow<LocationResult>
+    val latestLocation: Flow<Result<Location>>
 
     fun hasLocationPermission(): Boolean
+
+    suspend fun getAddressFromLatLng(location: LatLng): Result<String>
 }
 

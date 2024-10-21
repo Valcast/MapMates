@@ -1,5 +1,6 @@
 package com.example.socialmeetingapp.domain.user.model
 
+import kotlinx.datetime.LocalDateTime
 import java.util.Date
 
 data class User(
@@ -11,8 +12,8 @@ data class User(
     val status: String? = null,
     val role: String? = null,
     val isVerified: Boolean? = null,
-    val createdAt: Date = Date(),
-    val lastLogin: Date? = null,
-    val lastPasswordChange: Date? = null,
+    val createdAt: LocalDateTime? = null,
+    val lastLogin: LocalDateTime? = null,
+    val lastPasswordChange: LocalDateTime? = null,
     val bio: String? = null
 )

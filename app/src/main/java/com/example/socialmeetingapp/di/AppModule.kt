@@ -5,6 +5,7 @@ import android.net.ConnectivityManager
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
+import com.example.socialmeetingapp.data.api.GeocodingApi
 import com.example.socialmeetingapp.data.repository.FirebaseUserRepositoryImpl
 import com.example.socialmeetingapp.data.repository.LocationRepositoryImpl
 import com.example.socialmeetingapp.data.utils.NetworkManager
@@ -22,6 +23,8 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 import javax.inject.Singleton
 
 @Module
@@ -37,8 +40,8 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideLocationRepository(fusedLocationProviderClient: FusedLocationProviderClient, @ApplicationContext context: Context): LocationRepository {
-        return LocationRepositoryImpl(fusedLocationProviderClient, context)
+    fun provideLocationRepository(fusedLocationProviderClient: FusedLocationProviderClient, geocodingApi: GeocodingApi, @ApplicationContext context: Context): LocationRepository {
+        return LocationRepositoryImpl(fusedLocationProviderClient, context, geocodingApi)
     }
 
     @Provides
@@ -75,6 +78,16 @@ object AppModule {
     @Singleton
     fun provideUserRepository(firebaseAuth: FirebaseAuth, networkManager: NetworkManager, firestoreDatabase: FirebaseFirestore): UserRepository {
         return FirebaseUserRepositoryImpl(firebaseAuth, networkManager, firestoreDatabase)
+    }
+
+    @Provides
+    @Singleton
+    fun provideGeocodingApi(): GeocodingApi {
+        return Retrofit.Builder()
+            .baseUrl("https://maps.googleapis.com")
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(GeocodingApi::class.java)
     }
 }
 

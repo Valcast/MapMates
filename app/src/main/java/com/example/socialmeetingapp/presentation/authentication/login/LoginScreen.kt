@@ -28,7 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.socialmeetingapp.R
-import com.example.socialmeetingapp.presentation.authentication.AuthenticationState
+import com.example.socialmeetingapp.domain.common.model.Result
 import com.example.socialmeetingapp.presentation.authentication.components.AuthenticationError
 import com.example.socialmeetingapp.presentation.authentication.components.AuthenticationSubmitButton
 import com.example.socialmeetingapp.presentation.authentication.components.AuthenticationTextField
@@ -51,7 +51,7 @@ fun LoginScreen(
     var password by remember { mutableStateOf("") }
 
     LaunchedEffect(state) {
-        if (state is AuthenticationState.Success) {
+        if (state is Result.Success) {
             navigateToMap()
         }
     }
@@ -70,7 +70,7 @@ fun LoginScreen(
             modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)
         )
         
-        if (state is AuthenticationState.Error) {
+        if (state is Result.Error) {
             AuthenticationError(message = state.message)
         }
 
@@ -104,8 +104,8 @@ fun LoginScreen(
 
             AuthenticationSubmitButton(
                 onClickListener = { viewModel.login(email, password) },
-                enabled = state !is AuthenticationState.Loading,
-                isLoading = state is AuthenticationState.Loading,
+                enabled = state !is Result.Loading,
+                isLoading = state is Result.Loading,
                 textStringResource = R.string.login_button
             )
         }

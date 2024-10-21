@@ -2,22 +2,47 @@ package com.example.socialmeetingapp.domain.event.model
 
 import com.example.socialmeetingapp.domain.user.model.User
 import com.google.android.gms.maps.model.LatLng
-import com.google.firebase.firestore.DocumentReference
-import java.util.Date
+import kotlinx.datetime.Clock
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.plus
+import kotlinx.datetime.toLocalDateTime
 
 data class Event(
+    val id: String,
     val title: String,
     val description: String,
-    var location: LatLng,
-    val author: User? = null,
+    var locationCoordinates: LatLng,
+    var locationAddress: String? = null,
+    val author: String? = null,
+    val participants: List<User> = emptyList(),
     val maxParticipants: Int,
-    val date: Date,
-    val time: Date,
-    val createdAt: Date? = null,
-    val updatedAt: Date? = null,
+    val startTime: LocalDateTime,
+    val endTime: LocalDateTime,
+    val createdAt: LocalDateTime? = null,
+    val updatedAt: LocalDateTime? = null,
     val isPrivate: Boolean,
-    val isOnline: Boolean,
-    val duration: Int
-)
+    val isOnline: Boolean
+) {
+    companion object {
+        val EMPTY = Event(
+            id = "",
+            title = "",
+            description = "",
+            locationCoordinates = LatLng(0.0, 0.0),
+            locationAddress = null,
+            author = null,
+            participants = emptyList(),
+            maxParticipants = 3,
+            startTime = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()),
+            endTime = Clock.System.now().plus(2, DateTimeUnit.HOUR).toLocalDateTime(TimeZone.currentSystemDefault()),
+            createdAt = null,
+            updatedAt = null,
+            isPrivate = false,
+            isOnline = false
+        )
+    }
+}
 
 

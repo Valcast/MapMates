@@ -33,7 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.socialmeetingapp.R
-import com.example.socialmeetingapp.presentation.authentication.AuthenticationState
+import com.example.socialmeetingapp.domain.common.model.Result
 import com.example.socialmeetingapp.presentation.authentication.components.AuthenticationError
 import com.example.socialmeetingapp.presentation.authentication.components.AuthenticationTextField
 import com.example.socialmeetingapp.presentation.authentication.components.ThirdPartyGoogle
@@ -54,7 +54,7 @@ fun RegisterScreen(
     val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(state) {
-        if (state is AuthenticationState.Success) {
+        if (state is Result.Success) {
             navigateToRegisterProfileInfo()
         }
     }
@@ -83,7 +83,7 @@ fun RegisterScreen(
             modifier = Modifier.padding(bottom = 16.dp, top = 8.dp)
         )
 
-        if (state is AuthenticationState.Error) {
+        if (state is Result.Error) {
             AuthenticationError(message = state.message)
         }
 
@@ -113,10 +113,10 @@ fun RegisterScreen(
                     viewModel.registerUser(email, password, confirmPassword)
                 }
             },
-            enabled = state !is AuthenticationState.Loading,
+            enabled = state !is Result.Loading,
             modifier = Modifier.padding(top = 16.dp)
         ) {
-            if (state is AuthenticationState.Loading) {
+            if (state is Result.Loading) {
                 CircularProgressIndicator()
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically) {

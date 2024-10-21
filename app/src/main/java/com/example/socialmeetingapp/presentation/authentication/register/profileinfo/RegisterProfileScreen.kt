@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.socialmeetingapp.R
-import com.example.socialmeetingapp.presentation.authentication.AuthenticationState
+import com.example.socialmeetingapp.domain.common.model.Result
 import com.example.socialmeetingapp.presentation.authentication.components.AuthenticationError
 import com.example.socialmeetingapp.presentation.authentication.components.AuthenticationTextField
 import com.example.socialmeetingapp.presentation.authentication.components.Description
@@ -35,7 +35,7 @@ fun RegisterProfileScreen(innerPadding: PaddingValues, navigateToRegisterLocatio
     var bio by rememberSaveable { mutableStateOf("") }
 
     LaunchedEffect(state) {
-        if (state is AuthenticationState.Success) {
+        if (state is Result.Success) {
             navigateToRegisterLocation()
         }
     }
@@ -54,7 +54,7 @@ fun RegisterProfileScreen(innerPadding: PaddingValues, navigateToRegisterLocatio
             modifier = Modifier.padding(top = 8.dp, bottom = 16.dp)
         )
         
-        if (state is AuthenticationState.Error) {
+        if (state is Result.Error) {
             AuthenticationError(message = state.message)
         }
 
@@ -67,8 +67,8 @@ fun RegisterProfileScreen(innerPadding: PaddingValues, navigateToRegisterLocatio
 
         AuthenticationTextField(value = bio, onValueChange = {bio = it}, labelStringResource = R.string.profile_bio_hint)
 
-        Button(onClick = { viewModel.modifyUser(name, bio) }, enabled = state !is AuthenticationState.Loading, modifier = Modifier.padding(top = 16.dp)) {
-            if (state is AuthenticationState.Loading) {
+        Button(onClick = { viewModel.modifyUser(name, bio) }, enabled = state !is Result.Loading, modifier = Modifier.padding(top = 16.dp)) {
+            if (state is Result.Loading) {
                 CircularProgressIndicator()
             } else {
                 Text(text = stringResource(id = R.string.next_button))

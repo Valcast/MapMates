@@ -21,6 +21,7 @@ import com.example.socialmeetingapp.presentation.introduction.IntroductionScreen
 import com.example.socialmeetingapp.presentation.map.MapScreen
 import com.example.socialmeetingapp.presentation.profile.ProfileScreen
 import com.example.socialmeetingapp.presentation.settings.SettingsScreen
+import com.google.android.gms.maps.model.LatLng
 
 @Composable
 fun NavGraph(
@@ -33,13 +34,13 @@ fun NavGraph(
 ) {
 
     NavHost(
-        navController = navController, startDestination = Routes.Event("hAy5d0MJuNw4qx22f1lA"),
-//        when {
-//            state is MainState.Content && state.isFirstTimeLaunch -> Routes.Introduction
-//            state is MainState.Content && !state.isLoggedIn -> Routes.Login
-//            state is MainState.Content && state.isLoggedIn -> Routes.Map
-//            else -> return
-//        },
+        navController = navController,
+        startDestination = when {
+            state is MainState.Content && state.isFirstTimeLaunch -> Routes.Introduction
+            state is MainState.Content && !state.isLoggedIn -> Routes.Login
+            state is MainState.Content && state.isLoggedIn -> Routes.Map
+            else -> return
+        },
         enterTransition = { EnterTransition.None },
         exitTransition = { ExitTransition.None },
         popEnterTransition = { EnterTransition.None },
@@ -67,14 +68,23 @@ fun NavGraph(
         composable<Routes.Map> {
             setCurrentRoute(Routes.Map)
 
-            MapScreen(innerPadding = innerPadding, goToCreateEventScreen = { latitute, longtitude ->
-                navController.navigate(Routes.CreateEvent(latitute, longtitude)) {
-                    popUpTo(Routes.Map) {
-                        saveState = true
+            MapScreen(innerPadding = innerPadding,
+                goToCreateEventScreen = { latitute, longtitude ->
+                    navController.navigate(Routes.CreateEvent(latitute, longtitude)) {
+                        popUpTo(Routes.Map) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
                     }
-                    launchSingleTop = true
-                }
-            })
+                },
+                navigateToEvent = { eventId: String ->
+                    navController.navigate(Routes.Event(eventId)) {
+                        popUpTo(Routes.Map) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                    }
+                })
         }
 
         composable<Routes.Profile> {
@@ -219,7 +229,8 @@ fun NavGraph(
                     popUpTo(Routes.CreateEvent(args.latitude, args.longitude)) {
                         saveState = true
                     }
-                    launchSingleTop = true}
+                    launchSingleTop = true
+                }
             }, innerPadding)
         }
 
@@ -232,7 +243,8 @@ fun NavGraph(
                     popUpTo(Routes.Event(args.id)) {
                         saveState = true
                     }
-                    launchSingleTop = true}
+                    launchSingleTop = true
+            }
             }, innerPadding = innerPadding)
         }
     }

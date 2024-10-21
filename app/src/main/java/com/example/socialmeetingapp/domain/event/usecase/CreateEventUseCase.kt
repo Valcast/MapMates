@@ -1,25 +1,24 @@
 package com.example.socialmeetingapp.domain.event.usecase
 
+import com.example.socialmeetingapp.domain.common.model.Result
 import com.example.socialmeetingapp.domain.event.model.Event
 import com.example.socialmeetingapp.domain.event.repository.EventRepository
+import com.example.socialmeetingapp.domain.location.usecase.GetAddressFromLatLngUseCase
 import com.example.socialmeetingapp.domain.user.usecase.GetCurrentUserUseCase
 import java.util.Date
 import javax.inject.Inject
 
 class CreateEventUseCase @Inject constructor(
     private val eventRepository: EventRepository,
-    private val getCurrentUserUseCase: GetCurrentUserUseCase
+    private val getAddressFromLatLngUseCase: GetAddressFromLatLngUseCase
 ) {
-    suspend operator fun invoke(event: Event): EventResult {
-        val currentUserResult = getCurrentUserUseCase()
-
-        if (currentUserResult is UserResult.SuccessSingle) {
-            val event = event.copy(author = currentUserResult.user, createdAt = Date(System.currentTimeMillis()), updatedAt = Date(System.currentTimeMillis()))
-
-            return eventRepository.createEvent(event)
-        } else {
-            return EventResult.Error("Failed to get current user")
+    suspend operator fun invoke(event: Event): Result<Unit> {
+        when (val result = getAddressFromLatLngUseCase(event.locationCoordinates)) {
+            is Result.Success -> event.locationAddress = result.data
+            is Result.Error -> return Result.Error(result.message)
+            else -> Unit
         }
 
+        return eventRepository.createEvent(event)
     }
 }

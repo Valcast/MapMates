@@ -1,0 +1,8 @@
+package com.example.socialmeetingapp.domain.common.model
+
+sealed class Result<out T> {
+    data object Initial : Result<Nothing>()
+    data object Loading : Result<Nothing>()
+    data class Success<T>(val data: T? = null) : Result<T>()
+    data class Error(val message: String) : Result<Nothing>()
+}
