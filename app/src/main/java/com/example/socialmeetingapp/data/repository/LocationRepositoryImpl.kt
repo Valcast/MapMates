@@ -25,13 +25,13 @@ class LocationRepositoryImpl(
     private val context: Context,
     private val geocodingApi: GeocodingApi
 ) : LocationRepository {
-    override val latestLocation: Flow<Result<Location>> = callbackFlow {
+    override val latestLocation: Flow<Result<LatLng>> = callbackFlow {
         if (hasLocationPermission()) {
             val locationCallback = object : LocationCallback() {
                 override fun onLocationResult(locationResult: com.google.android.gms.location.LocationResult) {
                     val lastLocation = locationResult.lastLocation
                     if (lastLocation != null) {
-                        trySend(Result.Success(lastLocation))
+                        trySend(Result.Success(LatLng(lastLocation.latitude, lastLocation.longitude)))
                     } else {
                         trySend(Result.Error("No location available"))
                     }

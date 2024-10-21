@@ -18,10 +18,9 @@ import com.example.socialmeetingapp.presentation.authentication.register.profile
 import com.example.socialmeetingapp.presentation.event.EventScreen
 import com.example.socialmeetingapp.presentation.event.createevent.CreateEventScreen
 import com.example.socialmeetingapp.presentation.introduction.IntroductionScreen
-import com.example.socialmeetingapp.presentation.map.MapScreen
+import com.example.socialmeetingapp.presentation.home.HomeScreen
 import com.example.socialmeetingapp.presentation.profile.ProfileScreen
 import com.example.socialmeetingapp.presentation.settings.SettingsScreen
-import com.google.android.gms.maps.model.LatLng
 
 @Composable
 fun NavGraph(
@@ -68,7 +67,7 @@ fun NavGraph(
         composable<Routes.Map> {
             setCurrentRoute(Routes.Map)
 
-            MapScreen(innerPadding = innerPadding,
+            HomeScreen(innerPadding = innerPadding,
                 goToCreateEventScreen = { latitute, longtitude ->
                     navController.navigate(Routes.CreateEvent(latitute, longtitude)) {
                         popUpTo(Routes.Map) {
@@ -240,7 +239,7 @@ fun NavGraph(
 
             EventScreen(args.id, navigateToMap = {
                 navController.navigate(Routes.Map) {
-                    popUpTo(Routes.Event(args.id)) {
+                    popUpTo(Routes.Map) {
                         saveState = true
                     }
                     launchSingleTop = true

@@ -6,7 +6,7 @@ import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.flow.Flow
 
 interface LocationRepository {
-    val latestLocation: Flow<Result<Location>>
+    val latestLocation: Flow<Result<LatLng>>
 
     fun hasLocationPermission(): Boolean
 

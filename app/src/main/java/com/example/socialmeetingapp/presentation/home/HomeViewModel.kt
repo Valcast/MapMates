@@ -1,4 +1,4 @@
-package com.example.socialmeetingapp.presentation.map
+package com.example.socialmeetingapp.presentation.home
 
 import android.location.Location
 import androidx.lifecycle.ViewModel
@@ -6,8 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.socialmeetingapp.domain.common.model.Result
 import com.example.socialmeetingapp.domain.event.model.Event
 import com.example.socialmeetingapp.domain.event.usecase.GetAllEventsUseCase
-import com.example.socialmeetingapp.domain.location.repository.LocationRepository
 import com.example.socialmeetingapp.domain.location.usecase.GetCurrentLocationUseCase
+import com.google.android.gms.maps.model.LatLng
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -17,11 +17,11 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class MapViewModel @Inject constructor(
+class HomeViewModel @Inject constructor(
     private val getAllEventsUseCase: GetAllEventsUseCase,
     private val getCurrentLocationUseCase: GetCurrentLocationUseCase
 ) : ViewModel() {
-    private var _locationState = MutableStateFlow<Result<Location>>(Result.Loading)
+    private var _locationState = MutableStateFlow<Result<LatLng>>(Result.Loading)
     val locationState = _locationState.onStart {
         viewModelScope.launch {
             getCurrentLocationUseCase().collect { _locationState.value = it }
