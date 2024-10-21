@@ -10,5 +10,10 @@ You can create your own events, invite others, or browse through a variety of ev
 ![GoogleMap](https://img.shields.io/badge/Google_Map_Api-3d89fc?style=for-the-badge&logo=googlemaps&logoColor=white)
 ![Android Studio](https://img.shields.io/badge/Android_Studio-ffffff?style=for-the-badge&logo=androidstudio)
 
-**Android** application built using the **MVVM** architecture, leveraging **Hilt** for dependency injection.
-It features a fully **Jetpack Compose**-based UI and integrates **Firebase Authentication** and **Firestore** for backend services, along with **Google Maps API** for map-based event discovery.
+- Android Application
+- Jetpack Compose with Material 3 
+- MVVM and Clean Architecture
+- Hilt for dependency injection
+- Retrofit for handling REST API
+- Firebase for backend
+- Google Map API for map-based event search
