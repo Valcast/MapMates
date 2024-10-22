@@ -54,7 +54,7 @@ fun SocialMeetingApp(splashScreen: SplashScreen, permissionManager: PermissionMa
 
 
     SocialMeetingAppTheme {
-        Scaffold(modifier = Modifier.fillMaxSize(),
+        Scaffold(
             snackbarHost = {
                 SnackbarHost(snackbarHostState)
             },

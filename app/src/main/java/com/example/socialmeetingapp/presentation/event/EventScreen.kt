@@ -21,11 +21,9 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -49,7 +47,7 @@ import java.util.Locale
 
 
 @Composable
-fun EventScreen(eventID: String, navigateToMap: () -> Unit, innerPadding: PaddingValues) {
+fun EventScreen(eventID: String, navigateToMap: () -> Unit) {
     val viewModel = hiltViewModel<EventViewModel>()
     val state = viewModel.state.collectAsStateWithLifecycle().value
 
@@ -71,9 +69,13 @@ fun EventScreen(eventID: String, navigateToMap: () -> Unit, innerPadding: Paddin
         }
 
         is Result.Success -> {
-            EventContent(state.data, innerPadding, navigateToMap) {
-                viewModel.joinEvent(eventID)
-            }
+            EventContent(
+                eventData = state.data,
+                navigateToMap = navigateToMap,
+                joinEvent = {
+                    viewModel.joinEvent(eventID)
+                }
+            )
         }
 
         else -> {}
@@ -83,13 +85,11 @@ fun EventScreen(eventID: String, navigateToMap: () -> Unit, innerPadding: Paddin
 @Composable
 fun EventContent(
     eventData: Event,
-    innerPadding: PaddingValues,
     navigateToMap: () -> Unit,
     joinEvent: () -> Unit
 ) {
     Column(
         modifier = Modifier
-            .padding(innerPadding)
             .padding(16.dp)
             .fillMaxSize()
     ) {

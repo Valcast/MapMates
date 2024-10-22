@@ -1,7 +1,6 @@
 package com.example.socialmeetingapp.presentation.home
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -35,7 +34,6 @@ import com.google.maps.android.compose.rememberMarkerState
 
 @Composable
 fun HomeScreen(
-    innerPadding: PaddingValues,
     goToCreateEventScreen: (latitute: Double, longtitude: Double) -> Unit,
     navigateToEvent: (eventId: String) -> Unit
 ) {
@@ -52,6 +50,7 @@ fun HomeScreen(
     }
 
     LaunchedEffect(Unit) {
+
         if (currentLocationResult is Result.Success<LatLng>) {
             val currentLocation = (currentLocationResult as Result.Success<LatLng>).data
             cameraPositionState.position = CameraPosition.fromLatLngZoom(currentLocation, 12f)
@@ -66,8 +65,7 @@ fun HomeScreen(
 
             Box(
                 Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)) {
+                    .fillMaxSize()) {
 
                 if (isListView) {
                     LazyColumn {

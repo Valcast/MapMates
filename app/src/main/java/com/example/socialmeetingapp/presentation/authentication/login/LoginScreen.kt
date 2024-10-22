@@ -2,7 +2,6 @@ package com.example.socialmeetingapp.presentation.authentication.login
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,7 +17,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,11 +33,9 @@ import com.example.socialmeetingapp.presentation.authentication.components.Authe
 import com.example.socialmeetingapp.presentation.authentication.components.Description
 import com.example.socialmeetingapp.presentation.authentication.components.ThirdPartyGoogle
 import com.example.socialmeetingapp.presentation.authentication.components.Title
-import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
-    innerPadding: PaddingValues,
     navigateToMap: () -> Unit,
     navigateToRegister: () -> Unit,
     navigateToForgotPassword: () -> Unit
@@ -60,7 +56,6 @@ fun LoginScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(innerPadding)
             .padding(top = 64.dp, start = 32.dp, end = 32.dp, bottom = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {

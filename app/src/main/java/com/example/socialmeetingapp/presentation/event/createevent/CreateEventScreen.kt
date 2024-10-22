@@ -8,7 +8,6 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -35,15 +34,13 @@ import com.google.android.gms.maps.model.LatLng
 fun CreateEventScreen(
     latitude: Double,
     longtitude: Double,
-    navigateToMap: () -> Unit,
-    innerPadding: PaddingValues
+    navigateToMap: () -> Unit
 ) {
 
     val viewModel = hiltViewModel<CreateEventViewModel>()
     val state = viewModel.state.collectAsStateWithLifecycle().value
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val eventData by viewModel.eventData.collectAsStateWithLifecycle()
     val isNextButtonEnabled by viewModel.isNextButtonEnabled.collectAsStateWithLifecycle()
 
 
@@ -59,7 +56,6 @@ fun CreateEventScreen(
 
     Column(
         modifier = Modifier
-            .padding(innerPadding)
             .padding(horizontal = 40.dp, vertical = 16.dp)
             .fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,

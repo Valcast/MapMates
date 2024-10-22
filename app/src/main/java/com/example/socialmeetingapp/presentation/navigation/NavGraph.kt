@@ -3,7 +3,10 @@ package com.example.socialmeetingapp.presentation.navigation
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -43,7 +46,8 @@ fun NavGraph(
         enterTransition = { EnterTransition.None },
         exitTransition = { ExitTransition.None },
         popEnterTransition = { EnterTransition.None },
-        popExitTransition = { ExitTransition.None }
+        popExitTransition = { ExitTransition.None },
+        modifier = Modifier.padding(innerPadding).fillMaxSize()
     ) {
         composable<Routes.Introduction> {
             setCurrentRoute(Routes.Introduction)
@@ -67,15 +71,14 @@ fun NavGraph(
         composable<Routes.Map> {
             setCurrentRoute(Routes.Map)
 
-            HomeScreen(innerPadding = innerPadding,
-                goToCreateEventScreen = { latitute, longtitude ->
-                    navController.navigate(Routes.CreateEvent(latitute, longtitude)) {
-                        popUpTo(Routes.Map) {
-                            saveState = true
-                        }
-                        launchSingleTop = true
+            HomeScreen(goToCreateEventScreen = { latitute, longtitude ->
+                navController.navigate(Routes.CreateEvent(latitute, longtitude)) {
+                    popUpTo(Routes.Map) {
+                        saveState = true
                     }
-                },
+                    launchSingleTop = true
+                }
+            },
                 navigateToEvent = { eventId: String ->
                     navController.navigate(Routes.Event(eventId)) {
                         popUpTo(Routes.Map) {
@@ -89,22 +92,13 @@ fun NavGraph(
         composable<Routes.Profile> {
             setCurrentRoute(Routes.Profile)
 
-            ProfileScreen(
-                innerPadding = innerPadding,
-                navigateToLogin = {
-                    navController.navigate(Routes.Login) {
-                        popUpTo(Routes.Profile) {
-                            saveState = true
-                        }
-                        launchSingleTop = true
-                    }
-                })
+            ProfileScreen()
         }
 
         composable<Routes.Settings> {
             setCurrentRoute(Routes.Settings)
 
-            SettingsScreen(innerPadding = innerPadding)
+            SettingsScreen()
         }
 
         ///////////////////////////
@@ -114,7 +108,7 @@ fun NavGraph(
         composable<Routes.Login> {
             setCurrentRoute(Routes.Login)
 
-            LoginScreen(innerPadding = innerPadding, navigateToRegister = {
+            LoginScreen(navigateToRegister = {
                 navController.navigate(Routes.Register) {
                     popUpTo(Routes.Login) {
                         saveState = true
@@ -145,7 +139,6 @@ fun NavGraph(
             setCurrentRoute(Routes.ForgotPassword)
 
             ForgotPasswordScreen(
-                innerPadding = innerPadding,
                 navigateToLogin = {
                     navController.navigate(Routes.Login) {
                         popUpTo(Routes.Login) {
@@ -164,7 +157,7 @@ fun NavGraph(
         composable<Routes.Register> {
             setCurrentRoute(Routes.Register)
 
-            RegisterScreen(innerPadding = innerPadding, navigateToLogin = {
+            RegisterScreen(navigateToLogin = {
                 navController.navigate(Routes.Login) {
                     popUpTo(Routes.Login) {
                         saveState = true
@@ -186,7 +179,6 @@ fun NavGraph(
             setCurrentRoute(Routes.RegisterProfileInfo)
 
             RegisterProfileScreen(
-                innerPadding = innerPadding,
                 navigateToRegisterLocation = {
                     navController.navigate(Routes.RegisterLocation) {
                         popUpTo(Routes.RegisterProfileInfo) {
@@ -202,7 +194,6 @@ fun NavGraph(
             setCurrentRoute(Routes.RegisterLocation)
 
             RegisterLocationScreen(
-                innerPadding = innerPadding,
                 handleLocationPermission = { updateLocationPermission ->
                     permissionManager.checkPermissions(
                         PermissionManager.FINE_LOCATION_PERMISSION,
@@ -230,7 +221,7 @@ fun NavGraph(
                     }
                     launchSingleTop = true
                 }
-            }, innerPadding)
+            })
         }
 
         composable<Routes.Event> {
@@ -244,7 +235,7 @@ fun NavGraph(
                     }
                     launchSingleTop = true
             }
-            }, innerPadding = innerPadding)
+            })
         }
     }
 }

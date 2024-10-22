@@ -2,7 +2,6 @@ package com.example.socialmeetingapp.presentation.authentication.forgot
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
@@ -30,7 +29,7 @@ import com.example.socialmeetingapp.domain.common.model.Result
 import kotlinx.coroutines.launch
 
 @Composable
-fun ForgotPasswordScreen(innerPadding: PaddingValues, navigateToLogin: () -> Unit) {
+fun ForgotPasswordScreen(navigateToLogin: () -> Unit) {
 
     val viewModel = hiltViewModel<ForgotPasswordViewModel>()
     val state = viewModel.state.collectAsStateWithLifecycle().value
@@ -40,8 +39,7 @@ fun ForgotPasswordScreen(innerPadding: PaddingValues, navigateToLogin: () -> Uni
 
     Column(
         modifier = Modifier.fillMaxSize()
-            .padding(16.dp)
-            .padding(innerPadding), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center
+            .padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center
     ) {
         Text(
             text = stringResource(id = R.string.forgot_password_header),

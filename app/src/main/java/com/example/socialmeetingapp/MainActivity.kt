@@ -23,8 +23,6 @@ class MainActivity : ComponentActivity() {
 
         permissionManager = PermissionManager(this)
 
-
-
         enableEdgeToEdge()
         setContent {
             SocialMeetingApp(splashScreen, permissionManager, lifecycleScope)

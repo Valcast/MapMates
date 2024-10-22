@@ -2,14 +2,12 @@ package com.example.socialmeetingapp.presentation.authentication.register.locati
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -25,7 +23,6 @@ import com.example.socialmeetingapp.presentation.authentication.components.Title
 
 @Composable
 fun RegisterLocationScreen(
-    innerPadding: PaddingValues,
     handleLocationPermission: ((Boolean) -> Unit) -> Unit,
     navigateToMap: () -> Unit
 ) {

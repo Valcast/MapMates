@@ -2,7 +2,6 @@ package com.example.socialmeetingapp.presentation.authentication.register
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -41,7 +40,6 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun RegisterScreen(
-    innerPadding: PaddingValues,
     navigateToLogin: () -> Unit,
     navigateToRegisterProfileInfo: () -> Unit
 ) {
@@ -63,7 +61,6 @@ fun RegisterScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(innerPadding)
             .padding(top = 64.dp, start = 32.dp, end = 32.dp, bottom = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center

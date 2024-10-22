@@ -38,7 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.example.socialmeetingapp.presentation.components.DashedProgressIndicator
 
 @Composable
-fun IntroductionScreen(innerPadding: PaddingValues, onFinish: () -> Unit) {
+fun IntroductionScreen(onFinish: () -> Unit) {
 
     data class Page(val title: String, val description: String)
 
@@ -67,7 +67,6 @@ fun IntroductionScreen(innerPadding: PaddingValues, onFinish: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(innerPadding)
             .padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center

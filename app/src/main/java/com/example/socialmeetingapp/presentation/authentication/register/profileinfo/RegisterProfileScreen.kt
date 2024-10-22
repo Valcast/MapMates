@@ -2,7 +2,6 @@ package com.example.socialmeetingapp.presentation.authentication.register.profil
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -27,7 +26,7 @@ import com.example.socialmeetingapp.presentation.authentication.components.Descr
 import com.example.socialmeetingapp.presentation.authentication.components.Title
 
 @Composable
-fun RegisterProfileScreen(innerPadding: PaddingValues, navigateToRegisterLocation: () -> Unit) {
+fun RegisterProfileScreen(navigateToRegisterLocation: () -> Unit) {
     val viewModel = hiltViewModel<RegisterProfileScreenViewModel>()
     val state = viewModel.state.collectAsStateWithLifecycle().value
 
