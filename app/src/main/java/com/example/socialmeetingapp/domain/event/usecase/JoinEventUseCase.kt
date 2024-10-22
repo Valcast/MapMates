@@ -1,5 +1,6 @@
 package com.example.socialmeetingapp.domain.event.usecase
 
+import android.util.Log
 import com.example.socialmeetingapp.domain.common.model.Result
 import com.example.socialmeetingapp.domain.event.repository.EventRepository
 import com.example.socialmeetingapp.domain.user.usecase.GetCurrentUserUseCase

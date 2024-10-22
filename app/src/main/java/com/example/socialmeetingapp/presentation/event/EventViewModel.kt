@@ -1,5 +1,6 @@
 package com.example.socialmeetingapp.presentation.event
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.socialmeetingapp.domain.common.model.Result
@@ -46,6 +47,8 @@ class EventViewModel @Inject constructor(
             if (result is Result.Error) {
                 SnackbarManager.showMessage(result.message)
             }
+
+            SnackbarManager.showMessage("You have joined the event")
         }
     }
 }

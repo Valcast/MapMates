@@ -20,7 +20,9 @@ class FirebaseEventRepositoryImpl(
     private val db: FirebaseFirestore,
     private val getCurrentUserUseCase: GetCurrentUserUseCase
 ) : EventRepository {
+
     override suspend fun getEvents(): Result<List<Event>> {
+
         return try {
             val events = db.collection("events").get().asDeferred().await().documents.map { eventDocument ->
                 val event = Event(

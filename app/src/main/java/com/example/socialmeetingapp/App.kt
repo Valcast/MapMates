@@ -24,13 +24,15 @@ import com.example.socialmeetingapp.presentation.navigation.NavGraph
 import com.example.socialmeetingapp.presentation.navigation.NavigationBar
 import com.example.socialmeetingapp.presentation.snackbar.SnackbarManager
 import dagger.hilt.android.HiltAndroidApp
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
 @HiltAndroidApp
 class SocialMeetingApplication : Application()
 
 @Composable
-fun SocialMeetingApp(splashScreen: SplashScreen, permissionManager: PermissionManager) {
+fun SocialMeetingApp(splashScreen: SplashScreen, permissionManager: PermissionManager, lifecycleScope: CoroutineScope) {
     val viewModel = hiltViewModel<MainViewModel>()
     val state = viewModel.state.collectAsStateWithLifecycle().value
 
@@ -43,8 +45,13 @@ fun SocialMeetingApp(splashScreen: SplashScreen, permissionManager: PermissionMa
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
-        SnackbarManager.messages.collectLatest { message -> snackbarHostState.showSnackbar(message) }
+        lifecycleScope.launch {
+            SnackbarManager.messages.collectLatest { message ->
+                snackbarHostState.showSnackbar(message)
+            }
+        }
     }
+
 
     SocialMeetingAppTheme {
         Scaffold(modifier = Modifier.fillMaxSize(),
