@@ -87,7 +87,7 @@ class FirebaseUserRepositoryImpl(
                 )
             )
 
-            Result.Success()
+            Result.Success(Unit)
         } catch (_: FirebaseAuthWeakPasswordException) {
             Result.Error("Password is too weak")
         } catch (_: FirebaseAuthInvalidCredentialsException) {
@@ -108,7 +108,7 @@ class FirebaseUserRepositoryImpl(
             val authResult = firebaseAuth.signInWithEmailAndPassword(email, password).asDeferred().await()
             db.collection("users").document(authResult.user!!.uid).update("lastLogin", Clock.System.now())
 
-            Result.Success()
+            Result.Success(Unit)
         } catch (_: FirebaseAuthException) {
             Result.Error("Email address or password is incorrect")
         }
@@ -118,7 +118,7 @@ class FirebaseUserRepositoryImpl(
     override suspend fun resetPassword(email: String): Result<Unit> {
         return try {
             firebaseAuth.sendPasswordResetEmail(email).asDeferred().await()
-            Result.Success()
+            Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e.message ?: "Unknown error")
         }
@@ -143,7 +143,7 @@ class FirebaseUserRepositoryImpl(
 
             userDocument.set(updateData, SetOptions.merge()).asDeferred().await()
 
-            return Result.Success()
+            return Result.Success(Unit)
         } catch (e: Exception) {
             return Result.Error(e.message ?: "Unknown error")
         }

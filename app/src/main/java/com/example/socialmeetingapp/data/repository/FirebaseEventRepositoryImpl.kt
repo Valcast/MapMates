@@ -109,7 +109,7 @@ class FirebaseEventRepositoryImpl(
 
             db.collection("events").add(eventData).asDeferred().await()
 
-            Result.Success()
+            Result.Success(Unit)
         } catch (e: FirebaseFirestoreException) {
             return Result.Error(e.message ?: "Unknown error")
         }
@@ -138,7 +138,7 @@ class FirebaseEventRepositoryImpl(
             when (val currentUser = getCurrentUserUseCase()) {
                 is Result.Error -> return Result.Error(currentUser.message)
                 is Result.Success -> {
-                    val userRef = db.collection("users").document(currentUser.data!!.id)
+                    val userRef = db.collection("users").document(currentUser.data.id)
 
                     val eventAuthor = eventDocument.get().asDeferred().await().getDocumentReference("author")
 
@@ -148,7 +148,7 @@ class FirebaseEventRepositoryImpl(
 
                     eventDocument.update("participants", FieldValue.arrayUnion(userRef))
 
-                    Result.Success()
+                    Result.Success(Unit)
                 }
 
                 else -> return Result.Error("Unknown error")
@@ -166,10 +166,10 @@ class FirebaseEventRepositoryImpl(
             when (val currentUser = getCurrentUserUseCase()) {
                 is Result.Error -> return Result.Error(currentUser.message)
                 is Result.Success -> {
-                    val userRef = db.collection("users").document(currentUser.data!!.id)
+                    val userRef = db.collection("users").document(currentUser.data.id)
                     eventDocument.update("participants", FieldValue.arrayRemove(userRef))
 
-                    Result.Success()
+                    Result.Success(Unit)
                 }
                 else -> return Result.Error("Unknown error")
             }

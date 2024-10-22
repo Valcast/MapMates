@@ -26,7 +26,7 @@ class ForgotPasswordViewModel @Inject constructor(
         viewModelScope.launch {
             when (val resetResult = resetPasswordUseCase(email)) {
                 is Result.Success -> {
-                    _state.value = Result.Success()
+                    _state.value = Result.Success(Unit)
                 }
 
                 is Result.Error -> {

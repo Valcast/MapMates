@@ -28,7 +28,7 @@ class RegisterProfileScreenViewModel @Inject constructor(
                 UserUpdateData(username = username, bio = bio)
             )) {
                 is Result.Success<*> -> {
-                    _state.value = Result.Success()
+                    _state.value = Result.Success(Unit)
                 }
                 is Result.Error -> {
                     _state.value = Result.Error(updateResult.message)

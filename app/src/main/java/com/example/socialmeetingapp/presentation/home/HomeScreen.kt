@@ -16,7 +16,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -29,8 +28,8 @@ import com.google.android.gms.maps.GoogleMapOptions
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
-import com.google.maps.android.compose.currentCameraPositionState
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberMarkerState
 
@@ -42,19 +41,20 @@ fun HomeScreen(
 ) {
     val viewModel = hiltViewModel<HomeViewModel>()
     val eventsResult by viewModel.eventsState.collectAsStateWithLifecycle()
-    val currentLocation by viewModel.locationState.collectAsStateWithLifecycle()
+    val currentLocationResult by viewModel.locationState.collectAsStateWithLifecycle()
 
     var isListView by rememberSaveable { mutableStateOf(false) }
 
-    val defaultPosition = LatLng(0.0,0.0)
+    val defaultPosition = LatLng(0.0, 0.0)
 
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(defaultPosition, 10f)
     }
 
     LaunchedEffect(Unit) {
-        if( currentLocation is Result.Success) {
-            cameraPositionState.position = CameraPosition.fromLatLngZoom((currentLocation as Result.Success<LatLng>).data!!,12f)
+        if (currentLocationResult is Result.Success<LatLng>) {
+            val currentLocation = (currentLocationResult as Result.Success<LatLng>).data
+            cameraPositionState.position = CameraPosition.fromLatLngZoom(currentLocation, 12f)
         }
     }
 
@@ -62,9 +62,12 @@ fun HomeScreen(
 
     when (eventsResult) {
         is Result.Success -> {
-            val events = (eventsResult as Result.Success).data!!
+            val events = (eventsResult as Result.Success).data
 
-            Box(Modifier.fillMaxSize().padding(innerPadding)) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)) {
 
                 if (isListView) {
                     LazyColumn {
@@ -80,12 +83,16 @@ fun HomeScreen(
                         googleMapOptionsFactory = {
                             GoogleMapOptions().mapToolbarEnabled(false).zoomControlsEnabled(false)
                         },
+                        uiSettings = MapUiSettings(
+                            compassEnabled = false,
+                            zoomControlsEnabled = false,
+                            mapToolbarEnabled = false
+                        ),
                         onMapLongClick = {}
                     ) {
-                        if (currentLocation is Result.Success) {
+                        if (currentLocationResult is Result.Success) {
                             Marker(
-                                state = rememberMarkerState(position = (currentLocation as Result.Success<LatLng>).data!!),
-                                title = "Current Location"
+                                state = rememberMarkerState(position = (currentLocationResult as Result.Success<LatLng>).data)
                             )
                         }
 
@@ -98,19 +105,29 @@ fun HomeScreen(
 
                 SmallFloatingActionButton(
                     onClick = { isListView = !isListView },
-                    modifier = Modifier.align(Alignment.BottomStart).padding(16.dp),
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(16.dp),
                 ) {
-                    Icon(if (isListView) Icons.Filled.Place else Icons.AutoMirrored.Filled.List, "Map View")
+                    Icon(
+                        if (isListView) Icons.Filled.Place else Icons.AutoMirrored.Filled.List,
+                        "Map View"
+                    )
                 }
 
                 if (!isListView) {
                     SmallFloatingActionButton(
                         onClick = {
-                            if (currentLocation is Result.Success) {
-                                cameraPositionState.position = CameraPosition.fromLatLngZoom((currentLocation as Result.Success<LatLng>).data!!, 15f)
+                            if (currentLocationResult is Result.Success) {
+                                cameraPositionState.position = CameraPosition.fromLatLngZoom(
+                                    (currentLocationResult as Result.Success<LatLng>).data,
+                                    15f
+                                )
                             }
                         },
-                        modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(16.dp),
                     ) {
                         Icon(Icons.Filled.LocationOn, "Move to current position")
                     }

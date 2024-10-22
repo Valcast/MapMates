@@ -25,6 +25,7 @@ import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -70,7 +71,7 @@ fun EventScreen(eventID: String, navigateToMap: () -> Unit, innerPadding: Paddin
         }
 
         is Result.Success -> {
-            EventContent(state.data!!, innerPadding, navigateToMap) {
+            EventContent(state.data, innerPadding, navigateToMap) {
                 viewModel.joinEvent(eventID)
             }
         }

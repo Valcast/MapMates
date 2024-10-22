@@ -3,7 +3,10 @@ package com.example.socialmeetingapp
 import android.app.Application
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -19,7 +22,9 @@ import com.example.socialmeetingapp.data.utils.PermissionManager
 import com.example.socialmeetingapp.presentation.navigation.Routes
 import com.example.socialmeetingapp.presentation.navigation.NavGraph
 import com.example.socialmeetingapp.presentation.navigation.NavigationBar
+import com.example.socialmeetingapp.presentation.snackbar.SnackbarManager
 import dagger.hilt.android.HiltAndroidApp
+import kotlinx.coroutines.flow.collectLatest
 
 @HiltAndroidApp
 class SocialMeetingApplication : Application()
@@ -35,8 +40,17 @@ fun SocialMeetingApp(splashScreen: SplashScreen, permissionManager: PermissionMa
     var selectedNavItem by remember { mutableIntStateOf(0) }
     var currentRoute by remember { mutableStateOf<Routes>(Routes.Map) }
 
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(Unit) {
+        SnackbarManager.messages.collectLatest { message -> snackbarHostState.showSnackbar(message) }
+    }
+
     SocialMeetingAppTheme {
         Scaffold(modifier = Modifier.fillMaxSize(),
+            snackbarHost = {
+                SnackbarHost(snackbarHostState)
+            },
             bottomBar = {
                 if (currentRoute in listOf(
                         Routes.Map,

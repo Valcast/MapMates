@@ -7,6 +7,7 @@ import com.example.socialmeetingapp.domain.event.model.Event
 import com.example.socialmeetingapp.domain.event.usecase.GetEventUseCase
 import com.example.socialmeetingapp.domain.event.usecase.JoinEventUseCase
 import com.example.socialmeetingapp.domain.event.usecase.LeaveEventUseCase
+import com.example.socialmeetingapp.presentation.snackbar.SnackbarManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,13 +26,26 @@ class EventViewModel @Inject constructor(
 
     fun getEvent(id: String) {
         viewModelScope.launch {
-            _state.value = getEventUseCase(id)
+            when (val eventResult = getEventUseCase(id)) {
+                is Result.Success -> {
+                    _state.value = eventResult
+                }
+                is Result.Error -> {
+                    SnackbarManager.showMessage(eventResult.message)
+                }
+
+                else -> {}
+            }
         }
     }
 
     fun joinEvent(eventID: String) {
         viewModelScope.launch {
-            joinEventUseCase(eventID)
+            val result = joinEventUseCase(eventID)
+
+            if (result is Result.Error) {
+                SnackbarManager.showMessage(result.message)
+            }
         }
     }
 }

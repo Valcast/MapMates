@@ -25,7 +25,7 @@ class RegisterViewModel @Inject constructor(
         viewModelScope.launch {
             when (val registerResult = registerUserUseCase(email, password, confirmPassword)) {
                 is Result.Success<Unit> -> {
-                    _state.value = Result.Success()
+                    _state.value = Result.Success(Unit)
                 }
 
                 is Result.Error -> {
