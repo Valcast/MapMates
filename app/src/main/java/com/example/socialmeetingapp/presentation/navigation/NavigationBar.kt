@@ -28,19 +28,16 @@ fun NavigationBar(currentRoute: Routes, onItemClicked: (Routes) -> Unit) {
     val bottomNavItems = mapOf(
         Routes.Map to BottomNavItem(
             title = "Home",
-            route = "home",
             selectedIcon = Icons.Filled.Info,
             unselectedIcon = Icons.Outlined.Info
         ),
         Routes.Profile to BottomNavItem(
             title = "Search",
-            route = "search",
             selectedIcon = Icons.Filled.Search,
             unselectedIcon = Icons.Outlined.Search
         ),
         Routes.Settings to BottomNavItem(
             title = "Settings",
-            route = "settings",
             selectedIcon = Icons.Filled.Settings,
             unselectedIcon = Icons.Outlined.Settings
         )
@@ -53,7 +50,7 @@ fun NavigationBar(currentRoute: Routes, onItemClicked: (Routes) -> Unit) {
         bottomNavItems.entries.forEach { (route, item) ->
             NavigationBarItem(
                 selected = currentRoute == route,
-                onClick = { onItemClicked(route) },
+                onClick = { onItemClicked(route as Routes) },
                 icon = {
                     Icon(
                         imageVector = if (currentRoute == route) item.selectedIcon else item.unselectedIcon,
@@ -80,7 +77,6 @@ fun NavigationBar(currentRoute: Routes, onItemClicked: (Routes) -> Unit) {
 
 data class BottomNavItem(
     val title: String,
-    val route: String,
     val selectedIcon: ImageVector,
     val unselectedIcon: ImageVector
 )

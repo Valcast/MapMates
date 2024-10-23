@@ -27,17 +27,10 @@ class MainViewModel @Inject constructor(
 ) : ViewModel() {
     private var _state = MutableStateFlow<MainState>(MainState.Loading)
     val state = _state.asStateFlow().onStart {
-        val isFirstTime = viewModelScope.async {
-            isFirstTimeLaunch()
-        }.await()
-
+        val isFirstTime = isFirstTimeLaunch()
         val isLoggedIn = userRepository.isLoggedIn()
 
-        Log.d("MainViewModel", "State: isFirstTimeLaunch=$isFirstTime, isLoggedIn=$isLoggedIn")
-
-        _state.update {
-            MainState.Content(isFirstTimeLaunch = isFirstTime, isLoggedIn = isLoggedIn)
-        }
+        _state.value = MainState.Content(isFirstTimeLaunch = isFirstTime, isLoggedIn = isLoggedIn)
 
     }.stateIn(viewModelScope, SharingStarted.Eagerly, MainState.Loading)
 
@@ -51,7 +44,7 @@ class MainViewModel @Inject constructor(
     }
 
     private suspend fun isFirstTimeLaunch(): Boolean {
-        return dataStore.data.first()[FIRST_TIME_LAUNCH] ?: true
+        return dataStore.data.first()[FIRST_TIME_LAUNCH] != false
 
     }
 

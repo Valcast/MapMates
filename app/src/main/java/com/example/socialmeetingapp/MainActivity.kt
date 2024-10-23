@@ -1,7 +1,11 @@
 package com.example.socialmeetingapp
 
+import android.annotation.SuppressLint
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
+import androidx.activity.OnBackPressedDispatcher
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.EnterTransition
@@ -51,6 +55,9 @@ import com.example.socialmeetingapp.presentation.settings.SettingsScreen
 import com.google.android.gms.maps.model.LatLng
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.serialization.json.Json
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -59,6 +66,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var splashScreen: SplashScreen
 
 
+    @SuppressLint("RestrictedApi")
     override fun onCreate(savedInstanceState: Bundle?) {
         splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
@@ -77,12 +85,12 @@ class MainActivity : ComponentActivity() {
             val navController = rememberNavController()
             val snackbarHostState = remember { SnackbarHostState() }
 
-            val currentRoute = NavigationManager.route.collectAsStateWithLifecycle(when {
+            val startDestination = when {
                 state is MainState.Content && state.isFirstTimeLaunch -> Routes.Introduction
                 state is MainState.Content && !state.isLoggedIn -> Routes.Login
                 state is MainState.Content && state.isLoggedIn -> Routes.Map
                 else -> return@setContent
-            }).value
+            }
 
             LaunchedEffect("Snackbar Manager") {
                 SnackbarManager.messages.collectLatest {
@@ -92,17 +100,22 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
+            val currentRoute =
+                navController.currentBackStackEntryAsState().value?.destination?.route?.let {
+                    Routes.fromString(it)
+                } ?: startDestination
+
             LaunchedEffect("Navigation Manager") {
                 NavigationManager.route.collect { screen ->
                     navController.navigate(screen) {
-                        popUpTo(screen) {
+                        popUpTo(navController.graph.startDestinationId) {
                             saveState = true
                         }
                         launchSingleTop = true
                     }
+
                 }
             }
-
 
             SocialMeetingAppTheme {
                 Scaffold(
@@ -110,19 +123,15 @@ class MainActivity : ComponentActivity() {
                     bottomBar = {
                         if (currentRoute == Routes.Map || currentRoute == Routes.Profile || currentRoute == Routes.Settings) {
                             NavigationBar(
-                                onItemClicked = { NavigationManager.navigateTo(it) },
-                                currentRoute = currentRoute
+                                currentRoute = currentRoute,
+                                onItemClicked = { NavigationManager.navigateTo(it) }
                             )
                         }
+
                     }) { innerPadding ->
                     NavHost(
                         navController = navController,
-                        startDestination = when {
-                            state is MainState.Content && state.isFirstTimeLaunch -> Routes.Introduction
-                            state is MainState.Content && !state.isLoggedIn -> Routes.Login
-                            state is MainState.Content && state.isLoggedIn -> Routes.Map
-                            else -> return@Scaffold
-                        },
+                        startDestination = startDestination,
                         enterTransition = { EnterTransition.None },
                         exitTransition = { ExitTransition.None },
                         popEnterTransition = { EnterTransition.None },
@@ -131,10 +140,12 @@ class MainActivity : ComponentActivity() {
                             .padding(innerPadding)
                             .fillMaxSize()
                     ) {
-                        composable<Routes.Introduction> { IntroductionScreen(onFinish = {
-                            viewModel.onIntroductionFinished()
-                            NavigationManager.navigateTo(Routes.Login)
-                        }) }
+                        composable<Routes.Introduction> {
+                            IntroductionScreen(onFinish = {
+                                viewModel.onIntroductionFinished()
+                                NavigationManager.navigateTo(Routes.Login)
+                            })
+                        }
 
                         //////////////////////////
                         //   MAIN NAVIGATION   //
@@ -148,13 +159,23 @@ class MainActivity : ComponentActivity() {
                             HomeScreen(
                                 eventsResult = viewModel.eventsData.collectAsStateWithLifecycle().value,
                                 currentLocationResult = viewModel.locationData.collectAsStateWithLifecycle().value,
-                                onMapLongClick = { NavigationManager.navigateTo(Routes.CreateEvent(it.latitude, it.longitude)) },
+                                onMapLongClick = {
+                                    NavigationManager.navigateTo(
+                                        Routes.CreateEvent(
+                                            it.latitude,
+                                            it.longitude
+                                        )
+                                    )
+                                },
                                 onEventClick = { NavigationManager.navigateTo(Routes.Event(it)) }
                             )
                         }
 
                         composable<Routes.Profile> {
+                            val args = it.toRoute<Routes.Profile>()
                             val viewModel = hiltViewModel<ProfileViewModel>()
+
+                            viewModel.getUserByID(args.userID)
 
                             ProfileScreen(
                                 userData = viewModel.userData.collectAsStateWithLifecycle().value,
@@ -259,7 +280,8 @@ class MainActivity : ComponentActivity() {
                             EventScreen(
                                 state = viewModel.state.collectAsStateWithLifecycle().value,
                                 onJoinEvent = { viewModel.joinEvent(args.id) },
-                                onBack = { NavigationManager.navigateTo(Routes.Map) }
+                                onBack = { NavigationManager.navigateTo(Routes.Map) },
+                                onGoToAuthor = { NavigationManager.navigateTo(Routes.Profile(it)) }
                             )
                         }
                     }

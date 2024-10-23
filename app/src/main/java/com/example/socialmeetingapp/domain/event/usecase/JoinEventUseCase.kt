@@ -16,11 +16,15 @@ class JoinEventUseCase @Inject constructor(private val eventRepository: EventRep
                 val event = eventResult.data
                 val currentUser = currentUserResult.data
 
-                if (event.author == currentUser.id) {
+                if (event.author.id == currentUser.id) {
                     return Result.Error("You cannot join your own event")
                 }
 
+
+                Log.d("JoinEventUseCase", "event.participants: ${event.participants}")
+
                 event.participants.forEach { participant ->
+
                     if (participant.id == currentUser.id) {
                         return Result.Error("You already joined this event")
                     }

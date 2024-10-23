@@ -1,6 +1,9 @@
 package com.example.socialmeetingapp.domain.user.model
 
+import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import java.util.Date
 
 data class User(
@@ -16,4 +19,23 @@ data class User(
     val lastLogin: LocalDateTime,
     val lastPasswordChange: LocalDateTime,
     val bio: String = "",
-)
+
+    ) {
+
+    companion object {
+        val EMPTY = User(
+            id = "",
+            email = "",
+            username = "",
+            dateOfBirth = Date(),
+            gender = "Not specified",
+            role = "User",
+            isVerified = false,
+            createdAt = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()),
+            updatedAt = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()),
+            lastLogin = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()),
+            lastPasswordChange = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()),
+            bio = ""
+        )
+    }
+}

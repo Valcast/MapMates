@@ -44,7 +44,7 @@ import java.util.Locale
 
 
 @Composable
-fun EventScreen(state: Result<Event>, onJoinEvent: () -> Unit, onBack: () -> Unit) {
+fun EventScreen(state: Result<Event>, onJoinEvent: () -> Unit, onBack: () -> Unit, onGoToAuthor: (String) -> Unit) {
 
     when (state) {
         is Result.Loading -> {
@@ -201,17 +201,20 @@ fun EventScreen(state: Result<Event>, onJoinEvent: () -> Unit, onBack: () -> Uni
                             color = MaterialTheme.colorScheme.onBackground
                         )
                         Button(
-                            onClick = {},
+                            onClick = { onGoToAuthor(event.author.id) },
                             colors = ButtonColors(
                                 containerColor = MaterialTheme.colorScheme.background,
-                                contentColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onBackground.copy(0.5f),
                                 disabledContainerColor = MaterialTheme.colorScheme.background,
                                 disabledContentColor = MaterialTheme.colorScheme.background
                             ),
                             shape = RoundedCornerShape(10.dp),
                             contentPadding = PaddingValues(0.dp)
                         ) {
-                            Icon(imageVector = Icons.Default.Person, contentDescription = null)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(text = event.author.username, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(end = 4.dp))
+                                Icon(imageVector = Icons.Default.Person, contentDescription = null)
+                            }
                         }
                     }
 

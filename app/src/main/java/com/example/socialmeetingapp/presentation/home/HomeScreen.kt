@@ -43,6 +43,7 @@ fun HomeScreen(eventsResult: Result<List<Event>>, currentLocationResult: Result<
         position = CameraPosition.fromLatLngZoom(defaultPosition, 10f)
     }
 
+
     when (eventsResult) {
         is Result.Success -> {
             val events = eventsResult.data
