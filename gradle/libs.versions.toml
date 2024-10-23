@@ -15,7 +15,7 @@ mockk = "1.13.13"
 mockwebserver = "4.11.0"
 navigationCompose = "2.8.3"
 googleServices = "4.4.2"
-firebase = "33.5.0"
+firebase = "33.5.1"
 hilt = "2.52"
 hiltCompose = "1.2.0"
 googleLocation = "21.3.0"
@@ -63,6 +63,7 @@ firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.r
 firebase-analytics = {group = "com.google.firebase", name = "firebase-analytics"}
 firebase-auth = { module = "com.google.firebase:firebase-auth" }
 firebase-firestore = { module = "com.google.firebase:firebase-firestore" }
+firebase-storage = { module = "com.google.firebase:firebase-storage" }
 
 google-location = {group = "com.google.android.gms", name = "play-services-location", version.ref = "googleLocation"}
 google-maps = { group = "com.google.android.gms", name = "play-services-maps", version.ref = "googleMaps"}

@@ -17,10 +17,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -29,14 +27,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.socialmeetingapp.R
 import com.example.socialmeetingapp.domain.common.model.Result
-import com.example.socialmeetingapp.presentation.authentication.components.AuthenticationError
 import com.example.socialmeetingapp.presentation.authentication.components.AuthenticationTextField
 import com.example.socialmeetingapp.presentation.authentication.components.ThirdPartyGoogle
-import kotlinx.coroutines.launch
 
 @Composable
 fun RegisterScreen(state: Result<Unit>, onGoToLogin: () -> Unit, registerUser: (String, String, String) -> Unit) {
@@ -44,7 +38,6 @@ fun RegisterScreen(state: Result<Unit>, onGoToLogin: () -> Unit, registerUser: (
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
     var confirmPassword by rememberSaveable { mutableStateOf("") }
-    val coroutineScope = rememberCoroutineScope()
 
     Column(
         modifier = Modifier
@@ -69,7 +62,13 @@ fun RegisterScreen(state: Result<Unit>, onGoToLogin: () -> Unit, registerUser: (
         )
 
         if (state is Result.Error) {
-            AuthenticationError(message = state.message)
+            Text(
+                text = state.message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
         }
 
 

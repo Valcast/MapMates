@@ -16,10 +16,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.socialmeetingapp.R
-import com.example.socialmeetingapp.presentation.authentication.components.Description
-import com.example.socialmeetingapp.presentation.authentication.components.Title
 
 @Composable
 fun RegisterLocationScreen(
@@ -34,10 +33,16 @@ fun RegisterLocationScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Title(stringResource = R.string.register_location_title)
-        Description(
-            stringResource = R.string.register_location_description,
-            modifier = Modifier.padding(top = 8.dp)
+        Text(
+            text = stringResource(id = R.string.register_location_title),
+            style = MaterialTheme.typography.headlineLarge,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = stringResource(id = R.string.register_location_description),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+            textAlign = TextAlign.Center
         )
 
         Button(onClick = {

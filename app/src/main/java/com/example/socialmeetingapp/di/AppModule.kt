@@ -18,6 +18,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
+import com.google.firebase.storage.storage
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -31,6 +32,9 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object AppModule {
     private val Context.dataStore by preferencesDataStore("settings")
+    private val storage = Firebase.storage
+    private val auth = Firebase.auth
+    private val firestore = Firebase.firestore
 
     @Provides
     @Singleton
@@ -46,9 +50,7 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideFirebaseAuth(): FirebaseAuth {
-        return Firebase.auth
-    }
+    fun provideFirebaseAuth() = auth
 
     @Provides
     @Singleton
@@ -70,9 +72,11 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideFirestoreDatabase(): FirebaseFirestore {
-        return Firebase.firestore
-    }
+    fun provideFirestoreDatabase() = firestore
+
+    @Provides
+    @Singleton
+    fun provideFirebaseStorage() = storage
 
     @Provides
     @Singleton

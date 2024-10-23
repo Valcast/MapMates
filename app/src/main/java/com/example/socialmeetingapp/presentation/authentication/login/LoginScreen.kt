@@ -8,12 +8,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -22,17 +23,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.socialmeetingapp.R
 import com.example.socialmeetingapp.domain.common.model.Result
-import com.example.socialmeetingapp.presentation.authentication.components.AuthenticationError
-import com.example.socialmeetingapp.presentation.authentication.components.AuthenticationSubmitButton
 import com.example.socialmeetingapp.presentation.authentication.components.AuthenticationTextField
-import com.example.socialmeetingapp.presentation.authentication.components.Description
 import com.example.socialmeetingapp.presentation.authentication.components.ThirdPartyGoogle
-import com.example.socialmeetingapp.presentation.authentication.components.Title
 
 @Composable
 fun LoginScreen(state: Result<Unit>, onLogin: (String, String) -> Unit, onGoToRegister: () -> Unit) {
@@ -47,14 +43,26 @@ fun LoginScreen(state: Result<Unit>, onLogin: (String, String) -> Unit, onGoToRe
             .padding(top = 64.dp, start = 32.dp, end = 32.dp, bottom = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Title(stringResource = R.string.login_title)
-        Description(
-            stringResource = R.string.login_description,
-            modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)
+        Text(
+            text = stringResource(id = R.string.login_title),
+            style = MaterialTheme.typography.headlineLarge,
+            fontWeight = FontWeight.Bold,
+        )
+        Text(
+            text = stringResource(id = R.string.login_description),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+            textAlign = TextAlign.Center
         )
         
         if (state is Result.Error) {
-            AuthenticationError(message = state.message)
+            Text(
+                text = state.message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
         }
 
         AuthenticationTextField(
@@ -85,12 +93,17 @@ fun LoginScreen(state: Result<Unit>, onLogin: (String, String) -> Unit, onGoToRe
 
             }
 
-            AuthenticationSubmitButton(
-                onClickListener = { onLogin(email, password) },
-                enabled = state !is Result.Loading,
-                isLoading = state is Result.Loading,
-                textStringResource = R.string.login_button
-            )
+            Button(onClick = { onLogin(email, password)}, enabled = state !is Result.Loading) {
+                if (state is Result.Loading) {
+                    CircularProgressIndicator( )
+                } else {
+                    Text(
+                        text = stringResource(id = R.string.login_button),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
+            }
         }
 
         HorizontalDivider(
