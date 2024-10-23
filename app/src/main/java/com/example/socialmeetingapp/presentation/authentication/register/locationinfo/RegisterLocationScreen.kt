@@ -24,6 +24,7 @@ import com.example.socialmeetingapp.presentation.authentication.components.Title
 @Composable
 fun RegisterLocationScreen(
     handleLocationPermission: ((Boolean) -> Unit) -> Unit,
+    onSkip: () -> Unit
 ) {
     var locationPermissionGranted by rememberSaveable { mutableStateOf(false) }
 
@@ -45,7 +46,7 @@ fun RegisterLocationScreen(
             Text(text = stringResource(id = R.string.register_location_button))
         }
 
-        TextButton(onClick = { }) {
+        TextButton(onClick = { onSkip() }) {
             Text(text = stringResource(id = R.string.register_location_skip),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary,

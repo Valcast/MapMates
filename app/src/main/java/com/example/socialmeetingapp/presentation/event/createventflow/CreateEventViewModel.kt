@@ -6,6 +6,8 @@ import com.example.socialmeetingapp.domain.common.model.Result
 import com.example.socialmeetingapp.domain.event.model.Event
 import com.example.socialmeetingapp.domain.event.usecase.CreateEventUseCase
 import com.example.socialmeetingapp.domain.location.usecase.GetAddressFromLatLngUseCase
+import com.example.socialmeetingapp.presentation.common.NavigationManager
+import com.example.socialmeetingapp.presentation.common.Routes
 import com.example.socialmeetingapp.presentation.common.SnackbarManager
 import com.google.android.gms.maps.model.LatLng
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -39,14 +41,18 @@ class CreateEventViewModel @Inject constructor(
     fun nextStep() {
         if (uiState.value == CreateEventFlow.Rules) {
             viewModelScope.launch {
-                val createEventResult = createEventUseCase(eventData.value)
+                when (val createEventResult = createEventUseCase(eventData.value)) {
+                    is Result.Success -> {
+                        NavigationManager.navigateTo(Routes.Event(createEventResult.data))
+                    }
 
-                if (createEventResult is Result.Error) {
-                    SnackbarManager.showMessage(createEventResult.message)
+                    is Result.Error -> {
+                        _state.update { createEventResult }
+                        SnackbarManager.showMessage(createEventResult.message)
+                    }
+
+                    else -> Unit
                 }
-
-                SnackbarManager.showMessage("Event created successfully")
-                _state.value = createEventResult
             }
             return
         }

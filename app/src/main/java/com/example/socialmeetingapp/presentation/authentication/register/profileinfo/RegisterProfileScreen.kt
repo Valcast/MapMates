@@ -26,9 +26,7 @@ import com.example.socialmeetingapp.presentation.authentication.components.Descr
 import com.example.socialmeetingapp.presentation.authentication.components.Title
 
 @Composable
-fun RegisterProfileScreen() {
-    val viewModel = hiltViewModel<RegisterProfileScreenViewModel>()
-    val state = viewModel.state.collectAsStateWithLifecycle().value
+fun RegisterProfileScreen(state: Result<Unit>, onNextClick: (String, String) -> Unit) {
 
     var name by rememberSaveable { mutableStateOf("") }
     var bio by rememberSaveable { mutableStateOf("") }
@@ -60,7 +58,7 @@ fun RegisterProfileScreen() {
 
         AuthenticationTextField(value = bio, onValueChange = {bio = it}, labelStringResource = R.string.profile_bio_hint)
 
-        Button(onClick = { viewModel.modifyUser(name, bio) }, enabled = state !is Result.Loading, modifier = Modifier.padding(top = 16.dp)) {
+        Button(onClick = { onNextClick(name, bio) }, enabled = state !is Result.Loading, modifier = Modifier.padding(top = 16.dp)) {
             if (state is Result.Loading) {
                 CircularProgressIndicator()
             } else {

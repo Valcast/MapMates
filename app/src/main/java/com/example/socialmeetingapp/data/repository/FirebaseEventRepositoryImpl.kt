@@ -82,7 +82,7 @@ class FirebaseEventRepositoryImpl(
         }
     }
 
-    override suspend fun createEvent(event: Event): Result<Unit> {
+    override suspend fun createEvent(event: Event): Result<String> {
         return try {
             val currentUser = getCurrentUserUseCase()
 
@@ -109,9 +109,9 @@ class FirebaseEventRepositoryImpl(
                 "isOnline" to event.isOnline,
             )
 
-            db.collection("events").add(eventData).asDeferred().await()
+            val createdEvent = db.collection("events").add(eventData).asDeferred().await()
 
-            Result.Success(Unit)
+            Result.Success(createdEvent.id)
         } catch (e: FirebaseFirestoreException) {
             return Result.Error(e.message ?: "Unknown error")
         }

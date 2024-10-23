@@ -25,13 +25,12 @@ import com.google.maps.android.compose.rememberMarkerState
 import java.util.Locale
 
 @Composable
-fun EventMarker(event: Event) {
+fun EventMarker(event: Event, onMarkerClick: (String) -> Unit) {
     MarkerInfoWindowContent(
         state = rememberMarkerState(position = event.locationCoordinates),
         title = event.title,
         snippet = event.description,
-        onInfoWindowClick = {
-        }
+        onInfoWindowClick = { onMarkerClick(event.id) }
     ) {
         Column(
             modifier = Modifier

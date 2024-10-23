@@ -39,9 +39,7 @@ import com.example.socialmeetingapp.presentation.authentication.components.Third
 import kotlinx.coroutines.launch
 
 @Composable
-fun RegisterScreen() {
-    val viewModel = hiltViewModel<RegisterViewModel>()
-    val state = viewModel.state.collectAsStateWithLifecycle().value
+fun RegisterScreen(state: Result<Unit>, onGoToLogin: () -> Unit, registerUser: (String, String, String) -> Unit) {
 
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
@@ -95,11 +93,7 @@ fun RegisterScreen() {
         
 
         Button(
-            onClick = {
-                coroutineScope.launch {
-                    viewModel.registerUser(email, password, confirmPassword)
-                }
-            },
+            onClick = { registerUser(email, password, confirmPassword) },
             enabled = state !is Result.Loading,
             modifier = Modifier.padding(top = 16.dp)
         ) {
@@ -138,7 +132,7 @@ fun RegisterScreen() {
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
         )
 
-        TextButton(onClick = { }) {
+        TextButton(onClick = { onGoToLogin() }) {
             Text(
                 text = stringResource(id = R.string.login_here),
                 style = MaterialTheme.typography.bodyMedium,

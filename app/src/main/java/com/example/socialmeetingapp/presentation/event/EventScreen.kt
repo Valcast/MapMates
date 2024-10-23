@@ -308,7 +308,7 @@ fun EventScreen(state: Result<Event>, onJoinEvent: () -> Unit, onBack: () -> Uni
 
 
                 ExtendedFloatingActionButton(
-                    onClick = { onJoinEvent() },
+                    onClick = onJoinEvent,
                     modifier = Modifier
                         .align(Alignment.End)
                         .fillMaxWidth(),

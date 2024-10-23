@@ -26,9 +26,9 @@ import com.example.socialmeetingapp.presentation.common.Routes
 import java.util.Locale
 
 @Composable
-fun EventCard(event: Event) {
+fun EventCard(event: Event, onCardClick: (String) -> Unit) {
     ElevatedCard(
-        onClick = {  },
+        onClick = { onCardClick(event.id) },
         modifier = Modifier.padding(vertical = 16.dp, horizontal = 8.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {

@@ -33,24 +33,15 @@ import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberMarkerState
 
 @Composable
-fun HomeScreen(eventsResult: Result<List<Event>>, currentLocationResult: Result<LatLng>, onMapLongClick: (LatLng) -> Unit) {
+fun HomeScreen(eventsResult: Result<List<Event>>, currentLocationResult: Result<LatLng>, onMapLongClick: (LatLng) -> Unit, onEventClick: (String) -> Unit) {
 
     var isListView by rememberSaveable { mutableStateOf(false) }
 
-    val defaultPosition = LatLng(0.0, 0.0)
+    val defaultPosition = LatLng(52.237049, 21.017532)
 
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(defaultPosition, 10f)
     }
-
-    LaunchedEffect(Unit) {
-        if (currentLocationResult is Result.Success<LatLng>) {
-            val currentLocation = currentLocationResult.data
-            cameraPositionState.position = CameraPosition.fromLatLngZoom(currentLocation, 12f)
-        }
-    }
-
-
 
     when (eventsResult) {
         is Result.Success -> {
@@ -63,7 +54,7 @@ fun HomeScreen(eventsResult: Result<List<Event>>, currentLocationResult: Result<
                 if (isListView) {
                     LazyColumn {
                         items(events.size) { index ->
-                            EventCard(events[index])
+                            EventCard(events[index], onCardClick = onEventClick)
                         }
                     }
                 } else {
@@ -90,7 +81,7 @@ fun HomeScreen(eventsResult: Result<List<Event>>, currentLocationResult: Result<
                         }
 
                         for (event in events) {
-                            EventMarker(event)
+                            EventMarker(event, onMarkerClick = onEventClick)
                         }
                     }
                 }

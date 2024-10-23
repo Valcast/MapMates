@@ -30,8 +30,10 @@ import com.example.socialmeetingapp.presentation.authentication.forgot.ForgotPas
 import com.example.socialmeetingapp.presentation.authentication.login.LoginScreen
 import com.example.socialmeetingapp.presentation.authentication.login.LoginViewModel
 import com.example.socialmeetingapp.presentation.authentication.register.RegisterScreen
+import com.example.socialmeetingapp.presentation.authentication.register.RegisterViewModel
 import com.example.socialmeetingapp.presentation.authentication.register.locationinfo.RegisterLocationScreen
 import com.example.socialmeetingapp.presentation.authentication.register.profileinfo.RegisterProfileScreen
+import com.example.socialmeetingapp.presentation.authentication.register.profileinfo.RegisterProfileScreenViewModel
 import com.example.socialmeetingapp.presentation.common.NavigationManager
 import com.example.socialmeetingapp.presentation.common.Routes
 import com.example.socialmeetingapp.presentation.common.SnackbarManager
@@ -75,7 +77,12 @@ class MainActivity : ComponentActivity() {
             val navController = rememberNavController()
             val snackbarHostState = remember { SnackbarHostState() }
 
-            val currentRoute = NavigationManager.route.collectAsStateWithLifecycle(Routes.Map).value
+            val currentRoute = NavigationManager.route.collectAsStateWithLifecycle(when {
+                state is MainState.Content && state.isFirstTimeLaunch -> Routes.Introduction
+                state is MainState.Content && !state.isLoggedIn -> Routes.Login
+                state is MainState.Content && state.isLoggedIn -> Routes.Map
+                else -> return@setContent
+            }).value
 
             LaunchedEffect("Snackbar Manager") {
                 SnackbarManager.messages.collectLatest {
@@ -85,9 +92,14 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            LaunchedEffect("NavigationEvents") {
+            LaunchedEffect("Navigation Manager") {
                 NavigationManager.route.collect { screen ->
-                    navController.navigate(screen)
+                    navController.navigate(screen) {
+                        popUpTo(screen) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                    }
                 }
             }
 
@@ -121,7 +133,7 @@ class MainActivity : ComponentActivity() {
                     ) {
                         composable<Routes.Introduction> { IntroductionScreen(onFinish = {
                             viewModel.onIntroductionFinished()
-                            navController.navigate(Routes.Login)
+                            NavigationManager.navigateTo(Routes.Login)
                         }) }
 
                         //////////////////////////
@@ -131,10 +143,13 @@ class MainActivity : ComponentActivity() {
                         composable<Routes.Map> {
                             val viewModel = hiltViewModel<HomeViewModel>()
 
+
+
                             HomeScreen(
                                 eventsResult = viewModel.eventsData.collectAsStateWithLifecycle().value,
                                 currentLocationResult = viewModel.locationData.collectAsStateWithLifecycle().value,
-                                onMapLongClick = { navController.navigate(Routes.CreateEvent(it.latitude, it.longitude)) }
+                                onMapLongClick = { NavigationManager.navigateTo(Routes.CreateEvent(it.latitude, it.longitude)) },
+                                onEventClick = { NavigationManager.navigateTo(Routes.Event(it)) }
                             )
                         }
 
@@ -158,7 +173,7 @@ class MainActivity : ComponentActivity() {
                             LoginScreen(
                                 state = viewModel.state.collectAsStateWithLifecycle().value,
                                 onLogin = { email, password -> viewModel.login(email, password) },
-                                onGoToRegister = { navController.navigate(Routes.Register) }
+                                onGoToRegister = { NavigationManager.navigateTo(Routes.Register) }
                             )
                         }
 
@@ -175,9 +190,22 @@ class MainActivity : ComponentActivity() {
                         //    REGISTER FLOW    //
                         ////////////////////////
 
-                        composable<Routes.Register> { RegisterScreen() }
+                        composable<Routes.Register> {
+                            val viewModel = hiltViewModel<RegisterViewModel>()
+                            RegisterScreen(
+                                state = viewModel.state.collectAsStateWithLifecycle().value,
+                                onGoToLogin = { NavigationManager.navigateTo(Routes.Login) },
+                                registerUser = viewModel::registerUser
+                            )
+                        }
 
-                        composable<Routes.RegisterProfileInfo> { RegisterProfileScreen() }
+                        composable<Routes.RegisterProfileInfo> {
+                            val viewModel = hiltViewModel<RegisterProfileScreenViewModel>()
+                            RegisterProfileScreen(
+                                state = viewModel.state.collectAsStateWithLifecycle().value,
+                                onNextClick = { name, bio -> viewModel.modifyUser(name, bio) }
+                            )
+                        }
 
                         composable<Routes.RegisterLocation> {
                             RegisterLocationScreen(
@@ -185,7 +213,8 @@ class MainActivity : ComponentActivity() {
                                     permissionManager.checkPermissions(
                                         PermissionManager.FINE_LOCATION_PERMISSION,
                                     ) { updateLocationPermission(it) }
-                                }
+                                },
+                                onSkip = { NavigationManager.navigateTo(Routes.Map) }
                             )
                         }
 
@@ -197,7 +226,9 @@ class MainActivity : ComponentActivity() {
                             val args = it.toRoute<Routes.CreateEvent>()
                             val viewModel = hiltViewModel<CreateEventViewModel>()
 
-                            viewModel.updateLocation(LatLng(args.latitude, args.longitude))
+                            LaunchedEffect(Unit) {
+                                viewModel.updateLocation(LatLng(args.latitude, args.longitude))
+                            }
 
 
                             CreateEventScreen(
@@ -215,7 +246,8 @@ class MainActivity : ComponentActivity() {
                                 onSetStartTime = { viewModel.setStartTime(it) },
                                 onSetEndTime = { viewModel.setEndTime(it) },
                                 onUpdateLocation = { viewModel.updateLocation(it) },
-                                onUpdateRules = { viewModel.updateRulesAccepted() }
+                                onUpdateRules = { viewModel.updateRulesAccepted() },
+                                onCancel = { NavigationManager.navigateTo(Routes.Map) }
                             )
                         }
 
@@ -227,7 +259,7 @@ class MainActivity : ComponentActivity() {
                             EventScreen(
                                 state = viewModel.state.collectAsStateWithLifecycle().value,
                                 onJoinEvent = { viewModel.joinEvent(args.id) },
-                                onBack = { navController.popBackStack() }
+                                onBack = { NavigationManager.navigateTo(Routes.Map) }
                             )
                         }
                     }

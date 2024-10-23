@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.socialmeetingapp.domain.common.model.Result
 import com.example.socialmeetingapp.domain.user.model.UserUpdateData
 import com.example.socialmeetingapp.domain.user.repository.UserRepository
+import com.example.socialmeetingapp.presentation.common.NavigationManager
+import com.example.socialmeetingapp.presentation.common.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,6 +31,7 @@ class RegisterProfileScreenViewModel @Inject constructor(
             )) {
                 is Result.Success<*> -> {
                     _state.value = Result.Success(Unit)
+                    NavigationManager.navigateTo(Routes.RegisterLocation)
                 }
                 is Result.Error -> {
                     _state.value = Result.Error(updateResult.message)

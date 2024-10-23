@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.socialmeetingapp.domain.common.model.Result
 import com.example.socialmeetingapp.domain.user.usecase.RegisterUserUseCase
+import com.example.socialmeetingapp.presentation.common.NavigationManager
+import com.example.socialmeetingapp.presentation.common.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,6 +28,7 @@ class RegisterViewModel @Inject constructor(
             when (val registerResult = registerUserUseCase(email, password, confirmPassword)) {
                 is Result.Success<Unit> -> {
                     _state.value = Result.Success(Unit)
+                    NavigationManager.navigateTo(Routes.RegisterProfileInfo)
                 }
 
                 is Result.Error -> {

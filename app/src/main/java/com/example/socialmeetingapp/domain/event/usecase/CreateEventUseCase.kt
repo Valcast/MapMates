@@ -12,7 +12,7 @@ class CreateEventUseCase @Inject constructor(
     private val eventRepository: EventRepository,
     private val getAddressFromLatLngUseCase: GetAddressFromLatLngUseCase
 ) {
-    suspend operator fun invoke(event: Event): Result<Unit> {
+    suspend operator fun invoke(event: Event): Result<String> {
         when (val result = getAddressFromLatLngUseCase(event.locationCoordinates)) {
             is Result.Success -> event.locationAddress = result.data
             is Result.Error -> return Result.Error(result.message)

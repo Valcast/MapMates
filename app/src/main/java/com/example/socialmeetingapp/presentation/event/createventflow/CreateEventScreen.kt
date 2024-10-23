@@ -43,7 +43,8 @@ fun CreateEventScreen(
     onSetStartTime: (LocalDateTime) -> Unit,
     onSetEndTime: (LocalDateTime) -> Unit,
     onUpdateLocation: (LatLng) -> Unit,
-    onUpdateRules: () -> Unit
+    onUpdateRules: () -> Unit,
+    onCancel: () -> Unit
 ) {
 
     Column(
@@ -59,7 +60,7 @@ fun CreateEventScreen(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            TextButton(onClick = {}, shape = RoundedCornerShape(10.dp)) {
+            TextButton(onClick = onCancel, shape = RoundedCornerShape(10.dp)) {
                 Text(text = "Cancel")
             }
             DashedProgressIndicator(

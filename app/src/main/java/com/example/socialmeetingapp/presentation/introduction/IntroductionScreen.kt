@@ -119,7 +119,7 @@ fun IntroductionScreen(onFinish: () -> Unit) {
             }
         }
 
-        TextButton(onClick = { onFinish() }) {
+        TextButton(onClick = onFinish) {
             Text(
                 text = "You already have an account? Log in",
                 style = MaterialTheme.typography.bodySmall,
