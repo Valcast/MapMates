@@ -21,12 +21,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.socialmeetingapp.domain.event.model.Event
+import com.example.socialmeetingapp.presentation.common.NavigationManager
+import com.example.socialmeetingapp.presentation.common.Routes
 import java.util.Locale
 
 @Composable
-fun EventCard(event: Event, navigateToEventDetails: (String) -> Unit) {
+fun EventCard(event: Event) {
     ElevatedCard(
-        onClick = { navigateToEventDetails(event.id) },
+        onClick = {  },
         modifier = Modifier.padding(vertical = 16.dp, horizontal = 8.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {

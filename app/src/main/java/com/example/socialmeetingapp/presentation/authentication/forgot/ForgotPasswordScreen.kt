@@ -29,13 +29,9 @@ import com.example.socialmeetingapp.domain.common.model.Result
 import kotlinx.coroutines.launch
 
 @Composable
-fun ForgotPasswordScreen(navigateToLogin: () -> Unit) {
-
-    val viewModel = hiltViewModel<ForgotPasswordViewModel>()
-    val state = viewModel.state.collectAsStateWithLifecycle().value
+fun ForgotPasswordScreen(state: Result<Unit>, onResetPassword: (String) -> Unit, onGoToLogin: () -> Unit) {
 
     var email by rememberSaveable { mutableStateOf("") }
-    val coroutineScope = rememberCoroutineScope()
 
     Column(
         modifier = Modifier.fillMaxSize()
@@ -61,10 +57,7 @@ fun ForgotPasswordScreen(navigateToLogin: () -> Unit) {
             onValueChange = { email = it },
             label = { Text(text = "E-mail", style = MaterialTheme.typography.labelSmall) })
 
-        Button(onClick = {
-            coroutineScope.launch {
-                viewModel.resetPassword(email)
-            }
+        Button(onClick = { onResetPassword(email)
         }, enabled = state !is Result.Success, modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)) {
             if (state is Result.Loading) {
                 CircularProgressIndicator()
@@ -77,7 +70,7 @@ fun ForgotPasswordScreen(navigateToLogin: () -> Unit) {
             }
         }
 
-        TextButton(onClick = { navigateToLogin() }) {
+        TextButton(onClick = { onGoToLogin() }) {
             Text(
                 text = stringResource(id = R.string.back_to_login_button),
                 style = MaterialTheme.typography.bodyMedium,

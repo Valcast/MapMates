@@ -1,4 +1,4 @@
-package com.example.socialmeetingapp.presentation.event.createevent
+package com.example.socialmeetingapp.presentation.event.createventflow
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -7,19 +7,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -28,10 +21,7 @@ import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -39,16 +29,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.socialmeetingapp.domain.event.model.Event
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.Instant
-import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
@@ -61,10 +48,7 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EventDateScreen() {
-
-    val viewModel = hiltViewModel<CreateEventViewModel>()
-    val eventData by viewModel.eventData.collectAsStateWithLifecycle()
+fun EventDateScreen(event: Event, onSetStartTime: (LocalDateTime) -> Unit, onSetEndTime: (LocalDateTime) -> Unit) {
 
     var isStartDatePickerVisible by rememberSaveable { mutableStateOf(false) }
     var isEndDatePickerVisible by rememberSaveable { mutableStateOf(false) }
@@ -96,9 +80,9 @@ fun EventDateScreen() {
                     text = String.format(
                         Locale.ROOT,
                         "%02d.%02d.%d",
-                        eventData.startTime.dayOfMonth,
-                        eventData.startTime.monthNumber,
-                        eventData.startTime.year
+                        event.startTime.dayOfMonth,
+                        event.startTime.monthNumber,
+                        event.startTime.year
                     )
                 )
             }
@@ -111,8 +95,8 @@ fun EventDateScreen() {
                     text = String.format(
                         Locale.ROOT,
                         "%02d:%02d",
-                        eventData.startTime.hour,
-                        eventData.startTime.minute
+                        event.startTime.hour,
+                        event.startTime.minute
                     )
                 )
             }
@@ -134,9 +118,9 @@ fun EventDateScreen() {
                     text = String.format(
                         Locale.ROOT,
                         "%02d.%02d.%d",
-                        eventData.endTime.dayOfMonth,
-                        eventData.endTime.monthNumber,
-                        eventData.endTime.year
+                        event.endTime.dayOfMonth,
+                        event.endTime.monthNumber,
+                        event.endTime.year
                     )
                 )
             }
@@ -149,8 +133,8 @@ fun EventDateScreen() {
                     text = String.format(
                         Locale.ROOT,
                         "%02d:%02d",
-                        eventData.endTime.hour,
-                        eventData.endTime.minute
+                        event.endTime.hour,
+                        event.endTime.minute
                     )
                 )
             }
@@ -158,8 +142,8 @@ fun EventDateScreen() {
 
         Text(
             text = when {
-                eventData.startTime.date == eventData.endTime.date && eventData.startTime.time > eventData.endTime.time -> "End time must be after start time"
-                eventData.startTime.date == eventData.endTime.date && eventData.startTime.time == eventData.endTime.time -> "Event duration must be at least 1 minute"
+                event.startTime.date == event.endTime.date && event.startTime.time > event.endTime.time -> "End time must be after start time"
+                event.startTime.date == event.endTime.date && event.startTime.time == event.endTime.time -> "Event duration must be at least 1 minute"
                 else -> ""
             },
             color = MaterialTheme.colorScheme.error,
@@ -172,11 +156,11 @@ fun EventDateScreen() {
 
     if (isStartDatePickerVisible) {
         DatePickerModalInput(
-            initialDate = eventData.startTime,
+            initialDate = event.startTime,
             onDateSelected = {
                 if (it != null) {
-                    viewModel.setStartTime(it)
-                    viewModel.setEndTime(it)
+                    onSetStartTime(it)
+                    onSetEndTime(it)
                 }
             },
             onDismiss = { isStartDatePickerVisible = false })
@@ -184,15 +168,15 @@ fun EventDateScreen() {
 
     if (isEndDatePickerVisible) {
         DatePickerModalInput(
-            initialDate = eventData.endTime,
-            onDateSelected = { if (it != null) viewModel.setEndTime(it) },
+            initialDate = event.endTime,
+            onDateSelected = { if (it != null) onSetEndTime(it) },
             onDismiss = { isEndDatePickerVisible = false },
             selectableDates = object : SelectableDates {
                 override fun isSelectableDate(utcTimeMillis: Long): Boolean {
                     val startTimeMillis =
-                        eventData.startTime.toInstant(TimeZone.currentSystemDefault())
+                        event.startTime.toInstant(TimeZone.currentSystemDefault())
                             .toEpochMilliseconds()
-                    val endTimeMillis = eventData.startTime
+                    val endTimeMillis = event.startTime
                         .toInstant(TimeZone.currentSystemDefault())
                         .plus(1, DateTimeUnit.DAY, TimeZone.currentSystemDefault())
                         .toEpochMilliseconds()
@@ -208,7 +192,7 @@ fun EventDateScreen() {
     if (isStartTimePickerVisible) {
         Dial(
             onTimeSelected = {
-                viewModel.setStartTime(eventData.startTime.date.atTime(it))
+                onSetStartTime(event.startTime.date.atTime(it))
             },
             onDismiss = {
                 isStartTimePickerVisible = false
@@ -219,7 +203,7 @@ fun EventDateScreen() {
     if (isEndTimePickerVisible) {
         Dial(
             onTimeSelected = {
-                viewModel.setEndTime(eventData.endTime.date.atTime(it))
+                onSetEndTime(event.endTime.date.atTime(it))
             },
             onDismiss = {
                 isEndTimePickerVisible = false

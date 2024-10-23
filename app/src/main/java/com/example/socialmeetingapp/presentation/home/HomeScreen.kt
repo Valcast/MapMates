@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.SmallFloatingActionButton
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -20,9 +21,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.socialmeetingapp.domain.common.model.Result
+import com.example.socialmeetingapp.domain.event.model.Event
 import com.google.android.gms.maps.GoogleMapOptions
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
@@ -33,13 +33,7 @@ import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberMarkerState
 
 @Composable
-fun HomeScreen(
-    goToCreateEventScreen: (latitute: Double, longtitude: Double) -> Unit,
-    navigateToEvent: (eventId: String) -> Unit
-) {
-    val viewModel = hiltViewModel<HomeViewModel>()
-    val eventsResult by viewModel.eventsState.collectAsStateWithLifecycle()
-    val currentLocationResult by viewModel.locationState.collectAsStateWithLifecycle()
+fun HomeScreen(eventsResult: Result<List<Event>>, currentLocationResult: Result<LatLng>, onMapLongClick: (LatLng) -> Unit) {
 
     var isListView by rememberSaveable { mutableStateOf(false) }
 
@@ -50,9 +44,8 @@ fun HomeScreen(
     }
 
     LaunchedEffect(Unit) {
-
         if (currentLocationResult is Result.Success<LatLng>) {
-            val currentLocation = (currentLocationResult as Result.Success<LatLng>).data
+            val currentLocation = currentLocationResult.data
             cameraPositionState.position = CameraPosition.fromLatLngZoom(currentLocation, 12f)
         }
     }
@@ -61,7 +54,7 @@ fun HomeScreen(
 
     when (eventsResult) {
         is Result.Success -> {
-            val events = (eventsResult as Result.Success).data
+            val events = eventsResult.data
 
             Box(
                 Modifier
@@ -70,7 +63,7 @@ fun HomeScreen(
                 if (isListView) {
                     LazyColumn {
                         items(events.size) { index ->
-                            EventCard(events[index], navigateToEvent)
+                            EventCard(events[index])
                         }
                     }
                 } else {
@@ -86,16 +79,18 @@ fun HomeScreen(
                             zoomControlsEnabled = false,
                             mapToolbarEnabled = false
                         ),
-                        onMapLongClick = {}
+                        onMapLongClick = {
+                            onMapLongClick(it)
+                        }
                     ) {
                         if (currentLocationResult is Result.Success) {
                             Marker(
-                                state = rememberMarkerState(position = (currentLocationResult as Result.Success<LatLng>).data)
+                                state = rememberMarkerState(position = currentLocationResult.data)
                             )
                         }
 
                         for (event in events) {
-                            EventMarker(event, navigateToEvent)
+                            EventMarker(event)
                         }
                     }
                 }
@@ -118,7 +113,7 @@ fun HomeScreen(
                         onClick = {
                             if (currentLocationResult is Result.Success) {
                                 cameraPositionState.position = CameraPosition.fromLatLngZoom(
-                                    (currentLocationResult as Result.Success<LatLng>).data,
+                                    currentLocationResult.data,
                                     15f
                                 )
                             }
@@ -134,7 +129,9 @@ fun HomeScreen(
 
         }
 
-        is Result.Error -> TODO()
+        is Result.Error -> {
+            Text(text = eventsResult.message)
+        }
         else -> {
             Box(
                 modifier = Modifier.fillMaxSize(),

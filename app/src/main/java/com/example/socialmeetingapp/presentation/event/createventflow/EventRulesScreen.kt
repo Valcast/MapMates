@@ -1,4 +1,4 @@
-package com.example.socialmeetingapp.presentation.event.createevent
+package com.example.socialmeetingapp.presentation.event.createventflow
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -11,20 +11,13 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable
-fun EventRulesScreen() {
-
-    val viewModel = hiltViewModel<CreateEventViewModel>()
-    val isRulesAccepted by viewModel.isRulesAccepted.collectAsStateWithLifecycle()
-
+fun EventRulesScreen(isRulesAccepted: Boolean, onUpdateRules: () -> Unit) {
 
     Column {
         Text(
@@ -43,7 +36,7 @@ fun EventRulesScreen() {
 
         FilledTonalButton(
             onClick = {
-                viewModel.updateRulesAccepted()
+                onUpdateRules()
             },
             shape = RoundedCornerShape(10.dp),
             modifier = Modifier.padding(vertical = 16.dp)

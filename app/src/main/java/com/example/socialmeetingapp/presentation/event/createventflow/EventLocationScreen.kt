@@ -1,4 +1,4 @@
-package com.example.socialmeetingapp.presentation.event.createevent
+package com.example.socialmeetingapp.presentation.event.createventflow
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -10,7 +10,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -21,18 +20,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.socialmeetingapp.domain.event.model.Event
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.rememberCameraPositionState
 
 @Composable
-fun EventLocationScreen() {
-
-    val viewModel = hiltViewModel<CreateEventViewModel>()
-    val event by viewModel.eventData.collectAsStateWithLifecycle()
+fun EventLocationScreen(event: Event, onUpdateLocation: (LatLng) -> Unit) {
 
     var isLocationPickerVisible by remember { mutableStateOf(false) }
 
@@ -76,7 +71,7 @@ fun EventLocationScreen() {
                     GoogleMap(
                         modifier = Modifier.fillMaxWidth(),
                         onMapClick = {
-                            viewModel.updateLocation(it)
+                            onUpdateLocation(it)
                             isLocationPickerVisible = false
                         },
                         cameraPositionState = rememberCameraPositionState {

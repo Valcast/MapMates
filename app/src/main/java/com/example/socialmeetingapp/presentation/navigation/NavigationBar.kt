@@ -16,56 +16,61 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
+import com.example.socialmeetingapp.presentation.common.NavigationManager
+import com.example.socialmeetingapp.presentation.common.Routes
+import kotlinx.coroutines.launch
 
 @Composable
-fun NavigationBar(modifier: Modifier = Modifier, selected: Int?, onItemSelected: (Int) -> Unit) {
-    val bottomNavItems = listOf(
-        BottomNavItem(
-            title = "Map",
-            route = "map",
-            selectedIcon = Icons.Filled.Search,
-            unselectedIcon = Icons.Outlined.Search,
-        ),
-        BottomNavItem(
-            title = "Profile",
-            route = "profile",
+fun NavigationBar(currentRoute: Routes, onItemClicked: (Routes) -> Unit) {
+    val bottomNavItems = mapOf(
+        Routes.Map to BottomNavItem(
+            title = "Home",
+            route = "home",
             selectedIcon = Icons.Filled.Info,
-            unselectedIcon = Icons.Outlined.Info,
+            unselectedIcon = Icons.Outlined.Info
         ),
-        BottomNavItem(
+        Routes.Profile to BottomNavItem(
+            title = "Search",
+            route = "search",
+            selectedIcon = Icons.Filled.Search,
+            unselectedIcon = Icons.Outlined.Search
+        ),
+        Routes.Settings to BottomNavItem(
             title = "Settings",
             route = "settings",
             selectedIcon = Icons.Filled.Settings,
-            unselectedIcon = Icons.Outlined.Settings,
+            unselectedIcon = Icons.Outlined.Settings
         )
     )
 
     androidx.compose.material3.NavigationBar(
-        modifier = modifier,
         containerColor = MaterialTheme.colorScheme.background,
         tonalElevation = 0.dp
     ) {
-        bottomNavItems.forEachIndexed { index, bottomNavItem ->
+        bottomNavItems.entries.forEach { (route, item) ->
             NavigationBarItem(
-                selected = selected == index,
-                onClick = { onItemSelected(index) },
+                selected = currentRoute == route,
+                onClick = { onItemClicked(route) },
                 icon = {
                     Icon(
-                        imageVector = if (selected == index) bottomNavItem.selectedIcon else bottomNavItem.unselectedIcon,
-                        contentDescription = bottomNavItem.title
+                        imageVector = if (currentRoute == route) item.selectedIcon else item.unselectedIcon,
+                        contentDescription = item.title
                     )
                 },
                 label = {
                     Text(
-                        text = bottomNavItem.title,
+                        text = item.title,
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onBackground
                     )
                 },
                 colors = NavigationBarItemDefaults.colors().copy(
-                    selectedIconColor = if (selected == index) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onBackground,
+                    selectedIconColor = if (currentRoute == route) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onBackground,
                     unselectedIconColor = MaterialTheme.colorScheme.onBackground,
-                    selectedIndicatorColor = if (selected == index) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.background
+                    selectedIndicatorColor = if (currentRoute == route) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.background
                 )
             )
         }

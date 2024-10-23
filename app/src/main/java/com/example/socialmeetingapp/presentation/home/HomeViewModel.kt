@@ -7,6 +7,8 @@ import com.example.socialmeetingapp.domain.common.model.Result
 import com.example.socialmeetingapp.domain.event.model.Event
 import com.example.socialmeetingapp.domain.event.usecase.GetAllEventsUseCase
 import com.example.socialmeetingapp.domain.location.usecase.GetCurrentLocationUseCase
+import com.example.socialmeetingapp.presentation.common.NavigationManager
+import com.example.socialmeetingapp.presentation.common.Routes
 import com.google.android.gms.maps.model.LatLng
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,10 +23,10 @@ class HomeViewModel @Inject constructor(
     private val getAllEventsUseCase: GetAllEventsUseCase,
     private val getCurrentLocationUseCase: GetCurrentLocationUseCase
 ) : ViewModel() {
-    private var _locationState = MutableStateFlow<Result<LatLng>>(Result.Loading)
-    val locationState = _locationState.onStart {
+    private var _locationData = MutableStateFlow<Result<LatLng>>(Result.Loading)
+    val locationData = _locationData.onStart {
         viewModelScope.launch {
-            getCurrentLocationUseCase().collect { _locationState.value = it }
+            getCurrentLocationUseCase().collect { _locationData.value = it }
         }
     }.stateIn(
         viewModelScope,
@@ -32,10 +34,10 @@ class HomeViewModel @Inject constructor(
         Result.Loading
     )
 
-    private var _eventsState = MutableStateFlow<Result<List<Event>>>(Result.Loading)
-    val eventsState = _eventsState.onStart {
+    private var _eventsData = MutableStateFlow<Result<List<Event>>>(Result.Loading)
+    val eventsData = _eventsData.onStart {
         viewModelScope.launch {
-            _eventsState.value = getAllEventsUseCase()
+            _eventsData.value = getAllEventsUseCase()
         }
     }.stateIn(
         viewModelScope,

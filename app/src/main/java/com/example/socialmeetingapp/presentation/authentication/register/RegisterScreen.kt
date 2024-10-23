@@ -39,10 +39,7 @@ import com.example.socialmeetingapp.presentation.authentication.components.Third
 import kotlinx.coroutines.launch
 
 @Composable
-fun RegisterScreen(
-    navigateToLogin: () -> Unit,
-    navigateToRegisterProfileInfo: () -> Unit
-) {
+fun RegisterScreen() {
     val viewModel = hiltViewModel<RegisterViewModel>()
     val state = viewModel.state.collectAsStateWithLifecycle().value
 
@@ -50,13 +47,6 @@ fun RegisterScreen(
     var password by rememberSaveable { mutableStateOf("") }
     var confirmPassword by rememberSaveable { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
-
-    LaunchedEffect(state) {
-        if (state is Result.Success) {
-            navigateToRegisterProfileInfo()
-        }
-    }
-
 
     Column(
         modifier = Modifier
@@ -148,7 +138,7 @@ fun RegisterScreen(
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
         )
 
-        TextButton(onClick = { navigateToLogin() }) {
+        TextButton(onClick = { }) {
             Text(
                 text = stringResource(id = R.string.login_here),
                 style = MaterialTheme.typography.bodyMedium,

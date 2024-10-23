@@ -11,13 +11,15 @@ espressoCore = "3.6.1"
 lifecycleRuntimeKtx = "2.8.6"
 activityCompose = "1.9.3"
 composeBom = "2024.10.00"
+mockk = "1.13.13"
+mockwebserver = "4.11.0"
 navigationCompose = "2.8.3"
 googleServices = "4.4.2"
 firebase = "33.5.0"
 hilt = "2.52"
 hiltCompose = "1.2.0"
 googleLocation = "21.3.0"
-kotlinxCoroutines = "1.8.1"
+kotlinxCoroutines = "1.9.0"
 googleMaps = "19.0.0"
 googleMapsKotlin = "5.1.1"
 googleMapsCompose = "6.1.0"
@@ -53,6 +55,7 @@ hilt-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", vers
 
 kotlinx-coroutines = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinxCoroutines"}
 kotlinx-coroutines-play-services = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-play-services", version.ref = "kotlinxCoroutines"}
+kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version = "kotlinxCoroutines"}
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization"}
 kotlinx-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version.ref = "kotlinxDatetime"}
 
@@ -65,9 +68,15 @@ google-location = {group = "com.google.android.gms", name = "play-services-locat
 google-maps = { group = "com.google.android.gms", name = "play-services-maps", version.ref = "googleMaps"}
 google-maps-kotlin = { group = "com.google.maps.android", name = "maps-ktx", version.ref = "googleMapsKotlin"}
 google-maps-compose = { group = "com.google.maps.android", name = "maps-compose", version.ref = "googleMapsCompose"}
+mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
+mockwebserver = { module = "com.squareup.okhttp3:mockwebserver", version.ref = "mockwebserver" }
 play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "playServicesAuth" }
+
 retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }
 secrets-gradle-plugin = { module = "com.google.android.libraries.mapsplatform.secrets-gradle-plugin:secrets-gradle-plugin", version.ref = "secretsGradlePlugin" }
+
+
+
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

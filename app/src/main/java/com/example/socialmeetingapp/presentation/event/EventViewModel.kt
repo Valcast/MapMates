@@ -1,6 +1,5 @@
 package com.example.socialmeetingapp.presentation.event
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.socialmeetingapp.domain.common.model.Result
@@ -8,7 +7,7 @@ import com.example.socialmeetingapp.domain.event.model.Event
 import com.example.socialmeetingapp.domain.event.usecase.GetEventUseCase
 import com.example.socialmeetingapp.domain.event.usecase.JoinEventUseCase
 import com.example.socialmeetingapp.domain.event.usecase.LeaveEventUseCase
-import com.example.socialmeetingapp.presentation.snackbar.SnackbarManager
+import com.example.socialmeetingapp.presentation.common.SnackbarManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow

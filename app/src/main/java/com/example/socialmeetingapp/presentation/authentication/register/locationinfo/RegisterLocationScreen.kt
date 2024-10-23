@@ -24,13 +24,11 @@ import com.example.socialmeetingapp.presentation.authentication.components.Title
 @Composable
 fun RegisterLocationScreen(
     handleLocationPermission: ((Boolean) -> Unit) -> Unit,
-    navigateToMap: () -> Unit
 ) {
     var locationPermissionGranted by rememberSaveable { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
-            .padding(innerPadding)
             .padding(top = 64.dp, start = 32.dp, end = 32.dp, bottom = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -43,12 +41,11 @@ fun RegisterLocationScreen(
 
         Button(onClick = {
             handleLocationPermission { locationPermissionGranted = it }
-            navigateToMap()
         }, modifier = Modifier.padding(vertical = 16.dp), enabled = !locationPermissionGranted) {
             Text(text = stringResource(id = R.string.register_location_button))
         }
 
-        TextButton(onClick = { navigateToMap() }) {
+        TextButton(onClick = { }) {
             Text(text = stringResource(id = R.string.register_location_skip),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary,

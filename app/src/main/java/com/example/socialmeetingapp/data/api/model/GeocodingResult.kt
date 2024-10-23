@@ -3,6 +3,7 @@ package com.example.socialmeetingapp.data.api.model
 data class GeocodingResult(
     val plus_code: PlusCode,
     val results: List<Result>,
+    val error_message: String,
     val status: String
 ) {
     data class PlusCode(

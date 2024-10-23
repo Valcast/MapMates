@@ -20,7 +20,7 @@ class ForgotPasswordViewModel @Inject constructor(
         MutableStateFlow<Result<Unit>>(Result.Initial)
     val state = _state.asStateFlow()
 
-    suspend fun resetPassword(email: String) {
+    fun resetPassword(email: String) {
         _state.value = Result.Loading
 
         viewModelScope.launch {

@@ -48,14 +48,25 @@ class FirebaseUserRepositoryImpl(
 
             val user = User(
                 id = userDocument.id,
-                email = userDocument.getString("email")!!,
-                username = userDocument.getString("username"),
-                bio = userDocument.getString("bio"),
-                dateOfBirth = userDocument.getDate("dateOfBirth"),
-                gender = userDocument.getString("gender"),
-                status = userDocument.getString("status"),
-                role = userDocument.getString("role"),
+                email = userDocument.getString("email") ?: return Result.Error("User not found"),
+                username = userDocument.getString("username")
+                    ?: return Result.Error("User not found"),
+                bio = userDocument.getString("bio") ?: return Result.Error("User not found"),
+                dateOfBirth = userDocument.getDate("dateOfBirth")
+                    ?: return Result.Error("User not found"),
+                gender = userDocument.getString("gender") ?: return Result.Error("User not found"),
+                role = userDocument.getString("role") ?: return Result.Error("User not found"),
                 isVerified = userDocument.getBoolean("isVerified")
+                    ?: return Result.Error("User not found"),
+                createdAt = userDocument.getString("createdAt")?.let { LocalDateTime.parse(it) }
+                    ?: return Result.Error("Created at is missing"),
+                updatedAt = userDocument.getString("updatedAt")?.let { LocalDateTime.parse(it) }
+                    ?: return Result.Error("Updated at is missing"),
+                lastPasswordChange = userDocument.getString("lastPasswordChange")
+                    ?.let { LocalDateTime.parse(it) }
+                    ?: return Result.Error("Last password change is missing"),
+                lastLogin = userDocument.getString("lastLogin")?.let { LocalDateTime.parse(it) }
+                    ?: return Result.Error("Last login is missing"),
             )
 
             return Result.Success(user)
@@ -76,14 +87,21 @@ class FirebaseUserRepositoryImpl(
         return try {
             val authResult: AuthResult = firebaseAuth.createUserWithEmailAndPassword(email, password).asDeferred().await()
 
-            val currentMoment = Clock.System.now()
+            val currentMoment = Clock.System.now().toLocalDateTime(TimeZone.UTC)
 
             db.collection("users").document(authResult.user!!.uid).set(
                 hashMapOf(
                     "email" to email,
-                    "createdAt" to currentMoment,
-                    "updatedAt" to currentMoment,
-                    "lastLogin" to currentMoment
+                    "createdAt" to currentMoment.toString(),
+                    "updatedAt" to currentMoment.toString(),
+                    "lastLogin" to currentMoment.toString(),
+                    "lastPasswordChange" to currentMoment.toString(),
+                    "role" to "User",
+                    "isVerified" to false,
+                    "gender" to "Not specified",
+                    "dateOfBirth" to Date(0),
+                    "bio" to "",
+                    "username" to ""
                 )
             )
 
@@ -106,7 +124,8 @@ class FirebaseUserRepositoryImpl(
 
         return try {
             val authResult = firebaseAuth.signInWithEmailAndPassword(email, password).asDeferred().await()
-            db.collection("users").document(authResult.user!!.uid).update("lastLogin", Clock.System.now())
+            db.collection("users").document(authResult.user!!.uid).update("lastLogin", Clock.System.now().toLocalDateTime(
+                TimeZone.UTC).toString())
 
             Result.Success(Unit)
         } catch (_: FirebaseAuthException) {

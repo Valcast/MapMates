@@ -1,4 +1,4 @@
-package com.example.socialmeetingapp.presentation.event.createevent
+package com.example.socialmeetingapp.presentation.event.createventflow
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
@@ -18,41 +18,33 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.socialmeetingapp.domain.common.model.Result
+import com.example.socialmeetingapp.domain.event.model.Event
 import com.example.socialmeetingapp.presentation.components.DashedProgressIndicator
 import com.google.android.gms.maps.model.LatLng
+import kotlinx.datetime.LocalDateTime
 
 
 @Composable
 fun CreateEventScreen(
-    latitude: Double,
-    longtitude: Double,
-    navigateToMap: () -> Unit
+    event: Event,
+    uiState: CreateEventFlow,
+    isNextButtonEnabled: Boolean,
+    isRulesAccepted: Boolean,
+    onNext: () -> Unit,
+    onPrevious: () -> Unit,
+    onUpdateTitle: (String) -> Unit,
+    onUpdateDescription: (String) -> Unit,
+    onUpdateIsPrivate: (Boolean) -> Unit,
+    onUpdateIsOnline: (Boolean) -> Unit,
+    onUpdateMaxParticipants: (Int) -> Unit,
+    onSetStartTime: (LocalDateTime) -> Unit,
+    onSetEndTime: (LocalDateTime) -> Unit,
+    onUpdateLocation: (LatLng) -> Unit,
+    onUpdateRules: () -> Unit
 ) {
-
-    val viewModel = hiltViewModel<CreateEventViewModel>()
-    val state = viewModel.state.collectAsStateWithLifecycle().value
-
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val isNextButtonEnabled by viewModel.isNextButtonEnabled.collectAsStateWithLifecycle()
-
-
-    LaunchedEffect(state) {
-        if (state is Result.Success) {
-            navigateToMap()
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        viewModel.updateLocation(LatLng(latitude, longtitude))
-    }
 
     Column(
         modifier = Modifier
@@ -67,7 +59,7 @@ fun CreateEventScreen(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            TextButton(onClick = navigateToMap, shape = RoundedCornerShape(10.dp)) {
+            TextButton(onClick = {}, shape = RoundedCornerShape(10.dp)) {
                 Text(text = "Cancel")
             }
             DashedProgressIndicator(
@@ -88,10 +80,30 @@ fun CreateEventScreen(
                 )
             }) { uiState ->
             when (uiState) {
-                CreateEventFlow.Info -> EventInfoScreen()
-                CreateEventFlow.Time -> EventDateScreen()
-                CreateEventFlow.Location -> EventLocationScreen()
-                CreateEventFlow.Rules -> EventRulesScreen()
+                CreateEventFlow.Info -> EventInfoScreen(
+                    event = event,
+                    onUpdateTitle = onUpdateTitle,
+                    onUpdateDescription = onUpdateDescription,
+                    onUpdateIsPrivate = onUpdateIsPrivate,
+                    onUpdateIsOnline = onUpdateIsOnline,
+                    onUpdateMaxParticipants = onUpdateMaxParticipants
+
+                )
+
+                CreateEventFlow.Time -> EventDateScreen(
+                    event = event,
+                    onSetStartTime = onSetStartTime,
+                    onSetEndTime = onSetEndTime
+                )
+
+                CreateEventFlow.Location -> EventLocationScreen(
+                    event = event,
+                    onUpdateLocation = onUpdateLocation
+                )
+                CreateEventFlow.Rules -> EventRulesScreen(
+                    isRulesAccepted = isRulesAccepted,
+                    onUpdateRules = onUpdateRules
+                )
             }
         }
 
@@ -102,7 +114,7 @@ fun CreateEventScreen(
         ) {
             if (uiState != CreateEventFlow.Info) {
                 OutlinedButton(
-                    onClick = viewModel::previousStep,
+                    onClick = onPrevious,
                     shape = RoundedCornerShape(10.dp),
                     modifier = Modifier
                         .fillMaxWidth(0.5f)
@@ -113,7 +125,7 @@ fun CreateEventScreen(
             }
 
             Button(
-                onClick = viewModel::nextStep,
+                onClick = onNext,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(10.dp),
                 enabled = isNextButtonEnabled

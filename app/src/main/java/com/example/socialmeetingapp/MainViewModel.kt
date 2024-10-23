@@ -42,7 +42,7 @@ class MainViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.Eagerly, MainState.Loading)
 
 
-    fun disableFirstTimeLaunch() {
+    fun onIntroductionFinished() {
         viewModelScope.launch {
             dataStore.edit {
                 it[FIRST_TIME_LAUNCH] = false

@@ -35,22 +35,10 @@ import com.example.socialmeetingapp.presentation.authentication.components.Third
 import com.example.socialmeetingapp.presentation.authentication.components.Title
 
 @Composable
-fun LoginScreen(
-    navigateToMap: () -> Unit,
-    navigateToRegister: () -> Unit,
-    navigateToForgotPassword: () -> Unit
-) {
-    val viewModel = hiltViewModel<LoginViewModel>()
-    val state = viewModel.state.collectAsStateWithLifecycle().value
+fun LoginScreen(state: Result<Unit>, onLogin: (String, String) -> Unit, onGoToRegister: () -> Unit) {
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-
-    LaunchedEffect(state) {
-        if (state is Result.Success) {
-            navigateToMap()
-        }
-    }
 
 
     Column(
@@ -88,7 +76,7 @@ fun LoginScreen(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            TextButton(onClick = { navigateToForgotPassword() }) {
+            TextButton(onClick = { }) {
                 Text(
                     text = stringResource(id = R.string.login_forgot_password_button),
                     style = MaterialTheme.typography.bodyMedium,
@@ -98,7 +86,7 @@ fun LoginScreen(
             }
 
             AuthenticationSubmitButton(
-                onClickListener = { viewModel.login(email, password) },
+                onClickListener = { onLogin(email, password) },
                 enabled = state !is Result.Loading,
                 isLoading = state is Result.Loading,
                 textStringResource = R.string.login_button
@@ -122,7 +110,9 @@ fun LoginScreen(
         )
 
         TextButton(
-            onClick = { navigateToRegister() }
+            onClick = {
+                onGoToRegister()
+            }
         ) {
             Text(
                 text = stringResource(id = R.string.login_register_button),

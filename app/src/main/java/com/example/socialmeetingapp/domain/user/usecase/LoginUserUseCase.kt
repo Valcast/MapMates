@@ -10,8 +10,9 @@ class LoginUserUseCase @Inject constructor(private val userRepository: UserRepos
             return Result.Error("Email and password cannot be empty")
         }
 
-        if (!email.contains("@")) {
-            return Result.Error("Invalid email address")
+        val emailRegex = "^[A-Za-z0-9+_.-]+@(.+)$".toRegex()
+        if (!email.matches(emailRegex)) {
+            return Result.Error("Invalid email")
         }
 
         return userRepository.loginUser(email, password)

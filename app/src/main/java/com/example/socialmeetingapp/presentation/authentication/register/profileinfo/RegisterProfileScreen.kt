@@ -26,22 +26,16 @@ import com.example.socialmeetingapp.presentation.authentication.components.Descr
 import com.example.socialmeetingapp.presentation.authentication.components.Title
 
 @Composable
-fun RegisterProfileScreen(navigateToRegisterLocation: () -> Unit) {
+fun RegisterProfileScreen() {
     val viewModel = hiltViewModel<RegisterProfileScreenViewModel>()
     val state = viewModel.state.collectAsStateWithLifecycle().value
 
     var name by rememberSaveable { mutableStateOf("") }
     var bio by rememberSaveable { mutableStateOf("") }
 
-    LaunchedEffect(state) {
-        if (state is Result.Success) {
-            navigateToRegisterLocation()
-        }
-    }
 
     Column(
         modifier = Modifier
-            .padding(innerPadding)
             .padding(top = 64.dp, start = 32.dp, end = 32.dp, bottom = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center

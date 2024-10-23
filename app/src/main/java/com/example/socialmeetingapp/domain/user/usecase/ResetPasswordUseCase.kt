@@ -6,6 +6,15 @@ import javax.inject.Inject
 
 class ResetPasswordUseCase @Inject constructor(private val userRepository: UserRepository) {
     suspend operator fun invoke(email: String): Result<Unit> {
+        if (email.isEmpty()) {
+            return Result.Error("Email cannot be empty")
+        }
+
+        if (!email.contains("@")) {
+            return Result.Error("Invalid email address")
+        }
+
+
         return userRepository.resetPassword(email)
     }
 }

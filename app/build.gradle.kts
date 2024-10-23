@@ -104,10 +104,13 @@ dependencies {
 
     implementation(libs.kotlinx.coroutines)
     implementation(libs.kotlinx.coroutines.play.services)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.mockk)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.datetime)
 
     implementation(libs.retrofit)
+    testImplementation(libs.mockwebserver)
     implementation(libs.converter.gson)
 
     implementation(libs.hilt)

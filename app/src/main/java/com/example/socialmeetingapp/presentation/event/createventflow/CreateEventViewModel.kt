@@ -1,20 +1,18 @@
-package com.example.socialmeetingapp.presentation.event.createevent
+package com.example.socialmeetingapp.presentation.event.createventflow
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.socialmeetingapp.domain.common.model.Result
 import com.example.socialmeetingapp.domain.event.model.Event
 import com.example.socialmeetingapp.domain.event.usecase.CreateEventUseCase
 import com.example.socialmeetingapp.domain.location.usecase.GetAddressFromLatLngUseCase
-import com.example.socialmeetingapp.presentation.snackbar.SnackbarManager
+import com.example.socialmeetingapp.presentation.common.SnackbarManager
 import com.google.android.gms.maps.model.LatLng
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import javax.inject.Inject
 

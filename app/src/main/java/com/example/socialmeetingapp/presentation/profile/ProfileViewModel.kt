@@ -4,10 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.socialmeetingapp.domain.common.model.Result
 import com.example.socialmeetingapp.domain.user.model.User
-import com.example.socialmeetingapp.domain.user.repository.UserRepository
 import com.example.socialmeetingapp.domain.user.usecase.GetCurrentUserUseCase
 import com.example.socialmeetingapp.domain.user.usecase.LogoutUseCase
-import com.example.socialmeetingapp.presentation.snackbar.SnackbarManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
