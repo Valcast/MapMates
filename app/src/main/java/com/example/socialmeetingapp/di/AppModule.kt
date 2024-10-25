@@ -6,9 +6,11 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import com.example.socialmeetingapp.data.api.GeocodingApi
+import com.example.socialmeetingapp.data.repository.FirebaseEventRepositoryImpl
 import com.example.socialmeetingapp.data.repository.FirebaseUserRepositoryImpl
 import com.example.socialmeetingapp.data.repository.LocationRepositoryImpl
 import com.example.socialmeetingapp.data.utils.NetworkManager
+import com.example.socialmeetingapp.domain.event.repository.EventRepository
 import com.example.socialmeetingapp.domain.location.repository.LocationRepository
 import com.example.socialmeetingapp.domain.user.repository.UserRepository
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -33,9 +35,24 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object AppModule {
     private val Context.dataStore by preferencesDataStore("settings")
-    private val storage = Firebase.storage
-    private val auth = Firebase.auth
-    private val firestore = Firebase.firestore
+
+    @Provides
+    @Singleton
+    fun provideFirebaseStorage(): FirebaseStorage {
+        return Firebase.storage
+    }
+
+    @Provides
+    @Singleton
+    fun provideFirebaseFirestore(): FirebaseFirestore {
+        return Firebase.firestore
+    }
+
+    @Provides
+    @Singleton
+    fun provideFirebaseAuth(): FirebaseAuth {
+        return Firebase.auth
+    }
 
     @Provides
     @Singleton
@@ -54,13 +71,20 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideFirebaseAuth() = auth
-
-    @Provides
-    @Singleton
     fun provideConnectivityManager(@ApplicationContext context: Context): ConnectivityManager {
         return context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     }
+
+    @Provides
+    @Singleton
+    fun provideEventRepository(
+        firestoreDatabase: FirebaseFirestore,
+        userRepository: UserRepository,
+        firebaseAuth: FirebaseAuth
+    ): EventRepository {
+        return FirebaseEventRepositoryImpl(firestoreDatabase, userRepository, firebaseAuth)
+    }
+
 
     @Provides
     @Singleton
@@ -74,13 +98,6 @@ object AppModule {
         return context.dataStore
     }
 
-    @Provides
-    @Singleton
-    fun provideFirestoreDatabase() = firestore
-
-    @Provides
-    @Singleton
-    fun provideFirebaseStorage() = storage
 
     @Provides
     @Singleton

@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Search
@@ -34,7 +36,7 @@ import com.example.socialmeetingapp.presentation.common.Routes
 import kotlinx.coroutines.launch
 
 @Composable
-fun NavigationBar(currentRoute: Routes, onItemClicked: (Routes) -> Unit, profileID: String, profileName: String, profileImageUrl: Uri) {
+fun NavigationBar(currentRoute: Routes, onItemClicked: (Routes) -> Unit, profileID: String, profileImageUrl: Uri) {
     androidx.compose.material3.NavigationBar(
         containerColor = MaterialTheme.colorScheme.background,
         tonalElevation = 0.dp
@@ -54,13 +56,13 @@ fun NavigationBar(currentRoute: Routes, onItemClicked: (Routes) -> Unit, profile
         NavigationBarItem(
             icon = {
                 Icon(
-                    imageVector = if (currentRoute == Routes.Settings) Icons.Default.Search else Icons.Outlined.Search,
+                    imageVector = if (currentRoute == Routes.Activities) Icons.AutoMirrored.Filled.List else Icons.AutoMirrored.Outlined.List,
                     contentDescription = "Features"
                 )
             },
-            selected = currentRoute == Routes.Settings,
+            selected = currentRoute == Routes.Activities,
             onClick = {
-                onItemClicked(Routes.Settings)
+                onItemClicked(Routes.Activities)
             }
         )
 

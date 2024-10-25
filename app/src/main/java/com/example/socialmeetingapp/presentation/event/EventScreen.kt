@@ -102,28 +102,12 @@ fun EventScreen(state: Result<Event>, onJoinEvent: () -> Unit, onBack: () -> Uni
                         }
                     }
 
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = event.title,
-                            style = MaterialTheme.typography.titleLarge,
-                            color = MaterialTheme.colorScheme.onBackground,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        Box {
-                            Text(
-                                text = " ${event.participants.size}/${event.maxParticipants}",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onBackground
-                            )
-                        }
-                    }
+                    Text(
+                        text = event.title,
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        fontWeight = FontWeight.Bold
+                    )
 
                     Text(
                         text = "${event.startTime.dayOfMonth} ${
@@ -170,7 +154,7 @@ fun EventScreen(state: Result<Event>, onJoinEvent: () -> Unit, onBack: () -> Uni
                                     event.endTime.hour,
                                     event.endTime.minute
                                 ),
-                                color = MaterialTheme.colorScheme.onBackground.copy(0.5f),
+                                color = MaterialTheme.colorScheme.onBackground,
                                 style = MaterialTheme.typography.titleMedium
                             )
 
@@ -263,7 +247,7 @@ fun EventScreen(state: Result<Event>, onJoinEvent: () -> Unit, onBack: () -> Uni
 
                         }
                         Button(
-                            onClick = { showBottomSheet.value = true },
+                            onClick = { if (event.participants.isNotEmpty()) showBottomSheet.value = true },
                             colors = ButtonColors(
                                 containerColor = MaterialTheme.colorScheme.background,
                                 contentColor = MaterialTheme.colorScheme.primary,

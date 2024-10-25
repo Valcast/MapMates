@@ -13,5 +13,7 @@ interface EventRepository {
     suspend fun joinEvent(id: String): Result<Unit>
     suspend fun leaveEvent(id: String): Result<Unit>
 
+    suspend fun getUserEvents(userId: String): Result<List<Event>>
+
     fun getCategoriesReferences(categories: List<String>): List<DocumentReference>
 }

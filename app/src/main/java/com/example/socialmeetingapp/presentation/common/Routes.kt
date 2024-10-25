@@ -1,5 +1,6 @@
 package com.example.socialmeetingapp.presentation.common
 
+import android.util.Log
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -16,6 +17,9 @@ sealed class Routes {
 
     @Serializable
     data object Settings : Routes()
+
+    @Serializable
+    data object Activities : Routes()
 
     @Serializable
     data class Profile(val userID: String) : Routes()
@@ -42,6 +46,7 @@ sealed class Routes {
 
             return when (segments[0]) {
                 "Map" -> Map
+                "Activities" -> Activities
                 "Login" -> Login
                 "Register" -> Register
                 "Settings" -> Settings

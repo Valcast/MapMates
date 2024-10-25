@@ -52,7 +52,7 @@ fun EventInfoScreen(event: Event, onUpdateTitle: (String) -> Unit, onUpdateDescr
         OutlinedTextField(
             value = event.description,
             onValueChange = {
-                if (it.length <= 100) {
+                if (it.length <= 250) {
                     onUpdateDescription(it)
                 }
             },
@@ -62,7 +62,7 @@ fun EventInfoScreen(event: Event, onUpdateTitle: (String) -> Unit, onUpdateDescr
             placeholder = { Text(text = "Enter event description") },
             trailingIcon = {
                 Text(
-                    text = "${event.description.length}/100",
+                    text = "${event.description.length}/250",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onBackground.copy(.5F)
                 )

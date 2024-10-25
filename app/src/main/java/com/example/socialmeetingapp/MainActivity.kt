@@ -45,6 +45,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.example.compose.SocialMeetingAppTheme
 import com.example.socialmeetingapp.data.utils.PermissionManager
+import com.example.socialmeetingapp.presentation.activities.ActivitiesScreen
+import com.example.socialmeetingapp.presentation.activities.ActivitiesViewModel
 import com.example.socialmeetingapp.presentation.authentication.forgot.ForgotPasswordScreen
 import com.example.socialmeetingapp.presentation.authentication.forgot.ForgotPasswordViewModel
 import com.example.socialmeetingapp.presentation.authentication.login.LoginScreen
@@ -160,11 +162,11 @@ class MainActivity : ComponentActivity() {
                         }
                     },
                     bottomBar = {
-                        if (currentRoute == Routes.Map || currentRoute == Routes.Profile(state.user?.id ?: "") || currentRoute == Routes.Settings) {
+                        if (currentRoute == Routes.Map || currentRoute == Routes.Activities || currentRoute == Routes.Profile(state.user?.id ?: "") || currentRoute == Routes.Settings) {
+
                             NavigationBar(
                                 currentRoute = currentRoute,
                                 onItemClicked = { NavigationManager.navigateTo(it) },
-                                profileName = state.user?.username ?: "",
                                 profileImageUrl = state.user?.profilePictureUri ?: Uri.EMPTY,
                                 profileID = state.user?.id ?: ""
                             )
@@ -227,6 +229,15 @@ class MainActivity : ComponentActivity() {
                         }
 
                         composable<Routes.Settings> { SettingsScreen() }
+
+                        composable<Routes.Activities> {
+                            val viewModel = hiltViewModel<ActivitiesViewModel>()
+
+                            ActivitiesScreen(
+                                events = viewModel.events.collectAsStateWithLifecycle().value,
+                                onCardClick = { NavigationManager.navigateTo(Routes.Event(it)) }
+                            )
+                        }
 
                         ///////////////////////////
                         //    AUTHENTICATION    //
