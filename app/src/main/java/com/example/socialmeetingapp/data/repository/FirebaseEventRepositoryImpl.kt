@@ -13,7 +13,9 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.GeoPoint
+import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.tasks.asDeferred
+import kotlinx.coroutines.tasks.await
 import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
@@ -21,6 +23,7 @@ import kotlinx.datetime.toLocalDateTime
 
 class FirebaseEventRepositoryImpl(
     private val db: FirebaseFirestore,
+    private val storage: FirebaseStorage,
     private val getCurrentUserUseCase: GetCurrentUserUseCase,
     private val getUserByIDUseCase: GetUserByIDUseCase
 ) : EventRepository {
@@ -43,7 +46,7 @@ class FirebaseEventRepositoryImpl(
                     }
                 }
 
-                val authorDocument = eventDocument.getDocumentReference("author") ?: return Result.Error("Author is missing")
+                val authorDocument = eventDocument.getDocumentReference("author") ?: return Error("Author is missing")
 
                 val authorResult = getUserByIDUseCase(authorDocument.path.split("/").last())
 
@@ -55,17 +58,17 @@ class FirebaseEventRepositoryImpl(
 
                 val event = Event(
                     id = eventDocument.id,
-                    title = eventDocument.getString("title") ?: return Result.Error("Title is missing"),
-                    description = eventDocument.getString("description") ?: return Result.Error("Description is missing"),
-                    locationCoordinates = eventDocument.getGeoPoint("locationCoordinates")?.toLatLng() ?: return Result.Error("Location is missing"),
-                    locationAddress = eventDocument.getString("locationAddress") ?: return Result.Error("Location address is missing"),
+                    title = eventDocument.getString("title") ?: return Error("Title is missing"),
+                    description = eventDocument.getString("description") ?: return Error("Description is missing"),
+                    locationCoordinates = eventDocument.getGeoPoint("locationCoordinates")?.toLatLng() ?: return Error("Location is missing"),
+                    locationAddress = eventDocument.getString("locationAddress") ?: return Error("Location address is missing"),
                     author = author,
-                    maxParticipants = eventDocument.getLong("maxParticipants")?.toInt() ?: return Result.Error("Max participants is missing"),
+                    maxParticipants = eventDocument.getLong("maxParticipants")?.toInt() ?: return Error("Max participants is missing"),
                     participants = participants,
-                    startTime = eventDocument.getString("startTime")?.let { LocalDateTime.parse(it) } ?: return Result.Error("Date is missing"),
-                    endTime = eventDocument.getString("endTime")?.let { LocalDateTime.parse(it) } ?: return Result.Error("Date is missing"),
-                    createdAt = eventDocument.getString("createdAt")?.let { LocalDateTime.parse(it) } ?: return Result.Error("Created at is missing"),
-                    updatedAt = eventDocument.getString("updatedAt")?.let { LocalDateTime.parse(it) } ?: return Result.Error("Updated at is missing"),
+                    startTime = eventDocument.getString("startTime")?.let { LocalDateTime.parse(it) } ?: return Error("Date is missing"),
+                    endTime = eventDocument.getString("endTime")?.let { LocalDateTime.parse(it) } ?: return Error("Date is missing"),
+                    createdAt = eventDocument.getString("createdAt")?.let { LocalDateTime.parse(it) } ?: return Error("Created at is missing"),
+                    updatedAt = eventDocument.getString("updatedAt")?.let { LocalDateTime.parse(it) } ?: return Error("Updated at is missing"),
                     isPrivate = eventDocument.getBoolean("isPrivate") == true,
                     isOnline = eventDocument.getBoolean("isOnline") == true,
                 )
@@ -73,9 +76,9 @@ class FirebaseEventRepositoryImpl(
                 event
             }
 
-            Result.Success(events)
+            Success(events)
         } catch (e: FirebaseFirestoreException) {
-            return Result.Error(e.message ?: "Unknown error")
+            return Error(e.message ?: "Unknown error")
         }
     }
 
@@ -85,7 +88,7 @@ class FirebaseEventRepositoryImpl(
             val eventDocument = db.collection("events").document(id).get().asDeferred().await()
 
             if (!eventDocument.exists()) {
-                return Result.Error("Event not found")
+                return Error("Event not found")
             }
 
             val participantsDocument = eventDocument.get("participants") as List<DocumentReference>
@@ -101,7 +104,7 @@ class FirebaseEventRepositoryImpl(
                 }
             }
 
-            val authorDocument = eventDocument.getDocumentReference("author") ?: return Result.Error("Author is missing")
+            val authorDocument = eventDocument.getDocumentReference("author") ?: return Error("Author is missing")
 
             val authorResult = getUserByIDUseCase(authorDocument.path.split("/").last())
 
@@ -114,25 +117,25 @@ class FirebaseEventRepositoryImpl(
 
             val event = Event(
                 id = eventDocument.id,
-                title = eventDocument.getString("title") ?: return Result.Error("Title is missing"),
-                description = eventDocument.getString("description") ?: return Result.Error("Description is missing"),
-                locationCoordinates = eventDocument.getGeoPoint("locationCoordinates")?.toLatLng() ?: return Result.Error("Location is missing"),
-                locationAddress = eventDocument.getString("locationAddress") ?: return Result.Error("Location address is missing"),
+                title = eventDocument.getString("title") ?: return Error("Title is missing"),
+                description = eventDocument.getString("description") ?: return Error("Description is missing"),
+                locationCoordinates = eventDocument.getGeoPoint("locationCoordinates")?.toLatLng() ?: return Error("Location is missing"),
+                locationAddress = eventDocument.getString("locationAddress") ?: return Error("Location address is missing"),
                 author = author,
-                maxParticipants = eventDocument.getLong("maxParticipants")?.toInt() ?: return Result.Error("Max participants is missing"),
+                maxParticipants = eventDocument.getLong("maxParticipants")?.toInt() ?: return Error("Max participants is missing"),
                 participants = participants,
-                startTime = eventDocument.getString("startTime")?.let { LocalDateTime.parse(it) } ?: return Result.Error("Date is missing"),
-                endTime = eventDocument.getString("endTime")?.let { LocalDateTime.parse(it) } ?: return Result.Error("Date is missing"),
-                createdAt = eventDocument.getString("createdAt")?.let { LocalDateTime.parse(it) } ?: return Result.Error("Created at is missing"),
-                updatedAt = eventDocument.getString("updatedAt")?.let { LocalDateTime.parse(it) } ?: return Result.Error("Updated at is missing"),
+                startTime = eventDocument.getString("startTime")?.let { LocalDateTime.parse(it) } ?: return Error("Date is missing"),
+                endTime = eventDocument.getString("endTime")?.let { LocalDateTime.parse(it) } ?: return Error("Date is missing"),
+                createdAt = eventDocument.getString("createdAt")?.let { LocalDateTime.parse(it) } ?: return Error("Created at is missing"),
+                updatedAt = eventDocument.getString("updatedAt")?.let { LocalDateTime.parse(it) } ?: return Error("Updated at is missing"),
                 isPrivate = eventDocument.getBoolean("isPrivate") == true,
                 isOnline = eventDocument.getBoolean("isOnline") == true,
             )
 
 
-            Result.Success(event)
+            Success(event)
         } catch (e: FirebaseFirestoreException) {
-            return Result.Error(e.message ?: "Unknown error")
+            return Error(e.message ?: "Unknown error")
         }
     }
 
@@ -140,8 +143,8 @@ class FirebaseEventRepositoryImpl(
         return try {
             val currentUser = getCurrentUserUseCase()
 
-            if (currentUser !is Result.Success) {
-                return Result.Error("User not found")
+            if (currentUser !is Success) {
+                return Error("User not found")
             }
 
             val userRef = db.collection("users").document(currentUser.data.id)
@@ -165,9 +168,9 @@ class FirebaseEventRepositoryImpl(
 
             val createdEvent = db.collection("events").add(eventData).asDeferred().await()
 
-            Result.Success(createdEvent.id)
+            Success(createdEvent.id)
         } catch (e: FirebaseFirestoreException) {
-            return Result.Error(e.message ?: "Unknown error")
+            return Error(e.message ?: "Unknown error")
         }
     }
 
@@ -192,19 +195,19 @@ class FirebaseEventRepositoryImpl(
             val eventDocument = db.collection("events").document(id)
 
             when (val currentUser = getCurrentUserUseCase()) {
-                is Result.Error -> return Result.Error(currentUser.message)
-                is Result.Success -> {
+                is Error -> return Error(currentUser.message)
+                is Success -> {
                     val userRef = db.collection("users").document(currentUser.data.id)
                     eventDocument.update("participants", FieldValue.arrayUnion(userRef))
 
-                    Result.Success(Unit)
+                    Success(Unit)
                 }
 
-                else -> return Result.Error("Unknown error")
+                else -> return Error("Unknown error")
             }
 
         } catch (e: FirebaseFirestoreException) {
-            Result.Error(e.message ?: "Unknown error")
+            Error(e.message ?: "Unknown error")
         }
     }
 
@@ -212,19 +215,19 @@ class FirebaseEventRepositoryImpl(
         return try {
             val eventDocument = db.collection("events").document(id)
 
-            when (val currentUser = getCurrentUserUseCase()) {
-                is Result.Error -> return Result.Error(currentUser.message)
-                is Result.Success -> {
-                    val userRef = db.collection("users").document(currentUser.data.id)
+            when (val currentUserResult = getCurrentUserUseCase()) {
+                is Error -> return currentUserResult
+                is Success -> {
+                    val userRef = db.collection("users").document(currentUserResult.data.id)
                     eventDocument.update("participants", FieldValue.arrayRemove(userRef))
 
-                    Result.Success(Unit)
+                    Success(Unit)
                 }
-                else -> return Result.Error("Unknown error")
+                else -> return Error("Unknown error")
             }
 
         } catch (e: FirebaseFirestoreException) {
-            Result.Error(e.message ?: "Unknown error")
+            Error(e.message ?: "Unknown error")
         }
     }
 
@@ -233,5 +236,6 @@ class FirebaseEventRepositoryImpl(
             db.collection("categories").document(category)
         }
     }
+
 
 }

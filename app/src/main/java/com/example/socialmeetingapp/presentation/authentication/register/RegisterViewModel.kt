@@ -16,7 +16,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class RegisterViewModel @Inject constructor(
-    private val registerUserUseCase: RegisterUserUseCase
+    private val registerUserUseCase: RegisterUserUseCase,
 ) : ViewModel() {
     private var _state = MutableStateFlow<Result<Unit>>(Result.Initial)
     val state: StateFlow<Result<Unit>> = _state.asStateFlow()
@@ -28,7 +28,7 @@ class RegisterViewModel @Inject constructor(
             when (val registerResult = registerUserUseCase(email, password, confirmPassword)) {
                 is Result.Success<Unit> -> {
                     _state.value = Result.Success(Unit)
-                    NavigationManager.navigateTo(Routes.RegisterProfileInfo)
+                    NavigationManager.navigateTo(Routes.CreateProfile)
                 }
 
                 is Result.Error -> {
@@ -41,4 +41,5 @@ class RegisterViewModel @Inject constructor(
             }
         }
     }
+
 }

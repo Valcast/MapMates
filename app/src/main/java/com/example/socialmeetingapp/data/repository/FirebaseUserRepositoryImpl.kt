@@ -1,5 +1,6 @@
 package com.example.socialmeetingapp.data.repository
 
+import android.net.Uri
 import com.example.socialmeetingapp.data.utils.NetworkManager
 import com.example.socialmeetingapp.domain.common.model.Result
 import com.example.socialmeetingapp.domain.user.model.User
@@ -16,7 +17,9 @@ import com.google.firebase.auth.FirebaseAuthWeakPasswordException
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.SetOptions
+import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.tasks.asDeferred
+import kotlinx.coroutines.tasks.await
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDateTime
@@ -28,13 +31,42 @@ import java.util.Date
 class FirebaseUserRepositoryImpl(
     private val firebaseAuth: FirebaseAuth,
     private val networkManager: NetworkManager,
-    private val db: FirebaseFirestore
+    private val db: FirebaseFirestore,
+    private val storage: FirebaseStorage
 ) : UserRepository {
-    override fun isLoggedIn(): Boolean {
+
+    private fun isLoggedIn(): Boolean {
         return firebaseAuth.currentUser != null
     }
 
+    override fun isCurrentUserVerified(): Boolean {
+        return firebaseAuth.currentUser?.isEmailVerified == true
+    }
+
+    override suspend fun refreshUser(): Result<Unit> {
+        if (!networkManager.isConnected) {
+            return Result.Error("No internet connection")
+        }
+
+        if (!isLoggedIn()) {
+            return Result.Error("User not authenticated")
+        }
+
+        return try {
+            firebaseAuth.currentUser!!.reload().await()
+
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Error(e.message ?: "Unknown error")
+        }
+
+    }
+
     override suspend fun getCurrentUser(): Result<User> {
+        if (!isLoggedIn()) {
+            return Result.Error("User not authenticated")
+        }
+
         return getUser(firebaseAuth.currentUser!!.uid)
     }
 
@@ -44,7 +76,7 @@ class FirebaseUserRepositoryImpl(
         }
 
         try {
-            val userDocument = db.collection("users").document(id).get().asDeferred().await()
+            val userDocument = db.collection("users").document(id).get().await()
 
             val user = User(
                 id = userDocument.id,
@@ -52,12 +84,16 @@ class FirebaseUserRepositoryImpl(
                 username = userDocument.getString("username")
                     ?: return Result.Error("User not found"),
                 bio = userDocument.getString("bio") ?: return Result.Error("User not found"),
-                dateOfBirth = userDocument.getDate("dateOfBirth")
-                    ?: return Result.Error("User not found"),
+                dateOfBirth = userDocument.getString("dateOfBirth")?.let {
+                    if (it == "Not specified") {
+                        Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                    } else {
+                        LocalDateTime.parse(it)
+                    }
+                }
+                    ?: return Result.Error("Birth Date is missing"),
                 gender = userDocument.getString("gender") ?: return Result.Error("User not found"),
                 role = userDocument.getString("role") ?: return Result.Error("User not found"),
-                isVerified = userDocument.getBoolean("isVerified")
-                    ?: return Result.Error("User not found"),
                 createdAt = userDocument.getString("createdAt")?.let { LocalDateTime.parse(it) }
                     ?: return Result.Error("Created at is missing"),
                 updatedAt = userDocument.getString("updatedAt")?.let { LocalDateTime.parse(it) }
@@ -67,7 +103,11 @@ class FirebaseUserRepositoryImpl(
                     ?: return Result.Error("Last password change is missing"),
                 lastLogin = userDocument.getString("lastLogin")?.let { LocalDateTime.parse(it) }
                     ?: return Result.Error("Last login is missing"),
+                profilePictureUri = userDocument.getString("profilePictureUri")
+                    ?.let { Uri.parse(it) } ?: Uri.EMPTY
             )
+
+
 
             return Result.Success(user)
         } catch (e: FirebaseFirestoreException) {
@@ -85,7 +125,8 @@ class FirebaseUserRepositoryImpl(
         }
 
         return try {
-            val authResult: AuthResult = firebaseAuth.createUserWithEmailAndPassword(email, password).asDeferred().await()
+            val authResult: AuthResult =
+                firebaseAuth.createUserWithEmailAndPassword(email, password).await()
 
             val currentMoment = Clock.System.now().toLocalDateTime(TimeZone.UTC)
 
@@ -97,11 +138,11 @@ class FirebaseUserRepositoryImpl(
                     "lastLogin" to currentMoment.toString(),
                     "lastPasswordChange" to currentMoment.toString(),
                     "role" to "User",
-                    "isVerified" to false,
                     "gender" to "Not specified",
-                    "dateOfBirth" to Date(0),
+                    "dateOfBirth" to "Not specified",
                     "bio" to "",
-                    "username" to ""
+                    "username" to "",
+                    "profilePictureUri" to ""
                 )
             )
 
@@ -123,9 +164,12 @@ class FirebaseUserRepositoryImpl(
         }
 
         return try {
-            val authResult = firebaseAuth.signInWithEmailAndPassword(email, password).asDeferred().await()
-            db.collection("users").document(authResult.user!!.uid).update("lastLogin", Clock.System.now().toLocalDateTime(
-                TimeZone.UTC).toString())
+            val authResult = firebaseAuth.signInWithEmailAndPassword(email, password).await()
+            db.collection("users").document(authResult.user!!.uid).update(
+                "lastLogin", Clock.System.now().toLocalDateTime(
+                    TimeZone.UTC
+                ).toString()
+            )
 
             Result.Success(Unit)
         } catch (_: FirebaseAuthException) {
@@ -136,14 +180,14 @@ class FirebaseUserRepositoryImpl(
 
     override suspend fun resetPassword(email: String): Result<Unit> {
         return try {
-            firebaseAuth.sendPasswordResetEmail(email).asDeferred().await()
+            firebaseAuth.sendPasswordResetEmail(email).await()
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e.message ?: "Unknown error")
         }
     }
 
-    override suspend fun modifyUser(updates: UserUpdateData): Result<Unit> {
+    override suspend fun updateUser(user: User): Result<Unit> {
         if (!networkManager.isConnected) {
             return Result.Error("No internet connection")
         }
@@ -155,18 +199,66 @@ class FirebaseUserRepositoryImpl(
         try {
             val userDocument = db.collection("users").document(firebaseAuth.currentUser!!.uid)
 
-            val updateData = hashMapOf<String, Any>().apply {
-                updates.username?.let { put("username", it) }
-                updates.bio?.let { put("bio", it) }
-            }
+            val currentMoment = Clock.System.now().toLocalDateTime(TimeZone.UTC)
 
-            userDocument.set(updateData, SetOptions.merge()).asDeferred().await()
+            userDocument.set(
+                hashMapOf(
+                    "updatedAt" to currentMoment.toString(),
+                    "gender" to user.gender,
+                    "dateOfBirth" to user.dateOfBirth.toString(),
+                    "bio" to user.bio,
+                    "username" to user.username,
+                    "profilePictureUri" to user.profilePictureUri.toString(),
+                ), SetOptions.merge()
+            ).await()
 
             return Result.Success(Unit)
         } catch (e: Exception) {
             return Result.Error(e.message ?: "Unknown error")
         }
 
+    }
+
+    override suspend fun uploadProfilePicture(imageUri: Uri): Result<Uri> {
+        if (!networkManager.isConnected) {
+            return Result.Error("No internet connection")
+        }
+
+        if (!isLoggedIn()) {
+            return Result.Error("User not authenticated")
+        }
+
+        try {
+            val storageRef =
+                storage.reference.child("profile_pictures/${firebaseAuth.currentUser!!.uid}")
+
+            storageRef.putFile(imageUri).await()
+
+            val downloadUrl = storageRef.downloadUrl.await()
+
+            return Result.Success(downloadUrl)
+        } catch (e: Exception) {
+            return Result.Error(e.message ?: "Unknown error")
+        }
+    }
+
+    override suspend fun sendEmailVerification(): Result<Unit> {
+        if (!networkManager.isConnected) {
+            return Result.Error("No internet connection")
+        }
+
+        if (!isLoggedIn()) {
+            return Result.Error("User not authenticated")
+        }
+
+        try {
+            firebaseAuth.currentUser!!.sendEmailVerification().await()
+            return Result.Success(Unit)
+
+
+        } catch (e: Exception) {
+            return Result.Error(e.message ?: "Unknown error")
+        }
     }
 
 

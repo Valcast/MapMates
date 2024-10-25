@@ -1,27 +1,43 @@
 package com.example.socialmeetingapp
 
 import android.annotation.SuppressLint
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
-import androidx.activity.OnBackPressedCallback
-import androidx.activity.OnBackPressedDispatcher
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -35,9 +51,8 @@ import com.example.socialmeetingapp.presentation.authentication.login.LoginScree
 import com.example.socialmeetingapp.presentation.authentication.login.LoginViewModel
 import com.example.socialmeetingapp.presentation.authentication.register.RegisterScreen
 import com.example.socialmeetingapp.presentation.authentication.register.RegisterViewModel
-import com.example.socialmeetingapp.presentation.authentication.register.locationinfo.RegisterLocationScreen
-import com.example.socialmeetingapp.presentation.authentication.register.profileinfo.RegisterProfileScreen
-import com.example.socialmeetingapp.presentation.authentication.register.profileinfo.RegisterProfileScreenViewModel
+import com.example.socialmeetingapp.presentation.authentication.register.createprofileflow.CreateProfileScreen
+import com.example.socialmeetingapp.presentation.authentication.register.createprofileflow.CreateProfileViewModel
 import com.example.socialmeetingapp.presentation.common.NavigationManager
 import com.example.socialmeetingapp.presentation.common.Routes
 import com.example.socialmeetingapp.presentation.common.SnackbarManager
@@ -55,15 +70,19 @@ import com.example.socialmeetingapp.presentation.settings.SettingsScreen
 import com.google.android.gms.maps.model.LatLng
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.serialization.json.Json
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     private lateinit var permissionManager: PermissionManager
     private lateinit var splashScreen: SplashScreen
+    private val viewModel: MainViewModel by viewModels()
+
+    override fun onResume() {
+        super.onResume()
+        Log.d("MainActivity", "onResume")
+        viewModel.refreshUser()
+    }
 
 
     @SuppressLint("RestrictedApi")
@@ -77,7 +96,6 @@ class MainActivity : ComponentActivity() {
 
         enableEdgeToEdge()
         setContent {
-            val viewModel = hiltViewModel<MainViewModel>()
             val state = viewModel.state.collectAsStateWithLifecycle().value
 
             splashScreen.setKeepOnScreenCondition { state is MainState.Loading }
@@ -87,10 +105,11 @@ class MainActivity : ComponentActivity() {
 
             val startDestination = when {
                 state is MainState.Content && state.isFirstTimeLaunch -> Routes.Introduction
-                state is MainState.Content && !state.isLoggedIn -> Routes.Login
-                state is MainState.Content && state.isLoggedIn -> Routes.Map
+                state is MainState.Content && state.user == null -> Routes.Login
+                state is MainState.Content && state.user != null -> Routes.Map
                 else -> return@setContent
             }
+
 
             LaunchedEffect("Snackbar Manager") {
                 SnackbarManager.messages.collectLatest {
@@ -117,14 +136,37 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
+
             SocialMeetingAppTheme {
                 Scaffold(
                     snackbarHost = { SnackbarHost(snackbarHostState) },
+                    topBar =  {
+                        if (state.isEmailVerified == false) {
+                            Row(modifier = Modifier.fillMaxWidth().padding(top = 32.dp, start = 16.dp, end = 16.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text(
+                                    text = "Your account is not verified yet.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onBackground,
+                                )
+
+                                Button(onClick = { viewModel.resendVerificationEmail() }) {
+                                    Text(
+                                        text = "Verify",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                    )
+                                }
+                            }
+                        }
+                    },
                     bottomBar = {
-                        if (currentRoute == Routes.Map || currentRoute == Routes.Profile || currentRoute == Routes.Settings) {
+                        if (currentRoute == Routes.Map || currentRoute == Routes.Profile(state.user?.id ?: "") || currentRoute == Routes.Settings) {
                             NavigationBar(
                                 currentRoute = currentRoute,
-                                onItemClicked = { NavigationManager.navigateTo(it) }
+                                onItemClicked = { NavigationManager.navigateTo(it) },
+                                profileName = state.user?.username ?: "",
+                                profileImageUrl = state.user?.profilePictureUri ?: Uri.EMPTY,
+                                profileID = state.user?.id ?: ""
                             )
                         }
 
@@ -179,7 +221,8 @@ class MainActivity : ComponentActivity() {
 
                             ProfileScreen(
                                 userData = viewModel.userData.collectAsStateWithLifecycle().value,
-                                onLogout = { viewModel.logout() }
+                                onLogout = { viewModel.logout()
+                                NavigationManager.navigateTo(Routes.Login) }
                             )
                         }
 
@@ -207,10 +250,6 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        //////////////////////////
-                        //    REGISTER FLOW    //
-                        ////////////////////////
-
                         composable<Routes.Register> {
                             val viewModel = hiltViewModel<RegisterViewModel>()
                             RegisterScreen(
@@ -220,24 +259,31 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        composable<Routes.RegisterProfileInfo> {
-                            val viewModel = hiltViewModel<RegisterProfileScreenViewModel>()
-                            RegisterProfileScreen(
-                                state = viewModel.state.collectAsStateWithLifecycle().value,
-                                onNextClick = { name, bio -> viewModel.modifyUser(name, bio) }
+                        ///////////////////////////
+                        //    CREATE PROFILE    //
+                        /////////////////////////
+
+                        composable<Routes.CreateProfile> {
+                            val viewModel = hiltViewModel<CreateProfileViewModel>()
+
+                            CreateProfileScreen(
+                                user = viewModel.user.collectAsStateWithLifecycle().value,
+                                uiState = viewModel.uiState.collectAsStateWithLifecycle().value,
+                                isNextButtonEnabled = viewModel.isNextButtonEnabled.collectAsStateWithLifecycle().value,
+                                isRulesAccepted = viewModel.isRulesAccepted.collectAsStateWithLifecycle().value,
+                                onNext = { viewModel.nextStep() },
+                                onPrevious = { viewModel.previousStep() },
+                                onUpdateUsername = { viewModel.updateUsername(it) },
+                                onUpdateBio = { viewModel.updateBio(it) },
+                                onUpdateProfilePicture = { viewModel.updateProfilePicture(it) },
+                                onUpdateDateOfBirth = { viewModel.updateDateOfBirth(it) },
+                                onUpdateGender = { viewModel.updateGender(it) },
+                                onUpdateRules = { viewModel.updateRulesAccepted() }
                             )
                         }
 
-                        composable<Routes.RegisterLocation> {
-                            RegisterLocationScreen(
-                                handleLocationPermission = { updateLocationPermission ->
-                                    permissionManager.checkPermissions(
-                                        PermissionManager.FINE_LOCATION_PERMISSION,
-                                    ) { updateLocationPermission(it) }
-                                },
-                                onSkip = { NavigationManager.navigateTo(Routes.Map) }
-                            )
-                        }
+
+
 
                         //////////////////
                         //    EVENT    //

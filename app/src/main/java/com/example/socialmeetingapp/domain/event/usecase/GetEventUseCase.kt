@@ -7,7 +7,7 @@ import com.example.socialmeetingapp.domain.location.usecase.GetAddressFromLatLng
 import javax.inject.Inject
 
 class GetEventUseCase @Inject constructor(
-    private val eventRepository: EventRepository
+    private val eventRepository: EventRepository,
 ) {
     suspend operator fun invoke(id: String): Result<Event> {
         return eventRepository.getEvent(id)

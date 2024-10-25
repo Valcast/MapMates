@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.DateRange
@@ -23,25 +24,28 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.compose.AsyncImage
 import com.example.socialmeetingapp.domain.common.model.Result
 import com.example.socialmeetingapp.domain.user.model.User
 import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
+import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Duration.Companion.minutes
 
 @Composable
 fun ProfileScreen(userData: Result<User>, onLogout: () -> Unit) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
         modifier = Modifier.padding(16.dp)
     ) {
         when (userData) {
@@ -52,60 +56,25 @@ fun ProfileScreen(userData: Result<User>, onLogout: () -> Unit) {
             is Result.Success -> {
                 val user = userData.data
 
-                BadgedBox(
-                    badge = {
-
-                        Badge(
-                            containerColor = when {
-                                (Clock.System.now() - user.lastLogin.toInstant(TimeZone.UTC) < 5.minutes) -> Color.Green
-                                (Clock.System.now() - user.lastLogin.toInstant(TimeZone.UTC) > 5.minutes && Clock.System.now() - user.lastLogin.toInstant(
-                                    TimeZone.UTC
-                                ) < 15.minutes) -> Color.Yellow
-                                else -> MaterialTheme.colorScheme.error
-                            },
-                            content = {
-                                Text(
-                                    text = when {
-                                        (Clock.System.now() - user.lastLogin.toInstant(TimeZone.UTC) < 5.minutes) -> "Online"
-                                        (Clock.System.now() - user.lastLogin.toInstant(TimeZone.UTC) > 5.minutes && Clock.System.now() - user.lastLogin.toInstant(
-                                            TimeZone.UTC
-                                        ) < 15.minutes) -> "Away"
-                                        else -> "Offline"
-                                    },
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = Color.White,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                )
-                            }
-                        )
-                    }
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.AccountCircle,
-                        contentDescription = "Profile Picture",
-                        modifier = Modifier
-                            .size(100.dp)
-                            .padding(bottom = 8.dp),
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                }
+                AsyncImage(
+                    model = user.profilePictureUri,
+                    contentDescription = "Profile Picture",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(100.dp)
+                        .clip(RoundedCornerShape(50.dp))
+                )
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.padding(top = 16.dp)
                 ) {
                     Text(
                         text = user.username.uppercase(),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                     )
-                    if (user.isVerified == true) {
-                        Icon(
-                            imageVector = Icons.Filled.Done,
-                            contentDescription = "Verified",
-                            modifier = Modifier.padding(start = 4.dp)
-                        )
-                    }
                 }
 
                 Text(
@@ -133,7 +102,33 @@ fun ProfileScreen(userData: Result<User>, onLogout: () -> Unit) {
                     ) {
                         Icon(
                             imageVector = Icons.Filled.DateRange,
-                            contentDescription = "Date of Birth",
+                            contentDescription = "Age",
+                            modifier = Modifier.padding(end = 4.dp),
+                            tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                        )
+                        Text(
+                            text = "Age",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                        )
+                    }
+
+                    Text(text = "${Clock.System.now().toLocalDateTime(TimeZone.UTC).year - user.dateOfBirth.year}", style = MaterialTheme.typography.bodyMedium)
+                }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                        .padding(top = 8.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.DateRange,
+                            contentDescription = "Gender",
                             modifier = Modifier.padding(end = 4.dp),
                             tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                         )

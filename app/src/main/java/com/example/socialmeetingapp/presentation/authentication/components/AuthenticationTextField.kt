@@ -22,6 +22,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.example.socialmeetingapp.R
 
+
 @Composable
 fun AuthenticationTextField(
     value: String,

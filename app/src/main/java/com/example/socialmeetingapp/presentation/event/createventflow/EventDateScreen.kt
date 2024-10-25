@@ -216,13 +216,12 @@ fun EventDateScreen(event: Event, onSetStartTime: (LocalDateTime) -> Unit, onSet
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DatePickerModalInput(
-    initialDate: LocalDateTime,
+    initialDate: LocalDateTime = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()),
     onDateSelected: (LocalDateTime?) -> Unit,
     onDismiss: () -> Unit,
     selectableDates: SelectableDates = object : SelectableDates {
         override fun isSelectableDate(utcTimeMillis: Long): Boolean {
-            return Clock.System.now().minus(1, DateTimeUnit.DAY, TimeZone.currentSystemDefault())
-                .toEpochMilliseconds() < utcTimeMillis
+            return true
         }
     }
 ) {

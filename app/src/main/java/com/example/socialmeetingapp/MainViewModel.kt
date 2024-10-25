@@ -7,9 +7,16 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.socialmeetingapp.domain.user.repository.UserRepository
+import com.example.socialmeetingapp.domain.common.model.Result
+import com.example.socialmeetingapp.domain.user.model.User
+import com.example.socialmeetingapp.domain.user.usecase.GetCurrentUserUseCase
+import com.example.socialmeetingapp.domain.user.usecase.IsCurrentUserVerifiedUseCase
+import com.example.socialmeetingapp.domain.user.usecase.RefreshUserUseCase
+import com.example.socialmeetingapp.domain.user.usecase.SendEmailVerificationUseCase
+import com.example.socialmeetingapp.presentation.common.NavigationManager
+import com.example.socialmeetingapp.presentation.common.Routes
+import com.example.socialmeetingapp.presentation.common.SnackbarManager
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,23 +29,61 @@ import javax.inject.Inject
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
-    userRepository: UserRepository,
-    private val dataStore: DataStore<Preferences>
+    private val dataStore: DataStore<Preferences>,
+    private val getCurrentUserUseCase: GetCurrentUserUseCase,
+    private val sendEmailVerificationUseCase: SendEmailVerificationUseCase,
+    private val isCurrentUserVerifiedUseCase: IsCurrentUserVerifiedUseCase,
+    private val refreshUserUseCase: RefreshUserUseCase
 ) : ViewModel() {
     private var _state = MutableStateFlow<MainState>(MainState.Loading)
     val state = _state.asStateFlow().onStart {
-        val isFirstTime = isFirstTimeLaunch()
-        val isLoggedIn = userRepository.isLoggedIn()
-
-        _state.value = MainState.Content(isFirstTimeLaunch = isFirstTime, isLoggedIn = isLoggedIn)
+        refreshUser()
 
     }.stateIn(viewModelScope, SharingStarted.Eagerly, MainState.Loading)
+
+    fun refreshUser() {
+        viewModelScope.launch {
+            refreshUserUseCase()
+
+            val isFirstTime = isFirstTimeLaunch()
+
+            when (val result = getCurrentUserUseCase()) {
+                is Result.Success -> {
+                    val isEmailVerified = isCurrentUserVerifiedUseCase()
+
+                    Log.d("MainViewModel", "isEmailVerified: $isEmailVerified")
+
+                    _state.value =
+                        MainState.Content(isFirstTimeLaunch = isFirstTime, user = result.data, isEmailVerified = isEmailVerified)
+                }
+                is Result.Error -> {
+                    _state.value = MainState.Content(isFirstTimeLaunch = isFirstTime)
+                    SnackbarManager.showMessage(result.message)
+                }
+                else -> {}
+            }
+        }
+    }
 
 
     fun onIntroductionFinished() {
         viewModelScope.launch {
             dataStore.edit {
                 it[FIRST_TIME_LAUNCH] = false
+            }
+        }
+    }
+
+    fun resendVerificationEmail() {
+        viewModelScope.launch {
+            when (val result = sendEmailVerificationUseCase()) {
+                is Result.Success -> {
+                    SnackbarManager.showMessage("Verification email sent")
+                }
+                is Result.Error -> {
+                    SnackbarManager.showMessage(result.message)
+                }
+                else -> {}
             }
         }
     }
@@ -52,7 +97,6 @@ class MainViewModel @Inject constructor(
         val FIRST_TIME_LAUNCH = booleanPreferencesKey("FIRST_TIME_LAUNCH")
     }
 
-
 }
 
 sealed class MainState(
@@ -61,7 +105,8 @@ sealed class MainState(
 
     data class Content(
         val isFirstTimeLaunch: Boolean = true,
-        val isLoggedIn: Boolean = false
+        val user: User? = null,
+        val isEmailVerified: Boolean = false
     ) : MainState()
 
 

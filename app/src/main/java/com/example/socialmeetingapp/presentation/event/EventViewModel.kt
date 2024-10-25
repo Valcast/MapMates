@@ -41,13 +41,15 @@ class EventViewModel @Inject constructor(
 
     fun joinEvent(eventID: String) {
         viewModelScope.launch {
-            val result = joinEventUseCase(eventID)
-
-            if (result is Result.Error) {
-                SnackbarManager.showMessage(result.message)
+            when(val joinResult = joinEventUseCase(eventID)) {
+                is Result.Success -> {
+                    SnackbarManager.showMessage("You have joined the event")
+                }
+                is Result.Error -> {
+                    SnackbarManager.showMessage(joinResult.message)
+                }
+                else -> {}
             }
-
-            SnackbarManager.showMessage("You have joined the event")
         }
     }
 }

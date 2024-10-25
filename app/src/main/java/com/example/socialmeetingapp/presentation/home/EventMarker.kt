@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.DateRange
@@ -17,8 +19,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import com.example.socialmeetingapp.domain.event.model.Event
 import com.google.maps.android.compose.MarkerInfoWindowContent
 import com.google.maps.android.compose.rememberMarkerState
@@ -47,10 +52,11 @@ fun EventMarker(event: Event, onMarkerClick: (String) -> Unit) {
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
-                Icon(
-                    imageVector = Icons.Default.AccountCircle,
-                    contentDescription = "Creator Info",
-                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
+                AsyncImage(
+                    model = event.author.profilePictureUri,
+                    contentDescription = "Creator Profile Picture",
+                    modifier = Modifier.size(32.dp).clip(RoundedCornerShape(16.dp)),
+                    contentScale = ContentScale.Crop,
                 )
             }
             Row(verticalAlignment = Alignment.CenterVertically) {

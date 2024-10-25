@@ -27,7 +27,11 @@ class ProfileViewModel @Inject constructor(
 
     fun getUserByID(userID: String) {
         viewModelScope.launch {
-            _userData.value = getUserByIDUseCase(userID)
+            if (userID == "me") {
+                _userData.value = getCurrentUserUseCase()
+            } else {
+                _userData.value = getUserByIDUseCase(userID)
+            }
         }
     }
 

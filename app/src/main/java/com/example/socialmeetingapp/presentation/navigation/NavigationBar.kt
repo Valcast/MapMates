@@ -1,10 +1,17 @@
 package com.example.socialmeetingapp.presentation.navigation
 
+import android.net.Uri
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
@@ -14,69 +21,79 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import coil3.compose.AsyncImage
 import com.example.socialmeetingapp.presentation.common.NavigationManager
 import com.example.socialmeetingapp.presentation.common.Routes
 import kotlinx.coroutines.launch
 
 @Composable
-fun NavigationBar(currentRoute: Routes, onItemClicked: (Routes) -> Unit) {
-    val bottomNavItems = mapOf(
-        Routes.Map to BottomNavItem(
-            title = "Home",
-            selectedIcon = Icons.Filled.Info,
-            unselectedIcon = Icons.Outlined.Info
-        ),
-        Routes.Profile to BottomNavItem(
-            title = "Search",
-            selectedIcon = Icons.Filled.Search,
-            unselectedIcon = Icons.Outlined.Search
-        ),
-        Routes.Settings to BottomNavItem(
-            title = "Settings",
-            selectedIcon = Icons.Filled.Settings,
-            unselectedIcon = Icons.Outlined.Settings
-        )
-    )
-
+fun NavigationBar(currentRoute: Routes, onItemClicked: (Routes) -> Unit, profileID: String, profileName: String, profileImageUrl: Uri) {
     androidx.compose.material3.NavigationBar(
         containerColor = MaterialTheme.colorScheme.background,
         tonalElevation = 0.dp
     ) {
-        bottomNavItems.entries.forEach { (route, item) ->
-            NavigationBarItem(
-                selected = currentRoute == route,
-                onClick = { onItemClicked(route as Routes) },
-                icon = {
-                    Icon(
-                        imageVector = if (currentRoute == route) item.selectedIcon else item.unselectedIcon,
-                        contentDescription = item.title
-                    )
-                },
-                label = {
-                    Text(
-                        text = item.title,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                },
-                colors = NavigationBarItemDefaults.colors().copy(
-                    selectedIconColor = if (currentRoute == route) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onBackground,
-                    unselectedIconColor = MaterialTheme.colorScheme.onBackground,
-                    selectedIndicatorColor = if (currentRoute == route) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.background
+        NavigationBarItem(
+            icon = {
+                Icon(
+                    imageVector = if (currentRoute == Routes.Map) Icons.Default.Home else Icons.Outlined.Home,
+                    contentDescription = "Search"
                 )
-            )
-        }
+            },
+            selected = currentRoute == Routes.Map,
+            onClick = {
+                onItemClicked(Routes.Map)
+            }
+        )
+        NavigationBarItem(
+            icon = {
+                Icon(
+                    imageVector = if (currentRoute == Routes.Settings) Icons.Default.Search else Icons.Outlined.Search,
+                    contentDescription = "Features"
+                )
+            },
+            selected = currentRoute == Routes.Settings,
+            onClick = {
+                onItemClicked(Routes.Settings)
+            }
+        )
+
+
+        NavigationBarItem(
+            icon = {
+                AsyncImage(
+                    model = profileImageUrl,
+                    contentDescription = "Profile Picture",
+                    modifier = Modifier
+                        .size(24.dp).clip(RoundedCornerShape(12.dp)),
+                    contentScale = ContentScale.Crop,
+
+                )
+            },
+            selected = currentRoute == Routes.Profile,
+            onClick = {
+                onItemClicked(Routes.Profile(profileID))
+            }
+        )
+
+        NavigationBarItem(
+            icon = {
+                Icon(
+                    imageVector = if (currentRoute == Routes.Settings) Icons.Default.Settings else Icons.Outlined.Settings,
+                    contentDescription = "Settings"
+                )
+            },
+            selected = currentRoute == Routes.Settings,
+            onClick = {
+                onItemClicked(Routes.Settings)
+            }
+        )
     }
 }
 
-
-data class BottomNavItem(
-    val title: String,
-    val selectedIcon: ImageVector,
-    val unselectedIcon: ImageVector
-)

@@ -10,28 +10,36 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import com.example.socialmeetingapp.domain.common.model.Result
 import com.example.socialmeetingapp.domain.event.model.Event
 import com.google.android.gms.maps.model.CameraPosition
@@ -40,11 +48,19 @@ import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberMarkerState
+import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import java.util.Locale
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EventScreen(state: Result<Event>, onJoinEvent: () -> Unit, onBack: () -> Unit, onGoToAuthor: (String) -> Unit) {
+    val sheetState = rememberModalBottomSheetState()
+    val scope = rememberCoroutineScope()
+    var showBottomSheet = remember { mutableStateOf(false) }
 
     when (state) {
         is Result.Loading -> {
@@ -200,6 +216,8 @@ fun EventScreen(state: Result<Event>, onJoinEvent: () -> Unit, onBack: () -> Uni
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onBackground
                         )
+
+
                         Button(
                             onClick = { onGoToAuthor(event.author.id) },
                             colors = ButtonColors(
@@ -208,12 +226,17 @@ fun EventScreen(state: Result<Event>, onJoinEvent: () -> Unit, onBack: () -> Uni
                                 disabledContainerColor = MaterialTheme.colorScheme.background,
                                 disabledContentColor = MaterialTheme.colorScheme.background
                             ),
-                            shape = RoundedCornerShape(10.dp),
                             contentPadding = PaddingValues(0.dp)
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(text = event.author.username, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(end = 4.dp))
-                                Icon(imageVector = Icons.Default.Person, contentDescription = null)
+                                Text(text = event.author.username, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(end = 8.dp))
+
+                                AsyncImage(
+                                    model = event.author.profilePictureUri,
+                                    contentDescription = "Author Profile Picture",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.size(32.dp).clip(RoundedCornerShape(16.dp))
+                                )
                             }
                         }
                     }
@@ -240,7 +263,7 @@ fun EventScreen(state: Result<Event>, onJoinEvent: () -> Unit, onBack: () -> Uni
 
                         }
                         Button(
-                            onClick = {},
+                            onClick = { showBottomSheet.value = true },
                             colors = ButtonColors(
                                 containerColor = MaterialTheme.colorScheme.background,
                                 contentColor = MaterialTheme.colorScheme.primary,
@@ -254,9 +277,18 @@ fun EventScreen(state: Result<Event>, onJoinEvent: () -> Unit, onBack: () -> Uni
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.End
                             ) {
-                                Icon(imageVector = Icons.Default.Person, contentDescription = null)
-                                Icon(imageVector = Icons.Default.Person, contentDescription = null)
-                                Icon(imageVector = Icons.Default.Person, contentDescription = null)
+                                event.participants.forEachIndexed { index, participant ->
+                                    if (index < 3) {
+                                        AsyncImage(
+                                            model = participant.profilePictureUri,
+                                            contentDescription = "Participant Profile Picture",
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier
+                                                .size(32.dp)
+                                                .clip(RoundedCornerShape(16.dp))
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -318,6 +350,46 @@ fun EventScreen(state: Result<Event>, onJoinEvent: () -> Unit, onBack: () -> Uni
 
                     ) {
                     Text(text = "Check In Event")
+                }
+            }
+
+            if (showBottomSheet.value) {
+                ModalBottomSheet(
+                    onDismissRequest = {
+                        showBottomSheet.value = false
+                    },
+                    sheetState = sheetState
+                ) {
+                    event.participants.forEach { participant ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            AsyncImage(
+                                model = participant.profilePictureUri,
+                                contentDescription = "Participant Profile Picture",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                            )
+                            Text(
+                                text = participant.username,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onBackground,
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
+
+                            Text(
+                                text = (Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).year - participant.dateOfBirth.year).toString(),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onBackground,
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
+                        }
+                    }
                 }
             }
         }

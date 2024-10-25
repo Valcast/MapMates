@@ -18,6 +18,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
+import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.storage
 import dagger.Module
 import dagger.Provides
@@ -41,6 +42,9 @@ object AppModule {
     fun provideFusedLocationClient(@ApplicationContext context: Context): FusedLocationProviderClient {
         return LocationServices.getFusedLocationProviderClient(context)
     }
+
+    @Provides
+    fun provideContentResolver(@ApplicationContext context: Context) = context.contentResolver
 
     @Provides
     @Singleton
@@ -80,8 +84,8 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideUserRepository(firebaseAuth: FirebaseAuth, networkManager: NetworkManager, firestoreDatabase: FirebaseFirestore): UserRepository {
-        return FirebaseUserRepositoryImpl(firebaseAuth, networkManager, firestoreDatabase)
+    fun provideUserRepository(firebaseAuth: FirebaseAuth, networkManager: NetworkManager, firestoreDatabase: FirebaseFirestore, firebaseStorage: FirebaseStorage): UserRepository {
+        return FirebaseUserRepositoryImpl(firebaseAuth, networkManager, firestoreDatabase, firebaseStorage)
     }
 
     @Provides

@@ -13,6 +13,7 @@ import com.example.socialmeetingapp.domain.user.repository.UserRepository
 import com.example.socialmeetingapp.domain.user.usecase.GetCurrentUserUseCase
 import com.example.socialmeetingapp.domain.user.usecase.GetUserByIDUseCase
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -26,8 +27,8 @@ import javax.inject.Singleton
 object EventModule {
     @Provides
     @Singleton
-    fun provideEventRepository(firestoreDatabase: FirebaseFirestore, getCurrentUserUseCase: GetCurrentUserUseCase, getUserByIDUseCase: GetUserByIDUseCase): EventRepository {
-        return FirebaseEventRepositoryImpl(firestoreDatabase, getCurrentUserUseCase, getUserByIDUseCase )
+    fun provideEventRepository(firestoreDatabase: FirebaseFirestore, getCurrentUserUseCase: GetCurrentUserUseCase, getUserByIDUseCase: GetUserByIDUseCase, firebaseStorage: FirebaseStorage): EventRepository {
+        return FirebaseEventRepositoryImpl(firestoreDatabase, firebaseStorage, getCurrentUserUseCase, getUserByIDUseCase)
     }
 
 
