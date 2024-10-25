@@ -2,59 +2,46 @@ package com.example.socialmeetingapp.presentation.profile
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Done
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.example.socialmeetingapp.domain.common.model.Result
 import com.example.socialmeetingapp.domain.user.model.User
 import kotlinx.datetime.Clock
-import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
-import kotlin.time.Duration.Companion.minutes
+
 
 @Composable
-fun ProfileScreen(userData: Result<User>) {
+fun MyProfileScreen(user: Result<User>, onLogout: () -> Unit) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.padding(16.dp)
     ) {
-        when (userData) {
+        when (user) {
             is Result.Loading -> {
                 CircularProgressIndicator()
             }
 
             is Result.Success -> {
-                val user = userData.data
+                val user = user.data
 
                 AsyncImage(
                     model = user.profilePictureUri,
@@ -175,15 +162,21 @@ fun ProfileScreen(userData: Result<User>) {
                     )
                 }
 
+                Button(
+                    onClick = onLogout,
+                    modifier = Modifier.padding(top = 16.dp)
+                ) {
+                    Text(text = "Logout")
+                }
+
             }
 
             is Result.Error -> {
-                val error = userData.message
+                val error = user.message
                 Text(text = "Error: $error")
             }
 
             else -> {}
         }
     }
-
 }

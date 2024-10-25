@@ -1,6 +1,5 @@
 package com.example.socialmeetingapp
 
-import android.annotation.SuppressLint
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
@@ -15,19 +14,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,9 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -66,6 +57,8 @@ import com.example.socialmeetingapp.presentation.home.HomeScreen
 import com.example.socialmeetingapp.presentation.home.HomeViewModel
 import com.example.socialmeetingapp.presentation.introduction.IntroductionScreen
 import com.example.socialmeetingapp.presentation.navigation.NavigationBar
+import com.example.socialmeetingapp.presentation.profile.MyProfileScreen
+import com.example.socialmeetingapp.presentation.profile.MyProfileViewModel
 import com.example.socialmeetingapp.presentation.profile.ProfileScreen
 import com.example.socialmeetingapp.presentation.profile.ProfileViewModel
 import com.example.socialmeetingapp.presentation.settings.SettingsScreen
@@ -76,7 +69,7 @@ import kotlinx.coroutines.flow.collectLatest
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
-    private lateinit var permissionManager: PermissionManager
+    private var permissionManager = PermissionManager(this)
     private lateinit var splashScreen: SplashScreen
     private val viewModel: MainViewModel by viewModels()
 
@@ -84,17 +77,13 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         Log.d("MainActivity", "onResume")
         viewModel.refreshUser()
+        permissionManager.checkPermissions()
     }
 
 
-    @SuppressLint("RestrictedApi")
     override fun onCreate(savedInstanceState: Bundle?) {
         splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
-
-        permissionManager = PermissionManager(this)
-
-
 
         enableEdgeToEdge()
         setContent {
@@ -162,7 +151,7 @@ class MainActivity : ComponentActivity() {
                         }
                     },
                     bottomBar = {
-                        if (currentRoute == Routes.Map || currentRoute == Routes.Activities || currentRoute == Routes.Profile(state.user?.id ?: "") || currentRoute == Routes.Settings) {
+                        if (currentRoute == Routes.Map || currentRoute == Routes.Activities || currentRoute == Routes.MyProfile|| currentRoute == Routes.Settings) {
 
                             NavigationBar(
                                 currentRoute = currentRoute,
@@ -215,6 +204,16 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
+                        composable<Routes.MyProfile> {
+
+                            val viewModel = hiltViewModel<MyProfileViewModel>()
+
+                            MyProfileScreen(
+                                user = viewModel.user.collectAsStateWithLifecycle().value,
+                                onLogout = { viewModel.logout() }
+                            )
+                        }
+
                         composable<Routes.Profile> {
                             val args = it.toRoute<Routes.Profile>()
                             val viewModel = hiltViewModel<ProfileViewModel>()
@@ -222,9 +221,7 @@ class MainActivity : ComponentActivity() {
                             viewModel.getUserByID(args.userID)
 
                             ProfileScreen(
-                                userData = viewModel.userData.collectAsStateWithLifecycle().value,
-                                onLogout = { viewModel.logout()
-                                NavigationManager.navigateTo(Routes.Login) }
+                                userData = viewModel.userData.collectAsStateWithLifecycle().value
                             )
                         }
 
