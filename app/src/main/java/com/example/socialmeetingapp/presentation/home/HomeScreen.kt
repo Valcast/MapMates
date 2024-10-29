@@ -26,6 +26,7 @@ import com.example.socialmeetingapp.domain.event.model.Event
 import com.google.android.gms.maps.GoogleMapOptions
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.compose.ComposeMapColorScheme
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
@@ -73,7 +74,8 @@ fun HomeScreen(eventsResult: Result<List<Event>>, currentLocationResult: Result<
                         ),
                         onMapLongClick = {
                             onMapLongClick(it)
-                        }
+                        },
+                        mapColorScheme = ComposeMapColorScheme.FOLLOW_SYSTEM
                     ) {
                         if (currentLocationResult is Result.Success) {
                             Marker(

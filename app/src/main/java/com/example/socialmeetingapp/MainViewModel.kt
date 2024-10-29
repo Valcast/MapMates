@@ -48,17 +48,18 @@ class MainViewModel @Inject constructor(
             val isFirstTime = isFirstTimeLaunch()
 
             when (val result = getCurrentUserUseCase()) {
-                is Result.Success -> {
+                is Result.Success<User> -> {
                     val isEmailVerified = isCurrentUserVerifiedUseCase()
 
-                    Log.d("MainViewModel", "isEmailVerified: $isEmailVerified")
+                    if (result.data.username.isEmpty()) {
+                        NavigationManager.navigateTo(Routes.CreateProfile)
+                    }
 
                     _state.value =
                         MainState.Content(isFirstTimeLaunch = isFirstTime, user = result.data, isEmailVerified = isEmailVerified)
                 }
                 is Result.Error -> {
                     _state.value = MainState.Content(isFirstTimeLaunch = isFirstTime)
-                    SnackbarManager.showMessage(result.message)
                 }
                 else -> {}
             }

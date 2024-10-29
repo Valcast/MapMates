@@ -1,39 +1,76 @@
 package com.example.socialmeetingapp.presentation.profile
 
+import android.net.Uri
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.outlined.DateRange
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Email
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.example.socialmeetingapp.R
 import com.example.socialmeetingapp.domain.common.model.Result
 import com.example.socialmeetingapp.domain.user.model.User
+import com.example.socialmeetingapp.presentation.event.createventflow.DatePickerModalInput
 import kotlinx.datetime.Clock
+import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import java.util.Locale
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MyProfileScreen(user: Result<User>, onLogout: () -> Unit) {
+fun MyProfileScreen(
+    user: Result<User>,
+    onLogout: () -> Unit,
+    onUpdateBio: (String) -> Unit,
+    onUpdateUsername: (String) -> Unit,
+    onUpdateDateOfBirth: (LocalDateTime) -> Unit,
+    onUpdateProfilePicture: (Uri) -> Unit
+) {
+
+    var expanded = remember { mutableStateOf(false) }
+
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.padding(16.dp)
+        modifier = Modifier.padding(16.dp).fillMaxHeight()
     ) {
         when (user) {
             is Result.Loading -> {
@@ -42,6 +79,43 @@ fun MyProfileScreen(user: Result<User>, onLogout: () -> Unit) {
 
             is Result.Success -> {
                 val user = user.data
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.padding(top = 16.dp)
+                ) {
+                    Spacer(modifier = Modifier.weight(1f))
+                    Box{
+                        IconButton(
+                            onClick = { expanded.value = !expanded.value },
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Edit,
+                                contentDescription = "Edit Profile",
+                                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                            )
+                        }
+                        DropdownMenu(expanded = expanded.value, onDismissRequest = { expanded.value = false }) {
+                            DropdownMenuItem(
+                                text = { Text("Edit profile") },
+                                onClick = { /* Handle edit! */ },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Edit description") },
+                                onClick = { /* Handle settings! */ },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Edit gender") },
+                                onClick = { /* Handle send feedback! */ },
+                            )
+                        }
+
+                    }
+
+
+                }
 
                 AsyncImage(
                     model = user.profilePictureUri,
@@ -52,23 +126,21 @@ fun MyProfileScreen(user: Result<User>, onLogout: () -> Unit) {
                         .clip(RoundedCornerShape(50.dp))
                 )
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center,
+                Text(
+                    text = user.username.uppercase(),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(top = 16.dp)
-                ) {
-                    Text(
-                        text = user.username.uppercase(),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
+                )
 
                 Text(
                     text = user.bio,
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(top = 8.dp)
                 )
+
+
+
 
                 Text(
                     text = "Information",
@@ -101,12 +173,20 @@ fun MyProfileScreen(user: Result<User>, onLogout: () -> Unit) {
                         )
                     }
 
-                    Text(text = "${Clock.System.now().toLocalDateTime(TimeZone.UTC).year - user.dateOfBirth.year}", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        text = "${
+                            Clock.System.now()
+                                .toLocalDateTime(TimeZone.UTC).year - user.dateOfBirth.year
+                        }", style = MaterialTheme.typography.bodyMedium
+                    )
+
+
                 }
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
                         .padding(top = 8.dp)
                 ) {
                     Row(
@@ -162,11 +242,14 @@ fun MyProfileScreen(user: Result<User>, onLogout: () -> Unit) {
                     )
                 }
 
+                Spacer(modifier = Modifier.weight(1f))
+
                 Button(
                     onClick = onLogout,
-                    modifier = Modifier.padding(top = 16.dp)
+                    modifier = Modifier.padding(top = 16.dp).align(Alignment.Start),
+                    shape = MaterialTheme.shapes.medium
                 ) {
-                    Text(text = "Logout")
+                    Text(text = "Logout", style = MaterialTheme.typography.bodyMedium)
                 }
 
             }

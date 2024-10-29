@@ -75,7 +75,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        Log.d("MainActivity", "onResume")
         viewModel.refreshUser()
         permissionManager.checkPermissions()
     }
@@ -132,7 +131,7 @@ class MainActivity : ComponentActivity() {
                 Scaffold(
                     snackbarHost = { SnackbarHost(snackbarHostState) },
                     topBar =  {
-                        if (state.isEmailVerified == false) {
+                        if (state.isEmailVerified == false && currentRoute == Routes.Map) {
                             Row(modifier = Modifier.fillMaxWidth().padding(top = 32.dp, start = 16.dp, end = 16.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                                 Text(
                                     text = "Your account is not verified yet.",
@@ -210,7 +209,12 @@ class MainActivity : ComponentActivity() {
 
                             MyProfileScreen(
                                 user = viewModel.user.collectAsStateWithLifecycle().value,
-                                onLogout = { viewModel.logout() }
+                                onLogout = { viewModel.logout()
+                                    NavigationManager.navigateTo(Routes.Login)},
+                                onUpdateBio = { viewModel.updateBio(it) },
+                                onUpdateUsername = { viewModel.updateUsername(it) },
+                                onUpdateProfilePicture = { viewModel.updateProfilePicture(it) },
+                                onUpdateDateOfBirth = { viewModel.updateDateOfBirth(it) },
                             )
                         }
 
