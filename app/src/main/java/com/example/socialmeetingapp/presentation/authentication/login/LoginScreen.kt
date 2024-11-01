@@ -31,7 +31,7 @@ import com.example.socialmeetingapp.presentation.authentication.components.Authe
 import com.example.socialmeetingapp.presentation.authentication.components.ThirdPartyGoogle
 
 @Composable
-fun LoginScreen(state: Result<Unit>, onLogin: (String, String) -> Unit, onGoToRegister: () -> Unit) {
+fun LoginScreen(state: Result<Unit>, onLogin: (String, String) -> Unit, onGoToRegister: () -> Unit, onGoToForgotPassword: () -> Unit) {
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -84,7 +84,7 @@ fun LoginScreen(state: Result<Unit>, onLogin: (String, String) -> Unit, onGoToRe
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            TextButton(onClick = { }) {
+            TextButton(onClick = onGoToForgotPassword) {
                 Text(
                     text = stringResource(id = R.string.login_forgot_password_button),
                     style = MaterialTheme.typography.bodyMedium,

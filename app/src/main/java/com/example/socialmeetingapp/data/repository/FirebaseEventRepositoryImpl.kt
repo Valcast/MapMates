@@ -1,7 +1,8 @@
 package com.example.socialmeetingapp.data.repository
 
 import com.example.socialmeetingapp.domain.common.model.Result
-import com.example.socialmeetingapp.domain.common.model.Result.*
+import com.example.socialmeetingapp.domain.common.model.Result.Error
+import com.example.socialmeetingapp.domain.common.model.Result.Success
 import com.example.socialmeetingapp.domain.event.model.Event
 import com.example.socialmeetingapp.domain.event.model.UserEvents
 import com.example.socialmeetingapp.domain.event.repository.EventRepository
@@ -90,7 +91,12 @@ class FirebaseEventRepositoryImpl(
     }
 
     override suspend fun deleteEvent(id: String): Result<Unit> {
-        TODO("Not yet implemented")
+        return try {
+            db.collection("events").document(id).delete().await()
+            Success(Unit)
+        } catch (e: FirebaseFirestoreException) {
+            return Error(e.message ?: "Unknown error")
+        }
     }
 
     private suspend fun updateEventParticipants(

@@ -3,8 +3,6 @@ package com.example.socialmeetingapp.domain.user.repository
 import android.net.Uri
 import com.example.socialmeetingapp.domain.common.model.Result
 import com.example.socialmeetingapp.domain.user.model.User
-import com.example.socialmeetingapp.domain.user.model.UserUpdateData
-import com.google.firebase.firestore.DocumentReference
 
 interface UserRepository {
     suspend fun getCurrentUser(): Result<User>

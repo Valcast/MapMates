@@ -3,11 +3,11 @@ package com.example.socialmeetingapp.presentation.authentication.login
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.socialmeetingapp.domain.common.model.Result
-import com.example.socialmeetingapp.domain.user.repository.UserRepository
 import com.example.socialmeetingapp.domain.user.usecase.LoginUserUseCase
+import com.example.socialmeetingapp.presentation.common.NavigationManager
+import com.example.socialmeetingapp.presentation.common.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -24,7 +24,17 @@ class LoginViewModel @Inject constructor(
         viewModelScope.launch {
             _state.value = Result.Loading
 
-            _state.value = loginUserUseCase(email, password)
+            when (val result = loginUserUseCase(email, password)) {
+                is Result.Success -> {
+                    NavigationManager.navigateTo(Routes.Map)
+                }
+
+                is Result.Error -> {
+                    _state.value = Result.Error(result.message)
+                }
+
+                else -> { return@launch }
+            }
         }
     }
 }

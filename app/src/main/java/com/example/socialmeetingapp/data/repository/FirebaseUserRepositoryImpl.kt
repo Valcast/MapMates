@@ -4,10 +4,7 @@ import android.net.Uri
 import com.example.socialmeetingapp.data.utils.NetworkManager
 import com.example.socialmeetingapp.domain.common.model.Result
 import com.example.socialmeetingapp.domain.user.model.User
-import com.example.socialmeetingapp.domain.user.model.UserUpdateData
 import com.example.socialmeetingapp.domain.user.repository.UserRepository
-import com.google.android.gms.auth.api.Auth
-import com.google.firebase.Timestamp
 import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthException
@@ -18,15 +15,11 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.storage.FirebaseStorage
-import kotlinx.coroutines.tasks.asDeferred
 import kotlinx.coroutines.tasks.await
 import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
-import java.util.Date
 
 class FirebaseUserRepositoryImpl(
     private val firebaseAuth: FirebaseAuth,

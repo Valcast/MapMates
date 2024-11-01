@@ -8,8 +8,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.socialmeetingapp.domain.common.model.Result
 import com.example.socialmeetingapp.domain.user.model.User
-import com.example.socialmeetingapp.domain.user.usecase.GetCurrentUserUseCase
 import com.example.socialmeetingapp.domain.user.usecase.CheckIfCurrentUserVerifiedUseCase
+import com.example.socialmeetingapp.domain.user.usecase.GetCurrentUserUseCase
 import com.example.socialmeetingapp.domain.user.usecase.RefreshUserUseCase
 import com.example.socialmeetingapp.domain.user.usecase.SendEmailVerificationUseCase
 import com.example.socialmeetingapp.presentation.common.SnackbarManager

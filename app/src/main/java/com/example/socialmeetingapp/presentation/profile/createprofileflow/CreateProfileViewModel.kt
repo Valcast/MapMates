@@ -5,8 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.socialmeetingapp.domain.common.model.Result
 import com.example.socialmeetingapp.domain.user.model.User
-import com.example.socialmeetingapp.domain.user.usecase.UploadProfilePictureUseCase
 import com.example.socialmeetingapp.domain.user.usecase.UpdateUserUseCase
+import com.example.socialmeetingapp.domain.user.usecase.UploadProfilePictureUseCase
 import com.example.socialmeetingapp.presentation.common.NavigationManager
 import com.example.socialmeetingapp.presentation.common.Routes
 import com.example.socialmeetingapp.presentation.common.SnackbarManager

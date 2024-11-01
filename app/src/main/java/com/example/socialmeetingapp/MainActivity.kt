@@ -42,8 +42,6 @@ import com.example.socialmeetingapp.presentation.authentication.login.LoginScree
 import com.example.socialmeetingapp.presentation.authentication.login.LoginViewModel
 import com.example.socialmeetingapp.presentation.authentication.register.RegisterScreen
 import com.example.socialmeetingapp.presentation.authentication.register.RegisterViewModel
-import com.example.socialmeetingapp.presentation.profile.createprofileflow.CreateProfileScreen
-import com.example.socialmeetingapp.presentation.profile.createprofileflow.CreateProfileViewModel
 import com.example.socialmeetingapp.presentation.common.NavigationManager
 import com.example.socialmeetingapp.presentation.common.Routes
 import com.example.socialmeetingapp.presentation.common.SnackbarManager
@@ -59,6 +57,8 @@ import com.example.socialmeetingapp.presentation.profile.MyProfileScreen
 import com.example.socialmeetingapp.presentation.profile.MyProfileViewModel
 import com.example.socialmeetingapp.presentation.profile.ProfileScreen
 import com.example.socialmeetingapp.presentation.profile.ProfileViewModel
+import com.example.socialmeetingapp.presentation.profile.createprofileflow.CreateProfileScreen
+import com.example.socialmeetingapp.presentation.profile.createprofileflow.CreateProfileViewModel
 import com.example.socialmeetingapp.presentation.settings.SettingsScreen
 import com.google.android.gms.maps.model.LatLng
 import com.google.firebase.Firebase
@@ -171,7 +171,7 @@ class MainActivity : ComponentActivity() {
                     },
                     bottomBar = {
                         if (state is MainState.Content && state.user != null &&
-                            (startDestination == Routes.Map || startDestination == Routes.Activities || startDestination == Routes.MyProfile || startDestination == Routes.Settings)
+                            (currentRoute == Routes.Map || currentRoute == Routes.Activities || currentRoute == Routes.MyProfile || currentRoute == Routes.Settings)
                         ) {
                             NavigationBar(
                                 currentRoute = currentRoute,
@@ -279,7 +279,8 @@ class MainActivity : ComponentActivity() {
                                         password
                                     )
                                 },
-                                onGoToRegister = { NavigationManager.navigateTo(Routes.Register) }
+                                onGoToRegister = { NavigationManager.navigateTo(Routes.Register) },
+                                onGoToForgotPassword = { NavigationManager.navigateTo(Routes.ForgotPassword) }
                             )
                         }
 
@@ -358,7 +359,7 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        composable<Routes.Event> {
+                        composable<Routes.Event> { it ->
                             val args = it.toRoute<Routes.Event>()
                             val viewModel = hiltViewModel<EventViewModel>()
                             viewModel.getEvent(args.id)
@@ -367,7 +368,9 @@ class MainActivity : ComponentActivity() {
                                 state = viewModel.state.collectAsStateWithLifecycle().value,
                                 onJoinEvent = { viewModel.joinEvent(args.id) },
                                 onBack = { NavigationManager.navigateTo(Routes.Map) },
-                                onGoToAuthor = { NavigationManager.navigateTo(Routes.Profile(it)) }
+                                onGoToAuthor = { NavigationManager.navigateTo(Routes.Profile(it)) },
+                                onLeaveEvent = { viewModel.leaveEvent(args.id) },
+                                onDeleteEvent = { viewModel.deleteEvent(args.id) }
                             )
                         }
                     }

@@ -2,14 +2,13 @@ package com.example.socialmeetingapp.data.repository
 
 import android.content.Context
 import android.content.pm.PackageManager
-import android.location.Location
 import android.os.Looper
 import androidx.core.content.ContextCompat
 import com.example.socialmeetingapp.BuildConfig
 import com.example.socialmeetingapp.data.api.GeocodingApi
-import com.example.socialmeetingapp.domain.location.repository.LocationRepository
 import com.example.socialmeetingapp.data.utils.PermissionManager
 import com.example.socialmeetingapp.domain.common.model.Result
+import com.example.socialmeetingapp.domain.location.repository.LocationRepository
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest

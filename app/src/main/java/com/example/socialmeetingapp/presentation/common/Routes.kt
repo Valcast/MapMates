@@ -1,6 +1,5 @@
 package com.example.socialmeetingapp.presentation.common
 
-import android.util.Log
 import kotlinx.serialization.Serializable
 
 @Serializable
