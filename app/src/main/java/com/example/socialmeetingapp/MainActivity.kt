@@ -174,7 +174,7 @@ class MainActivity : ComponentActivity() {
                             (startDestination == Routes.Map || startDestination == Routes.Activities || startDestination == Routes.MyProfile || startDestination == Routes.Settings)
                         ) {
                             NavigationBar(
-                                currentRoute = startDestination,
+                                currentRoute = currentRoute,
                                 onItemClicked = { NavigationManager.navigateTo(it) },
                                 profileImageUrl = state.user.profilePictureUri,
                                 profileID = state.user.id
