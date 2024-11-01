@@ -1,4 +1,4 @@
-package com.example.socialmeetingapp.presentation.authentication.register.createprofileflow
+package com.example.socialmeetingapp.presentation.profile.createprofileflow
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column

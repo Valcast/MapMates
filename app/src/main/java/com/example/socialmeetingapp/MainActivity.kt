@@ -1,8 +1,6 @@
 package com.example.socialmeetingapp
 
-import android.net.Uri
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -44,8 +42,8 @@ import com.example.socialmeetingapp.presentation.authentication.login.LoginScree
 import com.example.socialmeetingapp.presentation.authentication.login.LoginViewModel
 import com.example.socialmeetingapp.presentation.authentication.register.RegisterScreen
 import com.example.socialmeetingapp.presentation.authentication.register.RegisterViewModel
-import com.example.socialmeetingapp.presentation.authentication.register.createprofileflow.CreateProfileScreen
-import com.example.socialmeetingapp.presentation.authentication.register.createprofileflow.CreateProfileViewModel
+import com.example.socialmeetingapp.presentation.profile.createprofileflow.CreateProfileScreen
+import com.example.socialmeetingapp.presentation.profile.createprofileflow.CreateProfileViewModel
 import com.example.socialmeetingapp.presentation.common.NavigationManager
 import com.example.socialmeetingapp.presentation.common.Routes
 import com.example.socialmeetingapp.presentation.common.SnackbarManager
@@ -63,6 +61,10 @@ import com.example.socialmeetingapp.presentation.profile.ProfileScreen
 import com.example.socialmeetingapp.presentation.profile.ProfileViewModel
 import com.example.socialmeetingapp.presentation.settings.SettingsScreen
 import com.google.android.gms.maps.model.LatLng
+import com.google.firebase.Firebase
+import com.google.firebase.appcheck.appCheck
+import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
+import com.google.firebase.initialize
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
 
@@ -75,7 +77,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        viewModel.refreshUser()
         permissionManager.checkPermissions()
     }
 
@@ -83,6 +84,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
+
+        Firebase.initialize(context = this)
+        Firebase.appCheck.installAppCheckProviderFactory(
+            DebugAppCheckProviderFactory.getInstance(),
+        )
 
         enableEdgeToEdge()
         setContent {
@@ -93,13 +99,16 @@ class MainActivity : ComponentActivity() {
             val navController = rememberNavController()
             val snackbarHostState = remember { SnackbarHostState() }
 
-            val startDestination = when {
-                state is MainState.Content && state.isFirstTimeLaunch -> Routes.Introduction
-                state is MainState.Content && state.user == null -> Routes.Login
-                state is MainState.Content && state.user != null -> Routes.Map
-                else -> return@setContent
+            val startDestination = remember(state) {
+                when (state) {
+                    is MainState.Welcome -> Routes.Introduction
+                    is MainState.CreateProfile -> Routes.CreateProfile
+                    is MainState.Content -> if (state.user == null) Routes.Login else Routes.Map
+                    else -> null
+                }
             }
 
+            if (startDestination == null) return@setContent
 
             LaunchedEffect("Snackbar Manager") {
                 SnackbarManager.messages.collectLatest {
@@ -130,9 +139,20 @@ class MainActivity : ComponentActivity() {
             SocialMeetingAppTheme {
                 Scaffold(
                     snackbarHost = { SnackbarHost(snackbarHostState) },
-                    topBar =  {
-                        if (state.isEmailVerified == false && currentRoute == Routes.Map) {
-                            Row(modifier = Modifier.fillMaxWidth().padding(top = 32.dp, start = 16.dp, end = 16.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                    topBar = {
+                        if (state is MainState.Content && !state.isEmailVerified && currentRoute == Routes.Map) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(
+                                        top = 32.dp,
+                                        start = 16.dp,
+                                        end = 16.dp,
+                                        bottom = 8.dp
+                                    ),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
                                 Text(
                                     text = "Your account is not verified yet.",
                                     style = MaterialTheme.typography.bodyMedium,
@@ -150,13 +170,14 @@ class MainActivity : ComponentActivity() {
                         }
                     },
                     bottomBar = {
-                        if (currentRoute == Routes.Map || currentRoute == Routes.Activities || currentRoute == Routes.MyProfile|| currentRoute == Routes.Settings) {
-
+                        if (state is MainState.Content && state.user != null &&
+                            (startDestination == Routes.Map || startDestination == Routes.Activities || startDestination == Routes.MyProfile || startDestination == Routes.Settings)
+                        ) {
                             NavigationBar(
-                                currentRoute = currentRoute,
+                                currentRoute = startDestination,
                                 onItemClicked = { NavigationManager.navigateTo(it) },
-                                profileImageUrl = state.user?.profilePictureUri ?: Uri.EMPTY,
-                                profileID = state.user?.id ?: ""
+                                profileImageUrl = state.user.profilePictureUri,
+                                profileID = state.user.id
                             )
                         }
 
@@ -209,8 +230,10 @@ class MainActivity : ComponentActivity() {
 
                             MyProfileScreen(
                                 user = viewModel.user.collectAsStateWithLifecycle().value,
-                                onLogout = { viewModel.logout()
-                                    NavigationManager.navigateTo(Routes.Login)},
+                                onLogout = {
+                                    viewModel.logout()
+                                    NavigationManager.navigateTo(Routes.Login)
+                                },
                                 onUpdateBio = { viewModel.updateBio(it) },
                                 onUpdateUsername = { viewModel.updateUsername(it) },
                                 onUpdateProfilePicture = { viewModel.updateProfilePicture(it) },
@@ -236,7 +259,9 @@ class MainActivity : ComponentActivity() {
 
                             ActivitiesScreen(
                                 events = viewModel.events.collectAsStateWithLifecycle().value,
-                                onCardClick = { NavigationManager.navigateTo(Routes.Event(it)) }
+                                onCardClick = { NavigationManager.navigateTo(Routes.Event(it)) },
+                                onCreateEventClick = { NavigationManager.navigateTo(Routes.CreateEvent(0.0, 0.0)) },
+                                onExploreEventClick = { NavigationManager.navigateTo(Routes.Map) }
                             )
                         }
 
@@ -248,7 +273,12 @@ class MainActivity : ComponentActivity() {
                             val viewModel = hiltViewModel<LoginViewModel>()
                             LoginScreen(
                                 state = viewModel.state.collectAsStateWithLifecycle().value,
-                                onLogin = { email, password -> viewModel.login(email, password) },
+                                onLogin = { email, password ->
+                                    viewModel.login(
+                                        email,
+                                        password
+                                    )
+                                },
                                 onGoToRegister = { NavigationManager.navigateTo(Routes.Register) }
                             )
                         }
@@ -293,8 +323,6 @@ class MainActivity : ComponentActivity() {
                                 onUpdateRules = { viewModel.updateRulesAccepted() }
                             )
                         }
-
-
 
 
                         //////////////////

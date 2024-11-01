@@ -1,4 +1,4 @@
-package com.example.socialmeetingapp.presentation.authentication.register.createprofileflow
+package com.example.socialmeetingapp.presentation.profile.createprofileflow
 
 import android.net.Uri
 import androidx.compose.animation.AnimatedContent

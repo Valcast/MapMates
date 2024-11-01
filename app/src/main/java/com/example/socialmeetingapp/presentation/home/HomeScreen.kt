@@ -1,21 +1,27 @@
 package com.example.socialmeetingapp.presentation.home
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Place
+import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -30,6 +36,7 @@ import com.google.maps.android.compose.ComposeMapColorScheme
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
+import com.google.maps.android.compose.MarkerInfoWindowContent
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberMarkerState
 
@@ -43,6 +50,9 @@ fun HomeScreen(eventsResult: Result<List<Event>>, currentLocationResult: Result<
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(defaultPosition, 10f)
     }
+
+    var selectedEventIndex by remember { mutableStateOf<Int?>(null) }
+    var selectedCreateEventPosition by remember { mutableStateOf<LatLng?>(null) }
 
 
     when (eventsResult) {
@@ -61,6 +71,9 @@ fun HomeScreen(eventsResult: Result<List<Event>>, currentLocationResult: Result<
                     }
                 } else {
 
+
+
+
                     GoogleMap(
                         modifier = Modifier.fillMaxSize(),
                         cameraPositionState = cameraPositionState,
@@ -73,7 +86,11 @@ fun HomeScreen(eventsResult: Result<List<Event>>, currentLocationResult: Result<
                             mapToolbarEnabled = false
                         ),
                         onMapLongClick = {
-                            onMapLongClick(it)
+                            selectedCreateEventPosition = it
+                        },
+                        onMapClick = {
+                            selectedEventIndex = null
+                            selectedCreateEventPosition = null
                         },
                         mapColorScheme = ComposeMapColorScheme.FOLLOW_SYSTEM
                     ) {
@@ -84,8 +101,45 @@ fun HomeScreen(eventsResult: Result<List<Event>>, currentLocationResult: Result<
                         }
 
                         for (event in events) {
-                            EventMarker(event, onMarkerClick = onEventClick)
+                            Marker(
+                                state = rememberMarkerState(position = event.locationCoordinates),
+                                onClick = {
+                                    selectedEventIndex = events.indexOf(event)
+                                    true
+                                }
+                            )
                         }
+
+                        selectedCreateEventPosition?.let {
+                            Marker(
+                                state = rememberMarkerState(position = it)
+                            )
+                        }
+                    }
+                }
+
+                selectedCreateEventPosition?.let {
+                    Card(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(16.dp)
+                            .clickable {
+                                onMapLongClick(it)
+                                selectedCreateEventPosition = null
+                            }
+                    ) {
+                        Row(modifier = Modifier.padding(16.dp)) {
+
+                            Icon(
+                                Icons.Filled.Add,
+                                contentDescription = "Create Event",
+                                modifier = Modifier.padding(end = 4.dp)
+                            )
+                            Text(text = "Create Event",
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                        }
+
                     }
                 }
 
@@ -118,6 +172,10 @@ fun HomeScreen(eventsResult: Result<List<Event>>, currentLocationResult: Result<
                     ) {
                         Icon(Icons.Filled.LocationOn, "Move to current position")
                     }
+                }
+
+                if (selectedEventIndex != null) {
+                    EventCard(events[selectedEventIndex!!], onCardClick = onEventClick)
                 }
             }
 

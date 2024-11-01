@@ -73,6 +73,20 @@ sealed class Routes {
                         null
                     }
                 }
+                "CreateEvent" -> {
+                    if (segments.size == 3) {
+                        val latitude = segments[1].toDoubleOrNull()
+                        val longitude = segments[2].toDoubleOrNull()
+
+                        if (latitude != null && longitude != null) {
+                            CreateEvent(latitude, longitude)
+                        } else {
+                            null
+                        }
+                    } else {
+                        null
+                    }
+                }
                 else -> null
             }
         }

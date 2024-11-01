@@ -1,5 +1,5 @@
 [versions]
-agp = "8.7.1"
+agp = "8.7.2"
 coilCompose = "3.0.0-rc01"
 coilNetworkOkhttp = "3.0.0-rc01"
 converterGson = "2.7.2"
@@ -68,6 +68,7 @@ firebase-analytics = {group = "com.google.firebase", name = "firebase-analytics"
 firebase-auth = { module = "com.google.firebase:firebase-auth" }
 firebase-firestore = { module = "com.google.firebase:firebase-firestore" }
 firebase-storage = { module = "com.google.firebase:firebase-storage" }
+firebase-appcheck-debug = { module = "com.google.firebase:firebase-appcheck-debug" }
 
 google-location = {group = "com.google.android.gms", name = "play-services-location", version.ref = "googleLocation"}
 google-maps = { group = "com.google.android.gms", name = "play-services-maps", version.ref = "googleMaps"}

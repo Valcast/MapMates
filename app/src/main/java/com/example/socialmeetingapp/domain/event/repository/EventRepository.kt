@@ -2,6 +2,7 @@ package com.example.socialmeetingapp.domain.event.repository
 
 import com.example.socialmeetingapp.domain.common.model.Result
 import com.example.socialmeetingapp.domain.event.model.Event
+import com.example.socialmeetingapp.domain.event.model.UserEvents
 import com.google.firebase.firestore.DocumentReference
 
 interface EventRepository {
@@ -13,7 +14,7 @@ interface EventRepository {
     suspend fun joinEvent(id: String): Result<Unit>
     suspend fun leaveEvent(id: String): Result<Unit>
 
-    suspend fun getUserEvents(userId: String): Result<List<Event>>
+    suspend fun getUserEvents(userId: String): Result<UserEvents>
 
     fun getCategoriesReferences(categories: List<String>): List<DocumentReference>
 }

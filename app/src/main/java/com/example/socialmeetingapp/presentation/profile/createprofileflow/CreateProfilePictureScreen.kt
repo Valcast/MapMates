@@ -1,6 +1,7 @@
-package com.example.socialmeetingapp.presentation.authentication.register.createprofileflow
+package com.example.socialmeetingapp.presentation.profile.createprofileflow
 
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
@@ -31,6 +32,7 @@ fun CreateProfilePictureScreen(user: User, onUpdateProfilePicture: (Uri) -> Unit
 
     val pickPhoto =
         rememberLauncherForActivityResult(PickVisualMedia()) { uri ->
+            Log.d("PhotoPicker", "Selected URI: $uri")
             if (uri != null) {
                 onUpdateProfilePicture(uri)
             }

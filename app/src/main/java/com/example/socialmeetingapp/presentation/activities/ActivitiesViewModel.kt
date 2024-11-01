@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.socialmeetingapp.domain.common.model.Result
 import com.example.socialmeetingapp.domain.event.model.Event
+import com.example.socialmeetingapp.domain.event.model.UserEvents
 import com.example.socialmeetingapp.domain.event.usecase.GetUserEventsUseCase
 import com.example.socialmeetingapp.domain.user.model.User
 import com.example.socialmeetingapp.domain.user.usecase.GetCurrentUserUseCase
@@ -21,7 +22,7 @@ class ActivitiesViewModel @Inject constructor(
     private val getCurrentUserUseCase: GetCurrentUserUseCase
 ) : ViewModel() {
 
-    private var _events = MutableStateFlow<List<Event>>(emptyList())
+    private var _events = MutableStateFlow(UserEvents(emptyList(), emptyList()))
     val events = _events.asStateFlow().onStart {
         val user = getCurrentUserUseCase()
 
@@ -36,7 +37,7 @@ class ActivitiesViewModel @Inject constructor(
         }
 
 
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, UserEvents(emptyList(), emptyList()))
 
 
 }

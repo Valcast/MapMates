@@ -3,6 +3,7 @@ package com.example.socialmeetingapp.data.repository
 import com.example.socialmeetingapp.domain.common.model.Result
 import com.example.socialmeetingapp.domain.common.model.Result.*
 import com.example.socialmeetingapp.domain.event.model.Event
+import com.example.socialmeetingapp.domain.event.model.UserEvents
 import com.example.socialmeetingapp.domain.event.repository.EventRepository
 import com.example.socialmeetingapp.domain.user.repository.UserRepository
 import com.google.android.gms.maps.model.LatLng
@@ -29,8 +30,8 @@ class FirebaseEventRepositoryImpl(
         return try {
             val events = db.collection("events").get().asDeferred()
                 .await().documents.mapNotNull { eventDocument ->
-                mapToEvent(eventDocument)
-            }
+                    mapToEvent(eventDocument)
+                }
 
             Success(events)
         } catch (e: FirebaseFirestoreException) {
@@ -113,19 +114,20 @@ class FirebaseEventRepositoryImpl(
     override suspend fun leaveEvent(id: String): Result<Unit> =
         updateEventParticipants(id, FieldValue::arrayRemove)
 
-    override suspend fun getUserEvents(userId: String): Result<List<Event>> {
+    override suspend fun getUserEvents(userId: String): Result<UserEvents> {
         return try {
             val userRef = db.collection("users").document(userId)
 
-            val userEventsResult = db.collection("events").whereEqualTo("author", userRef).get()
+            val authorEvents = db.collection("events").whereEqualTo("author", userRef).get()
                 .await().documents.mapNotNull { eventDocument -> mapToEvent(eventDocument) }
 
-            Success(userEventsResult)
+            val participantEvents = db.collection("events").whereArrayContains("participants", userRef).get()
+                .await().documents.mapNotNull { eventDocument -> mapToEvent(eventDocument) }
+
+            Success(UserEvents(authorEvents, participantEvents))
         } catch (e: FirebaseFirestoreException) {
             return Error(e.message ?: "Unknown error")
         }
-
-
     }
 
     override fun getCategoriesReferences(categories: List<String>): List<DocumentReference> {

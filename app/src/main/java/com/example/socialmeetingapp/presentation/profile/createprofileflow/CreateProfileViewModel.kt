@@ -1,4 +1,4 @@
-package com.example.socialmeetingapp.presentation.authentication.register.createprofileflow
+package com.example.socialmeetingapp.presentation.profile.createprofileflow
 
 import android.net.Uri
 import androidx.lifecycle.ViewModel
@@ -66,7 +66,7 @@ class CreateProfileViewModel @Inject constructor(
         validateNextButton()
     }
 
-    fun validateNextButton() {
+    private fun validateNextButton() {
         _isNextButtonEnabled.value = when (uiState.value) {
             CreateProfileFlow.ProfileInfo -> user.value.username.isNotBlank()
             CreateProfileFlow.ProfilePicture -> user.value.profilePictureUri.toString().isNotBlank()
@@ -89,6 +89,7 @@ class CreateProfileViewModel @Inject constructor(
         viewModelScope.launch {
             when (val updateProfilePictureResult = uploadProfilePictureUseCase(imageUri)) {
                 is Result.Success<Uri> -> {
+                    SnackbarManager.showMessage("Profile picture updated")
                     _user.update { it.copy(profilePictureUri = updateProfilePictureResult.data) }
                     validateNextButton()
                 }
