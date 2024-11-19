@@ -21,8 +21,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import com.example.socialmeetingapp.domain.common.model.Result
-import com.example.socialmeetingapp.domain.user.model.User
+import com.example.socialmeetingapp.domain.model.Result
+import com.example.socialmeetingapp.domain.model.User
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime

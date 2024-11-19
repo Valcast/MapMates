@@ -1,5 +1,6 @@
 package com.example.socialmeetingapp.presentation.common
 
+import android.util.Log
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 
@@ -8,6 +9,7 @@ object NavigationManager {
     val route = _route.asSharedFlow()
 
     fun navigateTo(event: Routes) {
+        Log.d("NavigationManager", "Navigating to $event")
         _route.tryEmit(event)
     }
 

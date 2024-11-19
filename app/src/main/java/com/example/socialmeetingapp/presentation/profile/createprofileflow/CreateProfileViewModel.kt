@@ -3,10 +3,9 @@ package com.example.socialmeetingapp.presentation.profile.createprofileflow
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.socialmeetingapp.domain.common.model.Result
-import com.example.socialmeetingapp.domain.user.model.User
-import com.example.socialmeetingapp.domain.user.usecase.UpdateUserUseCase
-import com.example.socialmeetingapp.domain.user.usecase.UploadProfilePictureUseCase
+import com.example.socialmeetingapp.domain.model.Result
+import com.example.socialmeetingapp.domain.model.User
+import com.example.socialmeetingapp.domain.repository.UserRepository
 import com.example.socialmeetingapp.presentation.common.NavigationManager
 import com.example.socialmeetingapp.presentation.common.Routes
 import com.example.socialmeetingapp.presentation.common.SnackbarManager
@@ -20,8 +19,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class CreateProfileViewModel @Inject constructor(
-    private val uploadProfilePictureUseCase: UploadProfilePictureUseCase,
-    private val updateUserUseCase: UpdateUserUseCase
+    private val userRepository: UserRepository
 ) : ViewModel() {
     private var _uiState = MutableStateFlow<CreateProfileFlow>(CreateProfileFlow.ProfileInfo)
     val uiState = _uiState.asStateFlow()
@@ -38,7 +36,7 @@ class CreateProfileViewModel @Inject constructor(
     fun nextStep() {
         if (uiState.value == CreateProfileFlow.Rules) {
             viewModelScope.launch {
-                when (val updateUserResult = updateUserUseCase(user.value)) {
+                when (val updateUserResult = userRepository.updateUser(user.value)) {
                     is Result.Success -> {
                         NavigationManager.navigateTo(Routes.Map)
                     }
@@ -87,7 +85,7 @@ class CreateProfileViewModel @Inject constructor(
 
     fun updateProfilePicture(imageUri: Uri) {
         viewModelScope.launch {
-            when (val updateProfilePictureResult = uploadProfilePictureUseCase(imageUri)) {
+            when (val updateProfilePictureResult = userRepository.uploadProfilePicture(imageUri)) {
                 is Result.Success<Uri> -> {
                     SnackbarManager.showMessage("Profile picture updated")
                     _user.update { it.copy(profilePictureUri = updateProfilePictureResult.data) }

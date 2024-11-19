@@ -2,8 +2,8 @@ package com.example.socialmeetingapp
 
 import android.content.ContentResolver
 import android.net.Uri
-import com.example.socialmeetingapp.domain.common.model.Result
-import com.example.socialmeetingapp.domain.user.repository.UserRepository
+import com.example.socialmeetingapp.domain.model.Result
+import com.example.socialmeetingapp.domain.repository.UserRepository
 import com.example.socialmeetingapp.domain.user.usecase.UploadProfilePictureUseCase
 import io.mockk.coEvery
 import io.mockk.every

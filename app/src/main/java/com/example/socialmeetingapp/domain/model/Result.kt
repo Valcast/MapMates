@@ -1,4 +1,4 @@
-package com.example.socialmeetingapp.domain.common.model
+package com.example.socialmeetingapp.domain.model
 
 sealed class Result<out T> {
     data object Initial : Result<Nothing>()

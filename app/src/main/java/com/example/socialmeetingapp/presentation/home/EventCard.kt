@@ -24,7 +24,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import com.example.socialmeetingapp.domain.event.model.Event
+import com.example.socialmeetingapp.domain.model.Event
 import java.util.Locale
 
 @Composable

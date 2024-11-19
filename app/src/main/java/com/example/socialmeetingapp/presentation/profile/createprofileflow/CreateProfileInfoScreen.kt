@@ -14,7 +14,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.socialmeetingapp.R
-import com.example.socialmeetingapp.domain.user.model.User
+import com.example.socialmeetingapp.domain.model.User
 
 @Composable
 fun CreateProfileInfoScreen(

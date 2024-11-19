@@ -1,16 +1,20 @@
 package com.example.socialmeetingapp.data.repository
 
 import android.net.Uri
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import com.example.socialmeetingapp.data.utils.NetworkManager
-import com.example.socialmeetingapp.domain.common.model.Result
-import com.example.socialmeetingapp.domain.user.model.User
-import com.example.socialmeetingapp.domain.user.repository.UserRepository
+import com.example.socialmeetingapp.domain.model.Result
+import com.example.socialmeetingapp.domain.model.SignUpStatus
+import com.example.socialmeetingapp.domain.model.User
+import com.example.socialmeetingapp.domain.repository.UserRepository
 import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.FirebaseAuthWeakPasswordException
+import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.SetOptions
@@ -25,7 +29,8 @@ class FirebaseUserRepositoryImpl(
     private val firebaseAuth: FirebaseAuth,
     private val networkManager: NetworkManager,
     private val db: FirebaseFirestore,
-    private val storage: FirebaseStorage
+    private val storage: FirebaseStorage,
+    private val dataStore: DataStore<Preferences>
 ) : UserRepository {
 
     private fun isLoggedIn(): Boolean {
@@ -109,7 +114,7 @@ class FirebaseUserRepositoryImpl(
     }
 
 
-    override suspend fun registerUser(
+    override suspend fun signUp(
         email: String,
         password: String
     ): Result<Unit> {
@@ -139,6 +144,8 @@ class FirebaseUserRepositoryImpl(
                 )
             )
 
+
+
             Result.Success(Unit)
         } catch (_: FirebaseAuthWeakPasswordException) {
             Result.Error("Password is too weak")
@@ -151,7 +158,7 @@ class FirebaseUserRepositoryImpl(
         }
     }
 
-    override suspend fun loginUser(email: String, password: String): Result<Unit> {
+    override suspend fun signIn(email: String, password: String): Result<Unit> {
         if (!networkManager.isConnected) {
             return Result.Error("No internet connection")
         }
@@ -171,11 +178,52 @@ class FirebaseUserRepositoryImpl(
 
     }
 
+    override suspend fun signUpWithGoogle(idToken: String): Result<SignUpStatus> {
+            if (!networkManager.isConnected) {
+            return Result.Error("No internet connection")
+        }
+
+        return try {
+            val credential = GoogleAuthProvider.getCredential(idToken, null)
+            val authResult = firebaseAuth.signInWithCredential(credential).await()
+
+            val currentMoment = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+
+            if (db.collection("users").document(authResult.user!!.uid).get().await().exists()) {
+                db.collection("users").document(authResult.user!!.uid).update(
+                    "lastLogin", currentMoment.toString()
+                )
+                return Result.Success(SignUpStatus.ExistingUser)
+            }
+
+            db.collection("users").document(authResult.user!!.uid).set(
+                hashMapOf(
+                    "email" to authResult.user!!.email,
+                    "createdAt" to currentMoment.toString(),
+                    "updatedAt" to currentMoment.toString(),
+                    "lastLogin" to currentMoment.toString(),
+                    "lastPasswordChange" to currentMoment.toString(),
+                    "role" to "User",
+                    "gender" to "Not specified",
+                    "dateOfBirth" to "Not specified",
+                    "bio" to "",
+                    "username" to "",
+                    "profilePictureUri" to ""
+                )
+            )
+
+            Result.Success(SignUpStatus.NewUser)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.Error(e.message ?: "Unknown error")
+        } }
+
     override suspend fun resetPassword(email: String): Result<Unit> {
         return try {
             firebaseAuth.sendPasswordResetEmail(email).await()
             Result.Success(Unit)
         } catch (e: Exception) {
+            e.printStackTrace()
             Result.Error(e.message ?: "Unknown error")
         }
     }
@@ -254,8 +302,14 @@ class FirebaseUserRepositoryImpl(
         }
     }
 
-
-    override fun logout() {
-        firebaseAuth.signOut()
+    override suspend fun getUserPreferences(): Result<Map<String, Any>> {
+        TODO("Not yet implemented")
     }
+
+    override suspend fun updateUserPreferences(preferences: Map<String, Any>): Result<Unit> {
+        TODO("Not yet implemented")
+    }
+
+
+    override fun signOut() = firebaseAuth.signOut()
 }

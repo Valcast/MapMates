@@ -1,4 +1,4 @@
-package com.example.socialmeetingapp.domain.user.model
+package com.example.socialmeetingapp.domain.model
 
 import android.net.Uri
 import kotlinx.datetime.Clock

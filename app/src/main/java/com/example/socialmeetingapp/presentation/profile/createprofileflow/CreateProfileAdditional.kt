@@ -26,7 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.socialmeetingapp.domain.user.model.User
+import com.example.socialmeetingapp.domain.model.User
 import com.example.socialmeetingapp.presentation.event.createventflow.DatePickerModalInput
 import kotlinx.datetime.LocalDateTime
 import java.util.Locale

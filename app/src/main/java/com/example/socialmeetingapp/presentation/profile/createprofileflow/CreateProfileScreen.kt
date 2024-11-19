@@ -21,7 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.socialmeetingapp.domain.user.model.User
+import com.example.socialmeetingapp.domain.model.User
 import kotlinx.datetime.LocalDateTime
 
 @Composable

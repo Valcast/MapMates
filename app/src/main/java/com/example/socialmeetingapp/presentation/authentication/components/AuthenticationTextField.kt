@@ -25,7 +25,7 @@ fun AuthenticationTextField(
     onValueChange: (String) -> Unit,
     labelStringResource: Int,
     modifier: Modifier = Modifier,
-    isSensitiveData: Boolean = false
+    isSensitiveData: Boolean = false,
 ) {
     var isSensitiveDataVisible by rememberSaveable { mutableStateOf(false) }
 

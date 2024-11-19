@@ -1,17 +1,15 @@
 package com.example.socialmeetingapp
 
+import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.socialmeetingapp.domain.common.model.Result
-import com.example.socialmeetingapp.domain.user.model.User
-import com.example.socialmeetingapp.domain.user.usecase.CheckIfCurrentUserVerifiedUseCase
-import com.example.socialmeetingapp.domain.user.usecase.GetCurrentUserUseCase
-import com.example.socialmeetingapp.domain.user.usecase.RefreshUserUseCase
-import com.example.socialmeetingapp.domain.user.usecase.SendEmailVerificationUseCase
+import com.example.socialmeetingapp.domain.model.Result
+import com.example.socialmeetingapp.domain.model.User
+import com.example.socialmeetingapp.domain.repository.UserRepository
 import com.example.socialmeetingapp.presentation.common.SnackbarManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,33 +24,35 @@ import javax.inject.Inject
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val dataStore: DataStore<Preferences>,
-    private val getCurrentUserUseCase: GetCurrentUserUseCase,
-    private val sendEmailVerificationUseCase: SendEmailVerificationUseCase,
-    private val isCurrentUserVerifiedUseCase: CheckIfCurrentUserVerifiedUseCase,
-    private val refreshUserUseCase: RefreshUserUseCase
+    private val userRepository: UserRepository
 ) : ViewModel() {
     private var _state = MutableStateFlow<MainState>(MainState.Loading)
     val state = _state.asStateFlow().onStart {
-        val isFirstTimeLaunch = isFirstTimeLaunch()
 
-        if (isFirstTimeLaunch) {
+        if (isFirstTimeLaunch()) {
+            Log.d("MainViewModel", "First time launch check")
             _state.value = MainState.Welcome
             return@onStart
         }
 
-        when (val userResult = getCurrentUserUseCase()) {
+        Log.d("MainViewModel", "After first time launch check")
+
+
+        when (val userResult = userRepository.getCurrentUser()) {
             is Result.Success -> {
                 val user = userResult.data
 
+                Log.d("MainViewModel", "User: $user")
+
                 if (user.username.isEmpty()) {
                     _state.value = MainState.CreateProfile
-                    return@onStart
                 }
 
-                val isEmailVerified = isCurrentUserVerifiedUseCase()
+                val isEmailVerified = userRepository.isCurrentUserVerified()
                 _state.value = MainState.Content(user, isEmailVerified)
             }
             is Result.Error -> {
+                Log.e("MainViewModel", "Error: ${userResult.message}")
                 _state.value = MainState.Content(null, false)
             }
             else -> { }
@@ -61,6 +61,7 @@ class MainViewModel @Inject constructor(
 
     fun onIntroductionFinished() {
         viewModelScope.launch {
+            Log.d("MainViewModel", "onIntroductionFinished")
             dataStore.edit {
                 it[FIRST_TIME_LAUNCH] = false
             }
@@ -69,7 +70,7 @@ class MainViewModel @Inject constructor(
 
     fun resendVerificationEmail() {
         viewModelScope.launch {
-            when (val result = sendEmailVerificationUseCase()) {
+            when (val result = userRepository.sendEmailVerification()) {
                 is Result.Success -> {
                     SnackbarManager.showMessage("Verification email sent")
                 }
@@ -82,6 +83,7 @@ class MainViewModel @Inject constructor(
     }
 
     private suspend fun isFirstTimeLaunch(): Boolean {
+        Log.d("MainViewModel", (dataStore.data.first()[FIRST_TIME_LAUNCH] != false).toString())
         return dataStore.data.first()[FIRST_TIME_LAUNCH] != false
 
     }

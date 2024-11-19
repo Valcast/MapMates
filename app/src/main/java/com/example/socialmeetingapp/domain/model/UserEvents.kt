@@ -1,4 +1,4 @@
-package com.example.socialmeetingapp.domain.event.model
+package com.example.socialmeetingapp.domain.model
 
 data class UserEvents(
     val createdEvents: List<Event>,

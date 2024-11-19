@@ -2,8 +2,8 @@ package com.example.socialmeetingapp.presentation.authentication.forgot
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.socialmeetingapp.domain.common.model.Result
-import com.example.socialmeetingapp.domain.user.usecase.ResetPasswordUseCase
+import com.example.socialmeetingapp.domain.model.Result
+import com.example.socialmeetingapp.domain.repository.UserRepository
 import com.example.socialmeetingapp.presentation.common.SnackbarManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,7 +13,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ForgotPasswordViewModel @Inject constructor(
-    private val resetPasswordUseCase: ResetPasswordUseCase
+    private val userRepository: UserRepository
 ): ViewModel() {
     private var _state =
         MutableStateFlow<Result<Unit>>(Result.Initial)
@@ -23,7 +23,7 @@ class ForgotPasswordViewModel @Inject constructor(
         _state.value = Result.Loading
 
         viewModelScope.launch {
-            when (val resetResult = resetPasswordUseCase(email)) {
+            when (val resetResult = userRepository.resetPassword(email)) {
                 is Result.Success -> {
                     _state.value = Result.Success(Unit)
                     SnackbarManager.showMessage("Password reset email sent")

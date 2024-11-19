@@ -1,7 +1,7 @@
 package com.example.socialmeetingapp
 
-import com.example.socialmeetingapp.domain.common.model.Result
-import com.example.socialmeetingapp.domain.user.repository.UserRepository
+import com.example.socialmeetingapp.domain.model.Result
+import com.example.socialmeetingapp.domain.repository.UserRepository
 import com.example.socialmeetingapp.domain.user.usecase.LoginUserUseCase
 import io.mockk.coEvery
 import io.mockk.mockk

@@ -19,7 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.example.socialmeetingapp.domain.event.model.UserEvents
+import com.example.socialmeetingapp.domain.model.UserEvents
 import com.example.socialmeetingapp.presentation.home.EventCard
 
 @OptIn(ExperimentalMaterial3Api::class)

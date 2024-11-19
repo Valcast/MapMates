@@ -2,10 +2,10 @@ package com.example.socialmeetingapp.presentation.event.createventflow
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.socialmeetingapp.domain.common.model.Result
-import com.example.socialmeetingapp.domain.event.model.Event
-import com.example.socialmeetingapp.domain.event.usecase.CreateEventUseCase
-import com.example.socialmeetingapp.domain.location.usecase.GetAddressFromLatLngUseCase
+import com.example.socialmeetingapp.domain.model.Event
+import com.example.socialmeetingapp.domain.model.Result
+import com.example.socialmeetingapp.domain.repository.EventRepository
+import com.example.socialmeetingapp.domain.repository.LocationRepository
 import com.example.socialmeetingapp.presentation.common.NavigationManager
 import com.example.socialmeetingapp.presentation.common.Routes
 import com.example.socialmeetingapp.presentation.common.SnackbarManager
@@ -20,8 +20,9 @@ import javax.inject.Inject
 
 @HiltViewModel
 class CreateEventViewModel @Inject constructor(
-    private val createEventUseCase: CreateEventUseCase,
-    private val getAddressFromLatLngUseCase: GetAddressFromLatLngUseCase
+    private val eventRepository: EventRepository,
+    private val locationRepository: LocationRepository
+
 ) : ViewModel() {
     private val _state = MutableStateFlow<Result<Unit>>(Result.Initial)
     val state = _state.asStateFlow()
@@ -41,7 +42,7 @@ class CreateEventViewModel @Inject constructor(
     fun nextStep() {
         if (uiState.value == CreateEventFlow.Rules) {
             viewModelScope.launch {
-                when (val createEventResult = createEventUseCase(eventData.value)) {
+                when (val createEventResult = eventRepository.createEvent(eventData.value)) {
                     is Result.Success -> {
                         NavigationManager.navigateTo(Routes.Event(createEventResult.data))
                     }
@@ -105,7 +106,7 @@ class CreateEventViewModel @Inject constructor(
 
     fun updateLocation(location: LatLng) {
         viewModelScope.launch {
-            val addressResult = getAddressFromLatLngUseCase(location)
+            val addressResult = locationRepository.getAddressFromLatLng(location)
             if (addressResult is Result.Success) {
                 _eventData.value = eventData.value.copy(
                     locationAddress = addressResult.data,

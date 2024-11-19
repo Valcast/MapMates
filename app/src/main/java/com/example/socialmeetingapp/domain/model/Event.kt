@@ -1,6 +1,5 @@
-package com.example.socialmeetingapp.domain.event.model
+package com.example.socialmeetingapp.domain.model
 
-import com.example.socialmeetingapp.domain.user.model.User
 import com.google.android.gms.maps.model.LatLng
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit

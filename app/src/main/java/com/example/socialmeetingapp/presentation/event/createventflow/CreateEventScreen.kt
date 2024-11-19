@@ -21,7 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.socialmeetingapp.domain.event.model.Event
+import com.example.socialmeetingapp.domain.model.Event
 import com.example.socialmeetingapp.presentation.components.DashedProgressIndicator
 import com.google.android.gms.maps.model.LatLng
 import kotlinx.datetime.LocalDateTime

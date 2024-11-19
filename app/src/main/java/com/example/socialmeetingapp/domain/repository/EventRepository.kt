@@ -1,8 +1,8 @@
-package com.example.socialmeetingapp.domain.event.repository
+package com.example.socialmeetingapp.domain.repository
 
-import com.example.socialmeetingapp.domain.common.model.Result
-import com.example.socialmeetingapp.domain.event.model.Event
-import com.example.socialmeetingapp.domain.event.model.UserEvents
+import com.example.socialmeetingapp.domain.model.Result
+import com.example.socialmeetingapp.domain.model.Event
+import com.example.socialmeetingapp.domain.model.UserEvents
 import com.google.firebase.firestore.DocumentReference
 
 interface EventRepository {

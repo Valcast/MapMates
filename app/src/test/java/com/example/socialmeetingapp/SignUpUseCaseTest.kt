@@ -1,23 +1,23 @@
 package com.example.socialmeetingapp
 
-import com.example.socialmeetingapp.domain.common.model.Result
-import com.example.socialmeetingapp.domain.user.repository.UserRepository
-import com.example.socialmeetingapp.domain.user.usecase.RegisterUserUseCase
+import com.example.socialmeetingapp.domain.model.Result
+import com.example.socialmeetingapp.domain.repository.UserRepository
+import com.example.socialmeetingapp.domain.user.usecase.SignUpUseCase
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 
-class RegisterUserUseCaseTest {
+class SignUpUseCaseTest {
     val userRepository = mockk<UserRepository>()
-    val registerUserUseCase = RegisterUserUseCase(userRepository)
+    val signUpUseCase = SignUpUseCase(userRepository)
 
     @Test
     fun `should return Result Error when email is empty`() = runTest {
         val email = ""
         val password = "password"
         val confirmPassword = "password"
-        val result = registerUserUseCase(email, password, confirmPassword)
+        val result = signUpUseCase(email, password, confirmPassword)
 
         assert(result is Result.Error)
         assert((result as Result.Error).message == "Email and password cannot be empty")
@@ -28,7 +28,7 @@ class RegisterUserUseCaseTest {
         val email = "email"
         val password = ""
         val confirmPassword = "password"
-        val result = registerUserUseCase(email, password, confirmPassword)
+        val result = signUpUseCase(email, password, confirmPassword)
 
         assert(result is Result.Error)
         assert((result as Result.Error).message == "Email and password cannot be empty")
@@ -39,7 +39,7 @@ class RegisterUserUseCaseTest {
         val email = "email"
         val password = "password"
         val confirmPassword = "password"
-        val result = registerUserUseCase(email, password, confirmPassword)
+        val result = signUpUseCase(email, password, confirmPassword)
 
         assert(result is Result.Error)
         assert((result as Result.Error).message == "Invalid email address")
@@ -50,7 +50,7 @@ class RegisterUserUseCaseTest {
         val email = "user@example.com"
         val password = "password"
         val confirmPassword = "password1"
-        val result = registerUserUseCase(email, password, confirmPassword)
+        val result = signUpUseCase(email, password, confirmPassword)
 
         assert(result is Result.Error)
         assert((result as Result.Error).message == "Passwords do not match")
@@ -61,7 +61,7 @@ class RegisterUserUseCaseTest {
         val email = "user@example.com"
         val password = "pass"
         val confirmPassword = "pass"
-        val result = registerUserUseCase(email, password, confirmPassword)
+        val result = signUpUseCase(email, password, confirmPassword)
 
         assert(result is Result.Error)
         assert((result as Result.Error).message == "Password must be at least 6 characters long")
@@ -72,7 +72,7 @@ class RegisterUserUseCaseTest {
         val email = "user@example.com"
         val password = "Password"
         val confirmPassword = "Password"
-        val result = registerUserUseCase(email, password, confirmPassword)
+        val result = signUpUseCase(email, password, confirmPassword)
 
         assert(result is Result.Error)
         assert((result as Result.Error).message == "Password must contain at least one digit")
@@ -83,7 +83,7 @@ class RegisterUserUseCaseTest {
         val email = "user@example.com"
         val password = "passwo2@rd"
         val confirmPassword = "passwo2@rd"
-        val result = registerUserUseCase(email, password, confirmPassword)
+        val result = signUpUseCase(email, password, confirmPassword)
 
         assert(result is Result.Error)
         assert((result as Result.Error).message == "Password must contain at least one uppercase letter")
@@ -94,7 +94,7 @@ class RegisterUserUseCaseTest {
         val email = "user@example.com"
         val password = "PASS@2WORD"
         val confirmPassword = "PASS@2WORD"
-        val result = registerUserUseCase(email, password, confirmPassword)
+        val result = signUpUseCase(email, password, confirmPassword)
 
         assert(result is Result.Error)
         assert((result as Result.Error).message == "Password must contain at least one lowercase letter")
@@ -105,7 +105,7 @@ class RegisterUserUseCaseTest {
         val email = "user@example.com"
         val password = "Pass2word"
         val confirmPassword = "Pass2word"
-        val result = registerUserUseCase(email, password, confirmPassword)
+        val result = signUpUseCase(email, password, confirmPassword)
 
         assert(result is Result.Error)
         assert((result as Result.Error).message == "Password must contain at least one special character")
@@ -120,7 +120,7 @@ class RegisterUserUseCaseTest {
 
         coEvery { userRepository.registerUser(email, password) } returns Result.Success(Unit)
 
-        val result = registerUserUseCase(email, password, confirmPassword)
+        val result = signUpUseCase(email, password, confirmPassword)
 
         assert(result is Result.Success)
     }
@@ -133,7 +133,7 @@ class RegisterUserUseCaseTest {
 
         coEvery { userRepository.registerUser(email, password) } returns Result.Error("Unknown error")
 
-        val result = registerUserUseCase(email, password, confirmPassword)
+        val result = signUpUseCase(email, password, confirmPassword)
 
         assert(result is Result.Error)
         assert((result as Result.Error).message == "Unknown error")
@@ -152,7 +152,7 @@ class RegisterUserUseCaseTest {
             )
         } returns Result.Error("No internet connection")
 
-        val result = registerUserUseCase(email, password, confirmPassword)
+        val result = signUpUseCase(email, password, confirmPassword)
 
         assert(result is Result.Error)
         assert((result as Result.Error).message == "No internet connection")

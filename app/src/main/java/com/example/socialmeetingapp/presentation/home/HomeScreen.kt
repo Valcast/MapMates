@@ -26,8 +26,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.socialmeetingapp.domain.common.model.Result
-import com.example.socialmeetingapp.domain.event.model.Event
+import com.example.socialmeetingapp.domain.model.Result
+import com.example.socialmeetingapp.domain.model.Event
 import com.google.android.gms.maps.GoogleMapOptions
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng

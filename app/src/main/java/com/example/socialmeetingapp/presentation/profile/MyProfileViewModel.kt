@@ -3,11 +3,9 @@ package com.example.socialmeetingapp.presentation.profile
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.socialmeetingapp.domain.common.model.Result
-import com.example.socialmeetingapp.domain.user.model.User
-import com.example.socialmeetingapp.domain.user.usecase.GetCurrentUserUseCase
-import com.example.socialmeetingapp.domain.user.usecase.LogoutUseCase
-import com.example.socialmeetingapp.domain.user.usecase.UploadProfilePictureUseCase
+import com.example.socialmeetingapp.domain.model.Result
+import com.example.socialmeetingapp.domain.model.User
+import com.example.socialmeetingapp.domain.repository.UserRepository
 import com.example.socialmeetingapp.presentation.common.SnackbarManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,13 +20,11 @@ import javax.inject.Inject
 
 @HiltViewModel
 class MyProfileViewModel @Inject constructor(
-    private val getCurrentUserUseCase: GetCurrentUserUseCase,
-    private val logoutUseCase: LogoutUseCase,
-    private val uploadProfilePictureUseCase: UploadProfilePictureUseCase
+    private val userRepository: UserRepository
 ) : ViewModel() {
     private val _user = MutableStateFlow<Result<User>>(Result.Initial)
     val user = _user.asStateFlow().onStart {
-        _user.value = getCurrentUserUseCase()
+        _user.value = userRepository.getCurrentUser()
     }.stateIn(viewModelScope, SharingStarted.Eagerly, Result.Initial)
 
     private val _newUser = MutableStateFlow<User>(User.EMPTY)
@@ -44,7 +40,7 @@ class MyProfileViewModel @Inject constructor(
 
     fun updateProfilePicture(imageUri: Uri) {
         viewModelScope.launch {
-            when (val updateProfilePictureResult = uploadProfilePictureUseCase(imageUri)) {
+            when (val updateProfilePictureResult = userRepository.uploadProfilePicture(imageUri)) {
                 is Result.Success<Uri> -> {
                     _newUser.update { it.copy(profilePictureUri = updateProfilePictureResult.data) }
                 }
@@ -67,5 +63,5 @@ class MyProfileViewModel @Inject constructor(
 
     }
 
-    fun logout() = logoutUseCase()
+    fun logout() = userRepository.signOut()
 }

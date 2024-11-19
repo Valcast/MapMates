@@ -1,5 +1,6 @@
 package com.example.socialmeetingapp.presentation.authentication.login
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,10 +9,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.MailOutline
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -26,15 +32,23 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.socialmeetingapp.R
-import com.example.socialmeetingapp.domain.common.model.Result
+import com.example.socialmeetingapp.domain.model.Result
 import com.example.socialmeetingapp.presentation.authentication.components.AuthenticationTextField
-import com.example.socialmeetingapp.presentation.authentication.components.ThirdPartyGoogle
 
 @Composable
-fun LoginScreen(state: Result<Unit>, onLogin: (String, String) -> Unit, onGoToRegister: () -> Unit, onGoToForgotPassword: () -> Unit) {
+fun LoginScreen(
+    state: Result<Unit>,
+    onSignIn: (String, String) -> Unit,
+    onGoToRegister: () -> Unit,
+    onGoToForgotPassword: () -> Unit,
+    onSignInWithGoogle: () -> Unit,
+    requestCredential: () -> Unit
+) {
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+
+    var isRequestedCredential by remember { mutableStateOf(false) }
 
 
     Column(
@@ -54,7 +68,7 @@ fun LoginScreen(state: Result<Unit>, onLogin: (String, String) -> Unit, onGoToRe
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
             textAlign = TextAlign.Center
         )
-        
+
         if (state is Result.Error) {
             Text(
                 text = state.message,
@@ -68,14 +82,18 @@ fun LoginScreen(state: Result<Unit>, onLogin: (String, String) -> Unit, onGoToRe
         AuthenticationTextField(
             value = email,
             onValueChange = { email = it },
-            labelStringResource = R.string.email_hint
+            labelStringResource = R.string.email_hint,
         )
+
         AuthenticationTextField(
             value = password,
             onValueChange = { password = it },
             labelStringResource = R.string.password_hint,
-            isSensitiveData = true
+            isSensitiveData = true,
         )
+
+
+
 
         Row(
             modifier = Modifier
@@ -93,9 +111,9 @@ fun LoginScreen(state: Result<Unit>, onLogin: (String, String) -> Unit, onGoToRe
 
             }
 
-            Button(onClick = { onLogin(email, password)}, enabled = state !is Result.Loading) {
+            Button(onClick = { onSignIn(email, password) }, enabled = state !is Result.Loading) {
                 if (state is Result.Loading) {
-                    CircularProgressIndicator( )
+                    CircularProgressIndicator()
                 } else {
                     Text(
                         text = stringResource(id = R.string.login_button),
@@ -112,7 +130,26 @@ fun LoginScreen(state: Result<Unit>, onLogin: (String, String) -> Unit, onGoToRe
                 .width(120.dp)
         )
 
-        ThirdPartyGoogle()
+        OutlinedButton(
+            onClick = onSignInWithGoogle,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+            shape = RoundedCornerShape(10),
+            modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(imageVector = Icons.Outlined.MailOutline, contentDescription = "Google icon")
+                Text(
+                    text = "Sign in with Google",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(start = 8.dp),
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
 
         Spacer(modifier = Modifier.weight(1f))
 

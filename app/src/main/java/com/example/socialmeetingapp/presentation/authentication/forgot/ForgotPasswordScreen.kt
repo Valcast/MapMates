@@ -22,7 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.socialmeetingapp.R
-import com.example.socialmeetingapp.domain.common.model.Result
+import com.example.socialmeetingapp.domain.model.Result
 
 @Composable
 fun ForgotPasswordScreen(state: Result<Unit>, onResetPassword: (String) -> Unit, onGoToLogin: () -> Unit) {

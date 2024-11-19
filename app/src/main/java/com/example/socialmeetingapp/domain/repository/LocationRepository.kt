@@ -1,6 +1,6 @@
-package com.example.socialmeetingapp.domain.location.repository
+package com.example.socialmeetingapp.domain.repository
 
-import com.example.socialmeetingapp.domain.common.model.Result
+import com.example.socialmeetingapp.domain.model.Result
 import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.flow.Flow
 

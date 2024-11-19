@@ -1,5 +1,6 @@
 package com.example.socialmeetingapp.presentation.authentication.register
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -7,13 +8,16 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.outlined.MailOutline
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -28,12 +32,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.socialmeetingapp.R
-import com.example.socialmeetingapp.domain.common.model.Result
+import com.example.socialmeetingapp.domain.model.Result
 import com.example.socialmeetingapp.presentation.authentication.components.AuthenticationTextField
-import com.example.socialmeetingapp.presentation.authentication.components.ThirdPartyGoogle
 
 @Composable
-fun RegisterScreen(state: Result<Unit>, onGoToLogin: () -> Unit, registerUser: (String, String, String) -> Unit) {
+fun RegisterScreen(state: Result<Unit>, onGoToLogin: () -> Unit, onSignUpWithGoogle: () -> Unit, registerUser: (String, String, String) -> Unit) {
 
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
@@ -121,7 +124,26 @@ fun RegisterScreen(state: Result<Unit>, onGoToLogin: () -> Unit, registerUser: (
                 .width(120.dp)
         )
 
-        ThirdPartyGoogle()
+        OutlinedButton(
+            onClick = onSignUpWithGoogle,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+            shape = RoundedCornerShape(10),
+            modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(imageVector = Icons.Outlined.MailOutline, contentDescription = "Google icon")
+                Text(
+                    text = "Sign in with Google",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(start = 8.dp),
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
 
         Spacer(modifier = Modifier.weight(1f))
 

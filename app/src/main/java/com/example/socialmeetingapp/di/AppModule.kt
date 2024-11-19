@@ -1,18 +1,23 @@
 package com.example.socialmeetingapp.di
 
+import android.content.ContentResolver
 import android.content.Context
 import android.net.ConnectivityManager
 import androidx.datastore.core.DataStore
+import androidx.datastore.core.DataStoreFactory
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
+import androidx.datastore.preferences.preferencesDataStoreFile
 import com.example.socialmeetingapp.data.api.GeocodingApi
 import com.example.socialmeetingapp.data.repository.FirebaseEventRepositoryImpl
 import com.example.socialmeetingapp.data.repository.FirebaseUserRepositoryImpl
 import com.example.socialmeetingapp.data.repository.LocationRepositoryImpl
+import com.example.socialmeetingapp.presentation.common.CredentialManager
 import com.example.socialmeetingapp.data.utils.NetworkManager
-import com.example.socialmeetingapp.domain.event.repository.EventRepository
-import com.example.socialmeetingapp.domain.location.repository.LocationRepository
-import com.example.socialmeetingapp.domain.user.repository.UserRepository
+import com.example.socialmeetingapp.domain.repository.EventRepository
+import com.example.socialmeetingapp.domain.repository.LocationRepository
+import com.example.socialmeetingapp.domain.repository.UserRepository
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.firebase.Firebase
@@ -31,13 +36,11 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import javax.inject.Singleton
 
+private const val USER_PREFERENCES_NAME = "user_preferences"
+
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
-    private val Context.dataStore by preferencesDataStore("settings")
-
-
-
     @Provides
     @Singleton
     fun provideFirebaseStorage(): FirebaseStorage {
@@ -58,16 +61,27 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun provideCredentialManager(@ApplicationContext context: Context): CredentialManager {
+        return CredentialManager(context)
+    }
+
+    @Provides
+    @Singleton
     fun provideFusedLocationClient(@ApplicationContext context: Context): FusedLocationProviderClient {
         return LocationServices.getFusedLocationProviderClient(context)
     }
 
     @Provides
-    fun provideContentResolver(@ApplicationContext context: Context) = context.contentResolver
+    fun provideContentResolver(@ApplicationContext context: Context): ContentResolver =
+        context.contentResolver
 
     @Provides
     @Singleton
-    fun provideLocationRepository(fusedLocationProviderClient: FusedLocationProviderClient, geocodingApi: GeocodingApi, @ApplicationContext context: Context): LocationRepository {
+    fun provideLocationRepository(
+        fusedLocationProviderClient: FusedLocationProviderClient,
+        geocodingApi: GeocodingApi,
+        @ApplicationContext context: Context
+    ): LocationRepository {
         return LocationRepositoryImpl(fusedLocationProviderClient, context, geocodingApi)
     }
 
@@ -97,14 +111,28 @@ object AppModule {
     @Provides
     @Singleton
     fun provideDataStore(@ApplicationContext context: Context): DataStore<Preferences> {
-        return context.dataStore
+        return PreferenceDataStoreFactory.create {
+            context.preferencesDataStoreFile(USER_PREFERENCES_NAME)
+        }
     }
 
 
     @Provides
     @Singleton
-    fun provideUserRepository(firebaseAuth: FirebaseAuth, networkManager: NetworkManager, firestoreDatabase: FirebaseFirestore, firebaseStorage: FirebaseStorage): UserRepository {
-        return FirebaseUserRepositoryImpl(firebaseAuth, networkManager, firestoreDatabase, firebaseStorage)
+    fun provideUserRepository(
+        firebaseAuth: FirebaseAuth,
+        networkManager: NetworkManager,
+        firestoreDatabase: FirebaseFirestore,
+        firebaseStorage: FirebaseStorage,
+        dataStore: DataStore<Preferences>
+    ): UserRepository {
+        return FirebaseUserRepositoryImpl(
+            firebaseAuth,
+            networkManager,
+            firestoreDatabase,
+            firebaseStorage,
+            dataStore
+        )
     }
 
     @Provides

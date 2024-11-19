@@ -1,4 +1,4 @@
-package com.example.socialmeetingapp.domain.user.model
+package com.example.socialmeetingapp.domain.model
 
 data class UserUpdateData(
     val bio: String? = null,

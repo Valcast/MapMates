@@ -1,6 +1,7 @@
 package com.example.socialmeetingapp
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -19,12 +20,16 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.core.splashscreen.SplashScreenViewProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
@@ -66,7 +71,10 @@ import com.google.firebase.appcheck.appCheck
 import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
 import com.google.firebase.initialize
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.observeOn
+import kotlinx.coroutines.withContext
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -77,7 +85,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        permissionManager.checkPermissions()
+        permissionManager.checkPermissions(PermissionManager.FINE_LOCATION_PERMISSION)
     }
 
 
@@ -93,47 +101,40 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val state = viewModel.state.collectAsStateWithLifecycle().value
-
             splashScreen.setKeepOnScreenCondition { state is MainState.Loading }
+
+            var startDestination by remember { mutableStateOf<Routes?>(null) }
 
             val navController = rememberNavController()
             val snackbarHostState = remember { SnackbarHostState() }
 
-            val startDestination = remember(state) {
-                when (state) {
-                    is MainState.Welcome -> Routes.Introduction
-                    is MainState.CreateProfile -> Routes.CreateProfile
-                    is MainState.Content -> if (state.user == null) Routes.Login else Routes.Map
-                    else -> null
-                }
+            LaunchedEffect(Unit) {
+                SnackbarManager.messages.collectLatest { snackbarHostState.showSnackbar(it) }
             }
 
-            if (startDestination == null) return@setContent
-
-            LaunchedEffect("Snackbar Manager") {
-                SnackbarManager.messages.collectLatest {
-                    snackbarHostState.showSnackbar(
-                        it
-                    )
-                }
-            }
-
-            val currentRoute =
-                navController.currentBackStackEntryAsState().value?.destination?.route?.let {
-                    Routes.fromString(it)
-                } ?: startDestination
-
-            LaunchedEffect("Navigation Manager") {
+            LaunchedEffect(Unit) {
                 NavigationManager.route.collect { screen ->
+                    Log.d("NavigationManager", "Navigating to $screen")
                     navController.navigate(screen) {
                         popUpTo(navController.graph.startDestinationId) {
                             saveState = true
                         }
                         launchSingleTop = true
                     }
-
                 }
             }
+
+            when (state) {
+                is MainState.Welcome -> startDestination = Routes.Introduction
+                is MainState.CreateProfile -> startDestination = Routes.CreateProfile
+                is MainState.Content -> startDestination = if (state.user == null) Routes.Login else Routes.Map
+                else -> {}
+            }
+
+            val currentRoute =
+                navController.currentBackStackEntryAsState().value?.destination?.route?.let {
+                    Routes.fromString(it)
+                } ?: startDestination
 
 
             SocialMeetingAppTheme {
@@ -170,6 +171,9 @@ class MainActivity : ComponentActivity() {
                         }
                     },
                     bottomBar = {
+                        Log.d("MainActivity", "Bottom bar: $currentRoute")
+                        Log.d("MainActivity", "Bottom bar: $state")
+
                         if (state is MainState.Content && state.user != null &&
                             (currentRoute == Routes.Map || currentRoute == Routes.Activities || currentRoute == Routes.MyProfile || currentRoute == Routes.Settings)
                         ) {
@@ -182,199 +186,203 @@ class MainActivity : ComponentActivity() {
                         }
 
                     }) { innerPadding ->
-                    NavHost(
-                        navController = navController,
-                        startDestination = startDestination,
-                        enterTransition = { EnterTransition.None },
-                        exitTransition = { ExitTransition.None },
-                        popEnterTransition = { EnterTransition.None },
-                        popExitTransition = { ExitTransition.None },
-                        modifier = Modifier
-                            .padding(innerPadding)
-                            .fillMaxSize()
-                    ) {
-                        composable<Routes.Introduction> {
-                            IntroductionScreen(onFinish = {
-                                viewModel.onIntroductionFinished()
-                                NavigationManager.navigateTo(Routes.Login)
-                            })
-                        }
 
-                        //////////////////////////
-                        //   MAIN NAVIGATION   //
-                        ////////////////////////
-
-                        composable<Routes.Map> {
-                            val viewModel = hiltViewModel<HomeViewModel>()
-
-
-
-                            HomeScreen(
-                                eventsResult = viewModel.eventsData.collectAsStateWithLifecycle().value,
-                                currentLocationResult = viewModel.locationData.collectAsStateWithLifecycle().value,
-                                onMapLongClick = {
-                                    NavigationManager.navigateTo(
-                                        Routes.CreateEvent(
-                                            it.latitude,
-                                            it.longitude
-                                        )
-                                    )
-                                },
-                                onEventClick = { NavigationManager.navigateTo(Routes.Event(it)) }
-                            )
-                        }
-
-                        composable<Routes.MyProfile> {
-
-                            val viewModel = hiltViewModel<MyProfileViewModel>()
-
-                            MyProfileScreen(
-                                user = viewModel.user.collectAsStateWithLifecycle().value,
-                                onLogout = {
-                                    viewModel.logout()
+                    if(startDestination != null) {
+                        NavHost(
+                            navController = navController,
+                            startDestination = startDestination!!,
+                            enterTransition = { EnterTransition.None },
+                            exitTransition = { ExitTransition.None },
+                            popEnterTransition = { EnterTransition.None },
+                            popExitTransition = { ExitTransition.None },
+                            modifier = Modifier
+                                .padding(innerPadding)
+                                .fillMaxSize()
+                        ) {
+                            composable<Routes.Introduction> {
+                                IntroductionScreen(onFinish = {
+                                    viewModel.onIntroductionFinished()
+                                    Log.d("MainActivity", "Introduction finished")
                                     NavigationManager.navigateTo(Routes.Login)
-                                },
-                                onUpdateBio = { viewModel.updateBio(it) },
-                                onUpdateUsername = { viewModel.updateUsername(it) },
-                                onUpdateProfilePicture = { viewModel.updateProfilePicture(it) },
-                                onUpdateDateOfBirth = { viewModel.updateDateOfBirth(it) },
-                            )
-                        }
+                                })
+                            }
 
-                        composable<Routes.Profile> {
-                            val args = it.toRoute<Routes.Profile>()
-                            val viewModel = hiltViewModel<ProfileViewModel>()
+                            //////////////////////////
+                            //   MAIN NAVIGATION   //
+                            ////////////////////////
 
-                            viewModel.getUserByID(args.userID)
+                            composable<Routes.Map> {
+                                val viewModel = hiltViewModel<HomeViewModel>()
 
-                            ProfileScreen(
-                                userData = viewModel.userData.collectAsStateWithLifecycle().value
-                            )
-                        }
+                                HomeScreen(
+                                    eventsResult = viewModel.eventsData.collectAsStateWithLifecycle().value,
+                                    currentLocationResult = viewModel.locationData.collectAsStateWithLifecycle().value,
+                                    onMapLongClick = {
+                                        NavigationManager.navigateTo(
+                                            Routes.CreateEvent(
+                                                it.latitude,
+                                                it.longitude
+                                            )
+                                        )
+                                    },
+                                    onEventClick = { NavigationManager.navigateTo(Routes.Event(it)) }
+                                )
+                            }
 
-                        composable<Routes.Settings> { SettingsScreen() }
+                            composable<Routes.MyProfile> {
 
-                        composable<Routes.Activities> {
-                            val viewModel = hiltViewModel<ActivitiesViewModel>()
+                                val viewModel = hiltViewModel<MyProfileViewModel>()
 
-                            ActivitiesScreen(
-                                events = viewModel.events.collectAsStateWithLifecycle().value,
-                                onCardClick = { NavigationManager.navigateTo(Routes.Event(it)) },
-                                onCreateEventClick = { NavigationManager.navigateTo(Routes.CreateEvent(0.0, 0.0)) },
-                                onExploreEventClick = { NavigationManager.navigateTo(Routes.Map) }
-                            )
-                        }
+                                MyProfileScreen(
+                                    user = viewModel.user.collectAsStateWithLifecycle().value,
+                                    onLogout = {
+                                        viewModel.logout()
+                                        NavigationManager.navigateTo(Routes.Login)
+                                    },
+                                    onUpdateBio = { viewModel.updateBio(it) },
+                                    onUpdateUsername = { viewModel.updateUsername(it) },
+                                    onUpdateProfilePicture = { viewModel.updateProfilePicture(it) },
+                                    onUpdateDateOfBirth = { viewModel.updateDateOfBirth(it) },
+                                )
+                            }
 
-                        ///////////////////////////
-                        //    AUTHENTICATION    //
-                        /////////////////////////
+                            composable<Routes.Profile> {
+                                val args = it.toRoute<Routes.Profile>()
+                                val viewModel = hiltViewModel<ProfileViewModel>()
 
-                        composable<Routes.Login> {
-                            val viewModel = hiltViewModel<LoginViewModel>()
-                            LoginScreen(
-                                state = viewModel.state.collectAsStateWithLifecycle().value,
-                                onLogin = { email, password ->
-                                    viewModel.login(
-                                        email,
-                                        password
-                                    )
-                                },
-                                onGoToRegister = { NavigationManager.navigateTo(Routes.Register) },
-                                onGoToForgotPassword = { NavigationManager.navigateTo(Routes.ForgotPassword) }
-                            )
-                        }
+                                viewModel.getUserByID(args.userID)
 
-                        composable<Routes.ForgotPassword> {
-                            val viewModel = hiltViewModel<ForgotPasswordViewModel>()
-                            ForgotPasswordScreen(
-                                state = viewModel.state.collectAsStateWithLifecycle().value,
-                                onResetPassword = { email -> viewModel.resetPassword(email) },
-                                onGoToLogin = { navController.popBackStack() }
-                            )
-                        }
+                                ProfileScreen(
+                                    userData = viewModel.userData.collectAsStateWithLifecycle().value
+                                )
+                            }
 
-                        composable<Routes.Register> {
-                            val viewModel = hiltViewModel<RegisterViewModel>()
-                            RegisterScreen(
-                                state = viewModel.state.collectAsStateWithLifecycle().value,
-                                onGoToLogin = { NavigationManager.navigateTo(Routes.Login) },
-                                registerUser = viewModel::registerUser
-                            )
-                        }
+                            composable<Routes.Settings> { SettingsScreen() }
 
-                        ///////////////////////////
-                        //    CREATE PROFILE    //
-                        /////////////////////////
+                            composable<Routes.Activities> {
+                                val viewModel = hiltViewModel<ActivitiesViewModel>()
 
-                        composable<Routes.CreateProfile> {
-                            val viewModel = hiltViewModel<CreateProfileViewModel>()
+                                ActivitiesScreen(
+                                    events = viewModel.events.collectAsStateWithLifecycle().value,
+                                    onCardClick = { NavigationManager.navigateTo(Routes.Event(it)) },
+                                    onCreateEventClick = { NavigationManager.navigateTo(Routes.CreateEvent(0.0, 0.0)) },
+                                    onExploreEventClick = { NavigationManager.navigateTo(Routes.Map) }
+                                )
+                            }
 
-                            CreateProfileScreen(
-                                user = viewModel.user.collectAsStateWithLifecycle().value,
-                                uiState = viewModel.uiState.collectAsStateWithLifecycle().value,
-                                isNextButtonEnabled = viewModel.isNextButtonEnabled.collectAsStateWithLifecycle().value,
-                                isRulesAccepted = viewModel.isRulesAccepted.collectAsStateWithLifecycle().value,
-                                onNext = { viewModel.nextStep() },
-                                onPrevious = { viewModel.previousStep() },
-                                onUpdateUsername = { viewModel.updateUsername(it) },
-                                onUpdateBio = { viewModel.updateBio(it) },
-                                onUpdateProfilePicture = { viewModel.updateProfilePicture(it) },
-                                onUpdateDateOfBirth = { viewModel.updateDateOfBirth(it) },
-                                onUpdateGender = { viewModel.updateGender(it) },
-                                onUpdateRules = { viewModel.updateRulesAccepted() }
-                            )
-                        }
+                            ///////////////////////////
+                            //    AUTHENTICATION    //
+                            /////////////////////////
 
+                            composable<Routes.Login> {
+                                val viewModel = hiltViewModel<LoginViewModel>()
+                                LoginScreen(
+                                    state = viewModel.state.collectAsStateWithLifecycle().value,
+                                    onSignIn = { email, password -> viewModel.signIn(email, password) },
+                                    onSignInWithGoogle = viewModel::signInWithGoogle,
+                                    onGoToRegister = { NavigationManager.navigateTo(Routes.Register) },
+                                    onGoToForgotPassword = { NavigationManager.navigateTo(Routes.ForgotPassword) },
+                                    requestCredential = viewModel::requestCredential
+                                )
+                            }
 
-                        //////////////////
-                        //    EVENT    //
-                        ////////////////
+                            composable<Routes.ForgotPassword> {
+                                val viewModel = hiltViewModel<ForgotPasswordViewModel>()
+                                ForgotPasswordScreen(
+                                    state = viewModel.state.collectAsStateWithLifecycle().value,
+                                    onResetPassword = { email -> viewModel.resetPassword(email) },
+                                    onGoToLogin = { navController.popBackStack() }
+                                )
+                            }
 
-                        composable<Routes.CreateEvent> {
-                            val args = it.toRoute<Routes.CreateEvent>()
-                            val viewModel = hiltViewModel<CreateEventViewModel>()
+                            composable<Routes.Register> {
+                                val viewModel = hiltViewModel<RegisterViewModel>()
+                                RegisterScreen(
+                                    state = viewModel.state.collectAsStateWithLifecycle().value,
+                                    onGoToLogin = { NavigationManager.navigateTo(Routes.Login) },
+                                    registerUser = viewModel::registerUser,
+                                    onSignUpWithGoogle = viewModel::signUpWithGoogle
+                                )
+                            }
 
-                            LaunchedEffect(Unit) {
-                                viewModel.updateLocation(LatLng(args.latitude, args.longitude))
+                            ///////////////////////////
+                            //    CREATE PROFILE    //
+                            /////////////////////////
+
+                            composable<Routes.CreateProfile> {
+                                val viewModel = hiltViewModel<CreateProfileViewModel>()
+
+                                CreateProfileScreen(
+                                    user = viewModel.user.collectAsStateWithLifecycle().value,
+                                    uiState = viewModel.uiState.collectAsStateWithLifecycle().value,
+                                    isNextButtonEnabled = viewModel.isNextButtonEnabled.collectAsStateWithLifecycle().value,
+                                    isRulesAccepted = viewModel.isRulesAccepted.collectAsStateWithLifecycle().value,
+                                    onNext = { viewModel.nextStep() },
+                                    onPrevious = { viewModel.previousStep() },
+                                    onUpdateUsername = { viewModel.updateUsername(it) },
+                                    onUpdateBio = { viewModel.updateBio(it) },
+                                    onUpdateProfilePicture = { viewModel.updateProfilePicture(it) },
+                                    onUpdateDateOfBirth = { viewModel.updateDateOfBirth(it) },
+                                    onUpdateGender = { viewModel.updateGender(it) },
+                                    onUpdateRules = { viewModel.updateRulesAccepted() }
+                                )
                             }
 
 
-                            CreateEventScreen(
-                                event = viewModel.eventData.collectAsStateWithLifecycle().value,
-                                uiState = viewModel.uiState.collectAsStateWithLifecycle().value,
-                                isNextButtonEnabled = viewModel.isNextButtonEnabled.collectAsStateWithLifecycle().value,
-                                isRulesAccepted = viewModel.isRulesAccepted.collectAsStateWithLifecycle().value,
-                                onNext = { viewModel.nextStep() },
-                                onPrevious = { viewModel.previousStep() },
-                                onUpdateTitle = { viewModel.updateTitle(it) },
-                                onUpdateDescription = { viewModel.updateDescription(it) },
-                                onUpdateIsPrivate = { viewModel.updateIsPrivate(it) },
-                                onUpdateIsOnline = { viewModel.updateIsOnline(it) },
-                                onUpdateMaxParticipants = { viewModel.updateMaxParticipants(it) },
-                                onSetStartTime = { viewModel.setStartTime(it) },
-                                onSetEndTime = { viewModel.setEndTime(it) },
-                                onUpdateLocation = { viewModel.updateLocation(it) },
-                                onUpdateRules = { viewModel.updateRulesAccepted() },
-                                onCancel = { NavigationManager.navigateTo(Routes.Map) }
-                            )
-                        }
+                            //////////////////
+                            //    EVENT    //
+                            ////////////////
 
-                        composable<Routes.Event> { it ->
-                            val args = it.toRoute<Routes.Event>()
-                            val viewModel = hiltViewModel<EventViewModel>()
-                            viewModel.getEvent(args.id)
+                            composable<Routes.CreateEvent> {
+                                val args = it.toRoute<Routes.CreateEvent>()
+                                val viewModel = hiltViewModel<CreateEventViewModel>()
 
-                            EventScreen(
-                                state = viewModel.state.collectAsStateWithLifecycle().value,
-                                onJoinEvent = { viewModel.joinEvent(args.id) },
-                                onBack = { NavigationManager.navigateTo(Routes.Map) },
-                                onGoToAuthor = { NavigationManager.navigateTo(Routes.Profile(it)) },
-                                onLeaveEvent = { viewModel.leaveEvent(args.id) },
-                                onDeleteEvent = { viewModel.deleteEvent(args.id) }
-                            )
+                                LaunchedEffect(Unit) {
+                                    viewModel.updateLocation(LatLng(args.latitude, args.longitude))
+                                }
+
+
+                                CreateEventScreen(
+                                    event = viewModel.eventData.collectAsStateWithLifecycle().value,
+                                    uiState = viewModel.uiState.collectAsStateWithLifecycle().value,
+                                    isNextButtonEnabled = viewModel.isNextButtonEnabled.collectAsStateWithLifecycle().value,
+                                    isRulesAccepted = viewModel.isRulesAccepted.collectAsStateWithLifecycle().value,
+                                    onNext = { viewModel.nextStep() },
+                                    onPrevious = { viewModel.previousStep() },
+                                    onUpdateTitle = { viewModel.updateTitle(it) },
+                                    onUpdateDescription = { viewModel.updateDescription(it) },
+                                    onUpdateIsPrivate = { viewModel.updateIsPrivate(it) },
+                                    onUpdateIsOnline = { viewModel.updateIsOnline(it) },
+                                    onUpdateMaxParticipants = { viewModel.updateMaxParticipants(it) },
+                                    onSetStartTime = { viewModel.setStartTime(it) },
+                                    onSetEndTime = { viewModel.setEndTime(it) },
+                                    onUpdateLocation = { viewModel.updateLocation(it) },
+                                    onUpdateRules = { viewModel.updateRulesAccepted() },
+                                    onCancel = { NavigationManager.navigateTo(Routes.Map) }
+                                )
+                            }
+
+                            composable<Routes.Event> { it ->
+                                val args = it.toRoute<Routes.Event>()
+                                val viewModel = hiltViewModel<EventViewModel>()
+                                viewModel.getEvent(args.id)
+
+                                EventScreen(
+                                    state = viewModel.state.collectAsStateWithLifecycle().value,
+                                    onJoinEvent = { viewModel.joinEvent(args.id) },
+                                    onBack = { NavigationManager.navigateTo(Routes.Map) },
+                                    onGoToAuthor = { NavigationManager.navigateTo(Routes.Profile(it)) },
+                                    onLeaveEvent = { viewModel.leaveEvent(args.id) },
+                                    onDeleteEvent = { viewModel.deleteEvent(args.id) }
+                                )
+                            }
                         }
                     }
                 }
+
+
+
+
             }
         }
     }
