@@ -69,9 +69,6 @@ fun HomeScreen(eventsResult: Result<List<Event>>, currentLocationResult: Result<
                     }
                 } else {
 
-
-
-
                     GoogleMap(
                         modifier = Modifier.fillMaxSize(),
                         cameraPositionState = cameraPositionState,
@@ -94,7 +91,8 @@ fun HomeScreen(eventsResult: Result<List<Event>>, currentLocationResult: Result<
                     ) {
                         if (currentLocationResult is Result.Success) {
                             Marker(
-                                state = rememberMarkerState(position = currentLocationResult.data)
+                                state = rememberMarkerState(position = currentLocationResult.data),
+
                             )
                         }
 

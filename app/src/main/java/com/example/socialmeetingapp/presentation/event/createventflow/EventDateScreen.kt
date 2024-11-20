@@ -44,6 +44,7 @@ import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import java.util.Locale
+import kotlin.time.Duration.Companion.hours
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -159,10 +160,15 @@ fun EventDateScreen(event: Event, onSetStartTime: (LocalDateTime) -> Unit, onSet
             onDateSelected = {
                 if (it != null) {
                     onSetStartTime(it)
-                    onSetEndTime(it)
+                    onSetEndTime(it.toInstant(TimeZone.currentSystemDefault()).plus(2, DateTimeUnit.HOUR).toLocalDateTime(TimeZone.currentSystemDefault()))
                 }
             },
-            onDismiss = { isStartDatePickerVisible = false })
+            onDismiss = { isStartDatePickerVisible = false },
+            selectableDates = object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                    return utcTimeMillis >= Clock.System.now().toEpochMilliseconds()
+                }
+            })
     }
 
     if (isEndDatePickerVisible) {

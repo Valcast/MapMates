@@ -15,6 +15,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -28,7 +29,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.socialmeetingapp.domain.model.User
 import com.example.socialmeetingapp.presentation.event.createventflow.DatePickerModalInput
+import kotlinx.datetime.Clock
+import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.minus
+import kotlinx.datetime.plus
+import kotlinx.datetime.toInstant
+import kotlinx.datetime.toLocalDateTime
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -129,6 +139,17 @@ fun CreateProfileAdditional(user: User, onUpdateDateOfBirth: (LocalDateTime) -> 
                     }
                 },
                 onDismiss = { isDatePickerVisible = false },
+                selectableDates = object : SelectableDates {
+                    override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                        val currentDate = Clock.System.now().toLocalDateTime(TimeZone.UTC).date
+                        val selectedDate = Instant.fromEpochMilliseconds(utcTimeMillis)
+                            .toLocalDateTime(TimeZone.UTC).date
+
+                        val minDate = currentDate.minus(DatePeriod(years = 18))
+
+                        return selectedDate <= currentDate && selectedDate <= minDate
+                    }
+                }
             )
         }
     }
