@@ -13,21 +13,23 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.socialmeetingapp.R
 
 @Composable
 fun CreateProfileRulesScreen(isRulesAccepted: Boolean, onUpdateRules: () -> Unit) {
     Column {
         Text(
-            text = "You are almost done",
+            text = stringResource(R.string.create_profile_rules),
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground
         )
 
         Text(
-            text = "Terms and conditions",
+            text = stringResource(R.string.create_profile_rules_name),
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground,
@@ -48,7 +50,7 @@ fun CreateProfileRulesScreen(isRulesAccepted: Boolean, onUpdateRules: () -> Unit
                     .fillMaxWidth()
             ) {
                 Text(
-                    text = "I accept the rules",
+                    text = stringResource(R.string.create_profile_rules_accept),
                     modifier = Modifier.padding(end = 4.dp),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold,

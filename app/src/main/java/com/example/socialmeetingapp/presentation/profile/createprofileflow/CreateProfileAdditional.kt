@@ -24,9 +24,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.socialmeetingapp.R
 import com.example.socialmeetingapp.domain.model.User
 import com.example.socialmeetingapp.presentation.event.createventflow.DatePickerModalInput
 import kotlinx.datetime.Clock
@@ -43,19 +45,23 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CreateProfileAdditional(user: User, onUpdateDateOfBirth: (LocalDateTime) -> Unit, onUpdateGender: (String) -> Unit) {
+fun CreateProfileAdditional(
+    user: User,
+    onUpdateDateOfBirth: (LocalDateTime) -> Unit,
+    onUpdateGender: (String) -> Unit
+) {
 
     var isDatePickerVisible by rememberSaveable { mutableStateOf(false) }
 
     Column {
         Text(
-            text = "Tell us more about yourself",
+            text = stringResource(R.string.create_profile_additional),
             style = MaterialTheme.typography.headlineLarge,
             fontWeight = FontWeight.Bold,
         )
 
         Text(
-            text = "When is your birthday?",
+            text = stringResource(R.string.create_profile_age),
             style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
@@ -77,8 +83,9 @@ fun CreateProfileAdditional(user: User, onUpdateDateOfBirth: (LocalDateTime) -> 
                 disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 //For Icons
                 disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant),
-            onValueChange = {  },
+                disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+            ),
+            onValueChange = { },
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Outlined.DateRange,
@@ -91,20 +98,25 @@ fun CreateProfileAdditional(user: User, onUpdateDateOfBirth: (LocalDateTime) -> 
         )
 
         Text(
-            text = "You need to be at least 18 years old to use MapMates",
+            text = stringResource(R.string.create_profile_age_description),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
             modifier = Modifier.padding(top = 8.dp),
         )
 
         Text(
-            text = "What is your gender?",
+            text = stringResource(R.string.create_profile_gender),
             style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
         )
 
-        val radioOptions = listOf("Man", "Woman", "Other")
+        val radioOptions = listOf(
+            stringResource(R.string.gender_man),
+            stringResource(R.string.gender_woman),
+            stringResource(R.string.gender_other)
+        )
+
         Row(Modifier.selectableGroup()) {
             radioOptions.forEach { text ->
                 Row(
@@ -120,7 +132,7 @@ fun CreateProfileAdditional(user: User, onUpdateDateOfBirth: (LocalDateTime) -> 
                 ) {
                     RadioButton(
                         selected = (text == user.gender),
-                        onClick = null // null recommended for accessibility with screenreaders
+                        onClick = null
                     )
                     Text(
                         text = text,

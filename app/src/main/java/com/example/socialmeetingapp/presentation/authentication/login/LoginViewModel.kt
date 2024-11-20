@@ -86,6 +86,12 @@ class LoginViewModel @Inject constructor(
     }
 
     fun signIn(email: String, password: String) {
+        if (email.isBlank() || password.isBlank()) {
+            _state.value = Result.Error("Email and password cannot be empty")
+            return
+        }
+
+
         viewModelScope.launch {
             _state.value = Result.Loading
 

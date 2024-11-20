@@ -64,9 +64,9 @@ fun NavigationBar(currentRoute: Routes, onItemClicked: (Routes) -> Unit, profile
 
                 )
             },
-            selected = currentRoute == Routes.MyProfile,
+            selected = currentRoute == Routes.Profile(profileID),
             onClick = {
-                onItemClicked(Routes.MyProfile)
+                onItemClicked(Routes.Profile(profileID))
             }
         )
 

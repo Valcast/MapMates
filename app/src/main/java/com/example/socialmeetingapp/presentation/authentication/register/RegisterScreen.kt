@@ -36,7 +36,12 @@ import com.example.socialmeetingapp.domain.model.Result
 import com.example.socialmeetingapp.presentation.authentication.components.AuthenticationTextField
 
 @Composable
-fun RegisterScreen(state: Result<Unit>, onGoToLogin: () -> Unit, onSignUpWithGoogle: () -> Unit, registerUser: (String, String, String) -> Unit) {
+fun RegisterScreen(
+    state: Result<Unit>,
+    onGoToLogin: () -> Unit,
+    onSignUpWithGoogle: () -> Unit,
+    registerUser: (String, String, String) -> Unit
+) {
 
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
@@ -61,18 +66,18 @@ fun RegisterScreen(state: Result<Unit>, onGoToLogin: () -> Unit, onSignUpWithGoo
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(bottom = 16.dp, top = 8.dp)
+            modifier = Modifier.padding(top = 8.dp)
         )
 
-        if (state is Result.Error) {
-            Text(
-                text = state.message,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.error,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-        }
+
+        Text(
+            text = if (state is Result.Error) state.message else "",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.error,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(vertical = 8.dp)
+        )
+
 
 
         AuthenticationTextField(
@@ -92,7 +97,7 @@ fun RegisterScreen(state: Result<Unit>, onGoToLogin: () -> Unit, onSignUpWithGoo
             labelStringResource = R.string.register_confirm_password_hint,
             isSensitiveData = true
         )
-        
+
 
         Button(
             onClick = { registerUser(email, password, confirmPassword) },
@@ -136,7 +141,7 @@ fun RegisterScreen(state: Result<Unit>, onGoToLogin: () -> Unit, onSignUpWithGoo
             ) {
                 Icon(imageVector = Icons.Outlined.MailOutline, contentDescription = "Google icon")
                 Text(
-                    text = "Sign in with Google",
+                    text = stringResource(R.string.register_google),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(start = 8.dp),

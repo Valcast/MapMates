@@ -1,5 +1,6 @@
 package com.example.socialmeetingapp.presentation.authentication.components
 
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Search
@@ -26,6 +27,7 @@ fun AuthenticationTextField(
     labelStringResource: Int,
     modifier: Modifier = Modifier,
     isSensitiveData: Boolean = false,
+    interactionSource: MutableInteractionSource? = null
 ) {
     var isSensitiveDataVisible by rememberSaveable { mutableStateOf(false) }
 
@@ -60,6 +62,7 @@ fun AuthenticationTextField(
                 )
             }
         },
+        interactionSource = interactionSource,
         modifier = modifier
     )
 }

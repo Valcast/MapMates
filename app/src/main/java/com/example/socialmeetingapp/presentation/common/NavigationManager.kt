@@ -9,7 +9,6 @@ object NavigationManager {
     val route = _route.asSharedFlow()
 
     fun navigateTo(event: Routes) {
-        Log.d("NavigationManager", "Navigating to $event")
         _route.tryEmit(event)
     }
 

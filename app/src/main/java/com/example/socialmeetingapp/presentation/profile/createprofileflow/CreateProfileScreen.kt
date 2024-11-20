@@ -20,7 +20,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.example.socialmeetingapp.R
 import com.example.socialmeetingapp.domain.model.User
 import kotlinx.datetime.LocalDateTime
 
@@ -101,7 +103,7 @@ fun CreateProfileScreen(
                         .fillMaxWidth(0.5f)
                         .padding(end = 10.dp)
                 ) {
-                    Text(text = "Previous")
+                    Text(text = stringResource(R.string.previous))
                 }
             }
 
@@ -111,7 +113,10 @@ fun CreateProfileScreen(
                 shape = RoundedCornerShape(10.dp),
                 enabled = isNextButtonEnabled
             ) {
-                Text(text = if (uiState == CreateProfileFlow.Rules) "Create Profile" else "Next")
+                Text(text = if (uiState == CreateProfileFlow.Rules) stringResource(R.string.create_profile_submit) else stringResource(
+                    R.string.next
+                )
+                )
             }
         }
     }

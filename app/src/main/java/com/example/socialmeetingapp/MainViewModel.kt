@@ -11,6 +11,7 @@ import com.example.socialmeetingapp.domain.model.Result
 import com.example.socialmeetingapp.domain.model.User
 import com.example.socialmeetingapp.domain.repository.UserRepository
 import com.example.socialmeetingapp.presentation.common.SnackbarManager
+import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -24,40 +25,38 @@ import javax.inject.Inject
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val dataStore: DataStore<Preferences>,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    firebaseAuth: FirebaseAuth
 ) : ViewModel() {
     private var _state = MutableStateFlow<MainState>(MainState.Loading)
     val state = _state.asStateFlow().onStart {
 
         if (isFirstTimeLaunch()) {
-            Log.d("MainViewModel", "First time launch check")
             _state.value = MainState.Welcome
             return@onStart
         }
 
-        Log.d("MainViewModel", "After first time launch check")
-
-
-        when (val userResult = userRepository.getCurrentUser()) {
-            is Result.Success -> {
-                val user = userResult.data
-
-                Log.d("MainViewModel", "User: $user")
-
-                if (user.username.isEmpty()) {
-                    _state.value = MainState.CreateProfile
-                }
-
-                val isEmailVerified = userRepository.isCurrentUserVerified()
-                _state.value = MainState.Content(user, isEmailVerified)
-            }
-            is Result.Error -> {
-                Log.e("MainViewModel", "Error: ${userResult.message}")
-                _state.value = MainState.Content(null, false)
-            }
-            else -> { }
-        }
+        refreshUser()
     }.stateIn(viewModelScope, SharingStarted.Lazily, MainState.Loading)
+
+
+    init { firebaseAuth.addAuthStateListener { refreshUser() } }
+
+    private fun refreshUser() {
+        viewModelScope.launch {
+            when (val userResult = userRepository.getCurrentUser()) {
+                is Result.Success -> {
+                    val user = userResult.data
+                    val isEmailVerified = userRepository.isCurrentUserVerified()
+                    _state.value = MainState.Content(user, isEmailVerified)
+                }
+                is Result.Error -> {
+                    _state.value = MainState.Content(null, false)
+                }
+                else -> { }
+            }
+        }
+    }
 
     fun onIntroductionFinished() {
         viewModelScope.launch {

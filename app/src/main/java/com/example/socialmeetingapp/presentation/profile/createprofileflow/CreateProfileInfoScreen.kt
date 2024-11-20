@@ -53,7 +53,7 @@ fun CreateProfileInfoScreen(
 
 
         Text(
-            text = "This is how you'll appear to others on MapMates",
+            text = stringResource(R.string.create_profile_username_description),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
             textAlign = TextAlign.Center,
@@ -61,7 +61,7 @@ fun CreateProfileInfoScreen(
         )
 
         Text(
-            text = "Tell us something about yourself",
+            text = stringResource(R.string.create_profile_info),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onBackground,
             textAlign = TextAlign.Center,
@@ -84,7 +84,7 @@ fun CreateProfileInfoScreen(
         )
 
         Text(
-            text = "You can leave this blank if you want and add bio later.",
+            text = stringResource(R.string.create_profile_bio_description),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
             textAlign = TextAlign.Center,

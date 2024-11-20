@@ -213,7 +213,8 @@ class FirebaseUserRepositoryImpl(
             )
 
             Result.Success(SignUpStatus.NewUser)
-        } catch (e: Exception) {
+        }
+        catch (e: Exception) {
             e.printStackTrace()
             Result.Error(e.message ?: "Unknown error")
         } }

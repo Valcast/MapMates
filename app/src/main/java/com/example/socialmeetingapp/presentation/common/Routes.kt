@@ -38,9 +38,6 @@ sealed class Routes {
     @Serializable
     data class Event(val id: String) : Routes()
 
-    @Serializable
-    data object MyProfile : Routes()
-
     companion object {
         fun fromString(route: String): Routes? {
             val path = route.substringAfterLast(".")
@@ -50,7 +47,6 @@ sealed class Routes {
                 "Map" -> Map
                 "Activities" -> Activities
                 "Login" -> Login
-                "MyProfile" -> MyProfile
                 "Register" -> Register
                 "Settings" -> Settings
                 "Introduction" -> Introduction
