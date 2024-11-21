@@ -108,5 +108,22 @@ class EventViewModel @Inject constructor(
             }
         }
     }
+
+    fun removeParticipant(eventID: String, userID: String) {
+        viewModelScope.launch {
+            when (val removeResult = eventRepository.removeParticipant(eventID, userID)) {
+                is Result.Success -> {
+                    SnackbarManager.showMessage("Participant removed")
+                    getEvent(eventID)
+                }
+
+                is Result.Error -> {
+                    SnackbarManager.showMessage(removeResult.message)
+                }
+
+                else -> {}
+            }
+        }
+    }
 }
 

@@ -114,6 +114,18 @@ class FirebaseEventRepositoryImpl(
         }
     }
 
+    override suspend fun removeParticipant(eventID: String, userID: String): Result<Unit> {
+        return try {
+            val eventDocument = db.collection("events").document(eventID)
+
+            val userRef = db.collection("users").document(userID)
+            eventDocument.update("participants", FieldValue.arrayRemove(userRef)).await()
+            Success(Unit)
+        } catch (e: FirebaseFirestoreException) {
+            Error(e.message ?: "Unknown error")
+        }
+    }
+
     override suspend fun joinEvent(id: String): Result<Unit> =
         updateEventParticipants(id, FieldValue::arrayUnion)
 

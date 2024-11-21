@@ -127,12 +127,26 @@ class MainActivity : ComponentActivity() {
                                 launchSingleTop = true
                             }
                         }
-                        Routes.Activities, is Routes.Profile, Routes.Settings -> {
+                        Routes.Activities, Routes.Settings -> {
                             navController.navigate(screen) {
                                 popUpTo(Routes.Map) {
                                     saveState = true
                                 }
                                 launchSingleTop = true
+                            }
+                        }
+                        is Routes.Profile -> {
+                            if (state is MainState.Content && state.user != null && screen.userID == state.user.id) {
+                                navController.navigate(Routes.Profile(screen.userID)) {
+                                    popUpTo(Routes.Map) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                }
+                            } else {
+                                navController.navigate(screen) {
+                                    launchSingleTop = true
+                                }
                             }
                         }
                         else -> {
@@ -411,7 +425,8 @@ class MainActivity : ComponentActivity() {
                                     onBack = { NavigationManager.navigateTo(Routes.Map) },
                                     onGoToAuthor = { NavigationManager.navigateTo(Routes.Profile(it)) },
                                     onLeaveEvent = { viewModel.leaveEvent(args.id) },
-                                    onDeleteEvent = { viewModel.deleteEvent(args.id) }
+                                    onDeleteEvent = { viewModel.deleteEvent(args.id) },
+                                    onRemoveParticipant = { viewModel.removeParticipant(args.id, it) }
                                 )
                             }
                         }

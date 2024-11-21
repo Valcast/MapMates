@@ -1,6 +1,7 @@
 package com.example.socialmeetingapp.presentation.event
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.FocusInteraction
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -52,6 +53,8 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.example.socialmeetingapp.R
 import com.example.socialmeetingapp.domain.model.Result
+import com.example.socialmeetingapp.presentation.common.NavigationManager
+import com.example.socialmeetingapp.presentation.common.Routes
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapUiSettings
@@ -73,6 +76,7 @@ fun EventScreen(
     onGoToAuthor: (authorId: String) -> Unit,
     onDeleteEvent: () -> Unit,
     onLeaveEvent: () -> Unit,
+    onRemoveParticipant: (participantId: String) -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState()
     var showBottomSheet by remember { mutableStateOf(false) }
@@ -420,30 +424,77 @@ fun EventScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            AsyncImage(
-                                model = participant.profilePictureUri,
-                                contentDescription = "Participant Profile Picture",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .clip(RoundedCornerShape(16.dp))
-                            )
-                            Text(
-                                text = participant.username,
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onBackground,
-                                modifier = Modifier.padding(start = 8.dp)
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.clip(MaterialTheme.shapes.small).clickable {
+                                    NavigationManager.navigateTo(
+                                        Routes.Profile(participant.id)
+                                    )
+                                }.padding(4.dp)
+                            ) {
+                                AsyncImage(
+                                    model = participant.profilePictureUri,
+                                    contentDescription = "Participant Profile Picture",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .clip(RoundedCornerShape(16.dp))
+                                )
+                                Text(
+                                    text = participant.username,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onBackground,
+                                    modifier = Modifier.padding(start = 8.dp)
+                                )
 
-                            Text(
-                                text = (Clock.System.now()
-                                    .toLocalDateTime(TimeZone.currentSystemDefault()).year - participant.dateOfBirth.year).toString(),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onBackground,
-                                modifier = Modifier.padding(start = 8.dp)
-                            )
+                                Text(
+                                    text = (Clock.System.now()
+                                        .toLocalDateTime(TimeZone.currentSystemDefault()).year - participant.dateOfBirth.year).toString(),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onBackground,
+                                    modifier = Modifier.padding(start = 8.dp)
+                                )
+                            }
+
+                            var participantActionsExpanded by remember { mutableStateOf(false) }
+
+                            Box {
+                                IconButton(
+                                    onClick = { participantActionsExpanded = !participantActionsExpanded },
+                                    modifier = Modifier.size(24.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.MoreVert,
+                                        contentDescription = "Edit Profile",
+                                        tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                                    )
+                                }
+
+                                if (state.currentUser.id == state.event.author.id) {
+                                    DropdownMenu(
+                                        expanded = participantActionsExpanded,
+                                        onDismissRequest = { participantActionsExpanded = false }) {
+
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(
+                                                    "Remove from event",
+                                                    style = MaterialTheme.typography.titleSmall,
+                                                    color = MaterialTheme.colorScheme.error
+                                                )
+                                            },
+                                            onClick = {
+                                                onRemoveParticipant(participant.id)
+                                                showBottomSheet = false },
+                                        )
+                                    }
+                                }
+
+                            }
+
+
                         }
                     }
                 }

@@ -17,4 +17,5 @@ interface EventRepository {
     suspend fun getUserEvents(userId: String): Result<UserEvents>
 
     fun getCategoriesReferences(categories: List<String>): List<DocumentReference>
+    suspend fun removeParticipant(eventID: String, userID: String): Result<Unit>
 }
