@@ -1,5 +1,6 @@
 package com.example.socialmeetingapp
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -75,14 +76,16 @@ class MainActivity : ComponentActivity() {
 
     private var permissionManager = PermissionManager(this)
     private lateinit var splashScreen: SplashScreen
-    private val viewModel: MainViewModel by viewModels()
+    private val mainViewModel: MainViewModel by viewModels()
 
     override fun onResume() {
         super.onResume()
+        mainViewModel.refreshUser()
         permissionManager.checkPermissions(PermissionManager.FINE_LOCATION_PERMISSION)
     }
 
 
+    @SuppressLint("RestrictedApi")
     override fun onCreate(savedInstanceState: Bundle?) {
         splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
@@ -94,7 +97,7 @@ class MainActivity : ComponentActivity() {
 
         enableEdgeToEdge()
         setContent {
-            val state = viewModel.state.collectAsStateWithLifecycle().value
+            val state = mainViewModel.state.collectAsStateWithLifecycle().value
             splashScreen.setKeepOnScreenCondition { state is MainState.Loading }
 
             var startDestination by remember { mutableStateOf<Routes?>(null) }
@@ -108,20 +111,50 @@ class MainActivity : ComponentActivity() {
 
             LaunchedEffect(Unit) {
                 NavigationManager.route.collect { screen ->
-                    navController.navigate(screen) {
-                        popUpTo(navController.graph.startDestinationId) {
-                            saveState = true
+                    when (screen) {
+                        Routes.Map, Routes.Login -> {
+                            mainViewModel.refreshUser()
+
+                            navController.navigate(screen) {
+                                popUpTo(0) { inclusive = true }
+                                launchSingleTop = true
+                            }
                         }
-                        launchSingleTop = true
+
+                        Routes.CreateProfile -> {
+                            navController.navigate(screen) {
+                                popUpTo(0) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        }
+                        Routes.Activities, is Routes.Profile, Routes.Settings -> {
+                            navController.navigate(screen) {
+                                popUpTo(Routes.Map) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                            }
+                        }
+                        else -> {
+                            navController.navigate(screen) {
+                                popUpTo(navController.graph.startDestinationId) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                            }
+                        }
                     }
                 }
             }
 
-            when (state) {
-                is MainState.Welcome -> startDestination = Routes.Introduction
-                is MainState.CreateProfile -> startDestination = Routes.CreateProfile
-                is MainState.Content -> startDestination = if (state.user == null) Routes.Login else Routes.Map
-                else -> {}
+            if (startDestination == null) {
+                when (state) {
+                    is MainState.Welcome -> startDestination = Routes.Introduction
+                    is MainState.CreateProfile -> startDestination = Routes.CreateProfile
+                    is MainState.Content -> startDestination =
+                        if (state.user == null) Routes.Login else Routes.Map
+                    else -> {}
+                }
             }
 
             val currentRoute =
@@ -129,11 +162,26 @@ class MainActivity : ComponentActivity() {
                     Routes.fromString(it)
                 } ?: startDestination
 
+            navController.addOnDestinationChangedListener { controller, _, _ ->
+                val routes = controller
+                    .currentBackStack.value
+                    .map { it.destination.route }
+                    .joinToString(", ")
+
+                Log.d("BackStackLog", "BackStack: $routes")
+            }
+
+
+
 
             SocialMeetingAppTheme {
                 Scaffold(
                     snackbarHost = { SnackbarHost(snackbarHostState) },
                     topBar = {
+                        if (state is MainState.Content && state.user == null) {
+                            return@Scaffold
+                        }
+
                         if (state is MainState.Content && !state.isEmailVerified && currentRoute == Routes.Map) {
                             Row(
                                 modifier = Modifier
@@ -153,7 +201,7 @@ class MainActivity : ComponentActivity() {
                                     color = MaterialTheme.colorScheme.onBackground,
                                 )
 
-                                Button(onClick = { viewModel.resendVerificationEmail() }) {
+                                Button(onClick = { mainViewModel.resendVerificationEmail() }) {
                                     Text(
                                         text = "Verify",
                                         style = MaterialTheme.typography.bodyMedium,
@@ -164,12 +212,11 @@ class MainActivity : ComponentActivity() {
                         }
                     },
                     bottomBar = {
-                        if(currentRoute is Routes.CreateProfile || currentRoute is Routes.CreateEvent || currentRoute is Routes.Event) {
+                        if (currentRoute is Routes.CreateProfile || currentRoute is Routes.CreateEvent || currentRoute is Routes.Event) {
                             return@Scaffold
                         }
 
-                        if (state is MainState.Content && state.user != null && currentRoute != null)
-                        {
+                        if (state is MainState.Content && state.user != null && currentRoute != null) {
                             NavigationBar(
                                 currentRoute = currentRoute,
                                 onItemClicked = { NavigationManager.navigateTo(it) },
@@ -180,7 +227,7 @@ class MainActivity : ComponentActivity() {
 
                     }) { innerPadding ->
 
-                    if(startDestination != null) {
+                    if (startDestination != null) {
                         NavHost(
                             navController = navController,
                             startDestination = startDestination!!,
@@ -194,7 +241,7 @@ class MainActivity : ComponentActivity() {
                         ) {
                             composable<Routes.Introduction> {
                                 IntroductionScreen(onFinish = {
-                                    viewModel.onIntroductionFinished()
+                                    mainViewModel.onIntroductionFinished()
                                     NavigationManager.navigateTo(Routes.Login)
                                 })
                             }
@@ -229,7 +276,8 @@ class MainActivity : ComponentActivity() {
 
                                 ProfileScreen(
                                     state = viewModel.userData.collectAsStateWithLifecycle().value,
-                                    onLogout = viewModel::logout,
+                                    onLogout = { viewModel.logout()
+                                               NavigationManager.navigateTo(Routes.Login)},
                                     onUpdateUsername = { viewModel.updateUsername(it) },
                                     onUpdateBio = { viewModel.updateBio(it) },
                                     onUpdateProfilePicture = { viewModel.updateProfilePicture(it) },
@@ -245,7 +293,14 @@ class MainActivity : ComponentActivity() {
                                 ActivitiesScreen(
                                     events = viewModel.events.collectAsStateWithLifecycle().value,
                                     onCardClick = { NavigationManager.navigateTo(Routes.Event(it)) },
-                                    onCreateEventClick = { NavigationManager.navigateTo(Routes.CreateEvent(0.0, 0.0)) },
+                                    onCreateEventClick = {
+                                        NavigationManager.navigateTo(
+                                            Routes.CreateEvent(
+                                                0.0,
+                                                0.0
+                                            )
+                                        )
+                                    },
                                     onExploreEventClick = { NavigationManager.navigateTo(Routes.Map) }
                                 )
                             }
@@ -258,7 +313,12 @@ class MainActivity : ComponentActivity() {
                                 val viewModel = hiltViewModel<LoginViewModel>()
                                 LoginScreen(
                                     state = viewModel.state.collectAsStateWithLifecycle().value,
-                                    onSignIn = { email, password -> viewModel.signIn(email, password) },
+                                    onSignIn = { email, password ->
+                                        viewModel.signIn(
+                                            email,
+                                            password
+                                        )
+                                    },
                                     onSignInWithGoogle = viewModel::signInWithGoogle,
                                     onGoToRegister = { NavigationManager.navigateTo(Routes.Register) },
                                     onGoToForgotPassword = { NavigationManager.navigateTo(Routes.ForgotPassword) },
@@ -359,8 +419,6 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
-
-
 
 
             }

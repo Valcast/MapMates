@@ -1,6 +1,8 @@
 package com.example.socialmeetingapp.presentation.event
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.FocusInteraction
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,8 +33,11 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,9 +46,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.example.socialmeetingapp.R
 import com.example.socialmeetingapp.domain.model.Result
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.maps.android.compose.GoogleMap
@@ -65,11 +72,12 @@ fun EventScreen(
     onBack: () -> Unit,
     onGoToAuthor: (authorId: String) -> Unit,
     onDeleteEvent: () -> Unit,
-    onLeaveEvent: () -> Unit
+    onLeaveEvent: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState()
     var showBottomSheet by remember { mutableStateOf(false) }
     var expanded by remember { mutableStateOf(false) }
+
 
     when (state) {
         is EventState.Loading -> {
@@ -386,9 +394,17 @@ fun EventScreen(
                         .align(Alignment.End)
                         .fillMaxWidth(),
 
-
                     ) {
-                    Text(text = if (state.currentUser.id == state.event.author.id) "You joined this event" else "Join Event")
+                    Text(text = when {
+                        state.event.participants.any { it.id == state.currentUser.id } -> stringResource(
+                            R.string.event_joined
+                        )
+                        state.event.participants.size >= state.event.maxParticipants -> stringResource(
+                            R.string.event_full
+                        )
+                        state.currentUser.id == state.event.author.id -> stringResource(R.string.event_host)
+                        else -> stringResource(R.string.event_join)
+                    })
                 }
             }
 
@@ -436,8 +452,11 @@ fun EventScreen(
 
         }
 
-        is EventState.Error -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-           Text(text = state.message)
+        is EventState.Error -> Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(text = state.message)
         }
     }
 }

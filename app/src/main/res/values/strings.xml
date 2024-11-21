@@ -82,4 +82,8 @@
     <string name="profile_logout">Logout</string>
     <string name="login_google">Sign in with Google</string>
     <string name="register_google">Sign up with Google</string>
+    <string name="event_full">Event Full</string>
+    <string name="event_joined">You are going</string>
+    <string name="event_host">You are the host</string>
+    <string name="event_join">Join Event</string>
 </resources>

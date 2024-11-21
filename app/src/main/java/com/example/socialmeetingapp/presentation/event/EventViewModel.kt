@@ -64,7 +64,10 @@ class EventViewModel @Inject constructor(
 
         viewModelScope.launch {
             when (val joinResult = eventRepository.joinEvent(eventID)) {
-                is Result.Success -> { SnackbarManager.showMessage("You have joined the event") }
+                is Result.Success -> {
+                    SnackbarManager.showMessage("You have joined the event")
+                    getEvent(eventID)
+                }
                 is Result.Error -> { SnackbarManager.showMessage(joinResult.message) }
 
                 else -> {}
@@ -77,6 +80,7 @@ class EventViewModel @Inject constructor(
             when (val leaveResult = eventRepository.leaveEvent(eventID)) {
                 is Result.Success -> {
                     SnackbarManager.showMessage("You have left the event")
+                    getEvent(eventID)
                 }
 
                 is Result.Error -> {

@@ -22,11 +22,23 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+sealed class MainState {
+    data object Loading : MainState()
+    data object Welcome : MainState()
+    data object CreateProfile : MainState()
+
+    data class Content(
+        val user: User? = null,
+        val isEmailVerified: Boolean = false,
+    ) : MainState()
+
+
+}
+
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val dataStore: DataStore<Preferences>,
     private val userRepository: UserRepository,
-    firebaseAuth: FirebaseAuth
 ) : ViewModel() {
     private var _state = MutableStateFlow<MainState>(MainState.Loading)
     val state = _state.asStateFlow().onStart {
@@ -39,18 +51,22 @@ class MainViewModel @Inject constructor(
         refreshUser()
     }.stateIn(viewModelScope, SharingStarted.Lazily, MainState.Loading)
 
-
-    init { firebaseAuth.addAuthStateListener { refreshUser() } }
-
-    private fun refreshUser() {
+    fun refreshUser() {
         viewModelScope.launch {
             when (val userResult = userRepository.getCurrentUser()) {
                 is Result.Success -> {
                     val user = userResult.data
                     val isEmailVerified = userRepository.isCurrentUserVerified()
+
+                    if (user.username.isEmpty()) {
+                        _state.value = MainState.CreateProfile
+                        return@launch
+                    }
+
                     _state.value = MainState.Content(user, isEmailVerified)
                 }
                 is Result.Error -> {
+                    Log.d("MainViewModel", "refreshUser: ${userResult.message}")
                     _state.value = MainState.Content(null, false)
                 }
                 else -> { }
@@ -93,16 +109,4 @@ class MainViewModel @Inject constructor(
 
 }
 
-sealed class MainState(
-) {
-    data object Loading : MainState()
-    data object Welcome : MainState()
-    data object CreateProfile : MainState()
 
-    data class Content(
-        val user: User? = null,
-        val isEmailVerified: Boolean = false,
-    ) : MainState()
-
-
-}
