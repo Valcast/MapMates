@@ -1,5 +1,6 @@
 package com.example.socialmeetingapp.presentation.common
 
+import kotlinx.serialization.Polymorphic
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -12,7 +13,6 @@ sealed class Routes {
 
     @Serializable
     data object Register : Routes()
-
 
     @Serializable
     data object Settings : Routes()
@@ -37,57 +37,4 @@ sealed class Routes {
 
     @Serializable
     data class Event(val id: String) : Routes()
-
-    companion object {
-        fun fromString(route: String): Routes? {
-            val path = route.substringAfterLast(".")
-            val segments = path.split("/")
-
-            return when (segments[0]) {
-                "Map" -> Map
-                "Activities" -> Activities
-                "Login" -> Login
-                "Register" -> Register
-                "Settings" -> Settings
-                "Introduction" -> Introduction
-                "CreateProfile" -> CreateProfile
-                "ForgotPassword" -> ForgotPassword
-                "Profile" -> {
-                    if (segments.size == 2) {
-                        val userId = segments[1]
-                        Profile(userId)
-                    } else {
-                        null
-                    }
-                }
-                "Event" -> {
-                    if (segments.size == 2) {
-                        val id = segments[1]
-                        Event(id)
-                    } else {
-                        null
-                    }
-                }
-                "CreateEvent" -> {
-                    if (segments.size == 3) {
-                        val latitude = segments[1].toDoubleOrNull()
-                        val longitude = segments[2].toDoubleOrNull()
-
-                        if (latitude != null && longitude != null) {
-                            CreateEvent(latitude, longitude)
-                        } else {
-                            null
-                        }
-                    } else {
-                        null
-                    }
-                }
-                else -> null
-            }
-        }
-
-    }
-
-
-
 }

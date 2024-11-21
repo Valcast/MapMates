@@ -1,6 +1,7 @@
 package com.example.socialmeetingapp.presentation.navigation
 
 import android.net.Uri
+import android.util.Log
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -66,6 +67,8 @@ fun NavigationBar(currentRoute: Routes, onItemClicked: (Routes) -> Unit, profile
             },
             selected = currentRoute == Routes.Profile(profileID),
             onClick = {
+                Log.d("NavigationBar", currentRoute.toString())
+                Log.d("NavigationBar", Routes.Profile(profileID).toString())
                 onItemClicked(Routes.Profile(profileID))
             }
         )

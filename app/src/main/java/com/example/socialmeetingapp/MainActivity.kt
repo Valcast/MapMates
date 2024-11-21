@@ -157,32 +157,31 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            val currentRoute =
-                navController.currentBackStackEntryAsState().value?.destination?.route?.let {
-                    Routes.fromString(it)
-                } ?: startDestination
+            val currentRoute = navController.currentBackStackEntryAsState().value?.run {
+                val route = destination.route!!
 
-            navController.addOnDestinationChangedListener { controller, _, _ ->
-                val routes = controller
-                    .currentBackStack.value
-                    .map { it.destination.route }
-                    .joinToString(", ")
+                when {
+                    route.contains("Map") -> toRoute<Routes.Map>()
+                    route.contains("Login") -> toRoute<Routes.Login>()
+                    route.contains("Register") -> toRoute<Routes.Register>()
+                    route.contains("Settings") -> toRoute<Routes.Settings>()
+                    route.contains("Activities") -> toRoute<Routes.Activities>()
+                    route.contains("Profile") -> toRoute<Routes.Profile>()
+                    route.contains("CreateProfile") -> toRoute<Routes.CreateProfile>()
+                    route.contains("Introduction") -> toRoute<Routes.Introduction>()
+                    route.contains("ForgotPassword") -> toRoute<Routes.ForgotPassword>()
+                    route.contains("CreateEvent") -> toRoute<Routes.CreateEvent>()
+                    route.contains("Event") -> toRoute<Routes.Event>()
+                    else -> null
+                }
 
-                Log.d("BackStackLog", "BackStack: $routes")
-            }
-
-
-
+            } ?: startDestination
 
             SocialMeetingAppTheme {
                 Scaffold(
                     snackbarHost = { SnackbarHost(snackbarHostState) },
                     topBar = {
-                        if (state is MainState.Content && state.user == null) {
-                            return@Scaffold
-                        }
-
-                        if (state is MainState.Content && !state.isEmailVerified && currentRoute == Routes.Map) {
+                        if (state is MainState.Content && state.user != null && !state.isEmailVerified && currentRoute == Routes.Map) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -212,11 +211,10 @@ class MainActivity : ComponentActivity() {
                         }
                     },
                     bottomBar = {
-                        if (currentRoute is Routes.CreateProfile || currentRoute is Routes.CreateEvent || currentRoute is Routes.Event) {
-                            return@Scaffold
-                        }
-
-                        if (state is MainState.Content && state.user != null && currentRoute != null) {
+                        if (state is MainState.Content
+                            && state.user != null
+                            && currentRoute != null
+                            && currentRoute in listOf(Routes.Map, Routes.Activities, Routes.Settings, Routes.Profile(state.user.id))) {
                             NavigationBar(
                                 currentRoute = currentRoute,
                                 onItemClicked = { NavigationManager.navigateTo(it) },
