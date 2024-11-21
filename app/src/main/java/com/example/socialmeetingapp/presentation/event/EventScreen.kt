@@ -2,8 +2,6 @@ package com.example.socialmeetingapp.presentation.event
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.FocusInteraction
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,11 +32,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,7 +47,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.example.socialmeetingapp.R
-import com.example.socialmeetingapp.domain.model.Result
 import com.example.socialmeetingapp.presentation.common.NavigationManager
 import com.example.socialmeetingapp.presentation.common.Routes
 import com.google.android.gms.maps.model.CameraPosition
@@ -80,7 +74,7 @@ fun EventScreen(
 ) {
     val sheetState = rememberModalBottomSheetState()
     var showBottomSheet by remember { mutableStateOf(false) }
-    var expanded by remember { mutableStateOf(false) }
+    var eventActionsExpanded by remember { mutableStateOf(false) }
 
 
     when (state) {
@@ -119,7 +113,7 @@ fun EventScreen(
 
                         Box {
                             IconButton(
-                                onClick = { expanded = !expanded },
+                                onClick = { eventActionsExpanded = !eventActionsExpanded },
                                 modifier = Modifier.size(24.dp)
                             ) {
                                 Icon(
@@ -129,8 +123,8 @@ fun EventScreen(
                                 )
                             }
                             DropdownMenu(
-                                expanded = expanded,
-                                onDismissRequest = { expanded = false }) {
+                                expanded = eventActionsExpanded,
+                                onDismissRequest = { eventActionsExpanded = false }) {
                                 if (state.currentUser.id == state.event.author.id) {
                                     DropdownMenuItem(
                                         text = {
@@ -151,7 +145,11 @@ fun EventScreen(
                                                 color = MaterialTheme.colorScheme.error
                                             )
                                         },
-                                        onClick = onLeaveEvent,
+                                        onClick = {
+                                            onLeaveEvent()
+                                            eventActionsExpanded = false
+                                        },
+                                        enabled = state.event.participants.any { it.id == state.currentUser.id }
                                     )
 
                                 }
@@ -460,6 +458,7 @@ fun EventScreen(
 
                             var participantActionsExpanded by remember { mutableStateOf(false) }
 
+                            if (state.currentUser.id == state.event.author.id) {
                             Box {
                                 IconButton(
                                     onClick = { participantActionsExpanded = !participantActionsExpanded },
@@ -472,7 +471,7 @@ fun EventScreen(
                                     )
                                 }
 
-                                if (state.currentUser.id == state.event.author.id) {
+
                                     DropdownMenu(
                                         expanded = participantActionsExpanded,
                                         onDismissRequest = { participantActionsExpanded = false }) {
