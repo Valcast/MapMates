@@ -303,7 +303,7 @@ class MainActivity : ComponentActivity() {
                                 val viewModel = hiltViewModel<ActivitiesViewModel>()
 
                                 ActivitiesScreen(
-                                    events = viewModel.events.collectAsStateWithLifecycle().value,
+                                    state = viewModel.state.collectAsStateWithLifecycle().value,
                                     onCardClick = { NavigationManager.navigateTo(Routes.Event(it)) },
                                     onCreateEventClick = {
                                         NavigationManager.navigateTo(

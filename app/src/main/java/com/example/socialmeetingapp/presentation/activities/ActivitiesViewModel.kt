@@ -2,9 +2,9 @@ package com.example.socialmeetingapp.presentation.activities
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.socialmeetingapp.domain.model.Event
 import com.example.socialmeetingapp.domain.model.Result
 import com.example.socialmeetingapp.domain.model.User
-import com.example.socialmeetingapp.domain.model.UserEvents
 import com.example.socialmeetingapp.domain.repository.EventRepository
 import com.example.socialmeetingapp.domain.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,16 +16,22 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+sealed class ActivitiesState {
+    data object Loading : ActivitiesState()
+    data class Error(val message: String) : ActivitiesState()
+    data class Content(val createdEvents: List<Event>, val joinedEvents: List<Event>) : ActivitiesState()
+}
+
 @HiltViewModel
 class ActivitiesViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val eventRepository: EventRepository
 ) : ViewModel() {
 
-    private var _events = MutableStateFlow(UserEvents(emptyList(), emptyList()))
-    val events = _events.asStateFlow().onStart {
-        refreshEvents()
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, UserEvents(emptyList(), emptyList()))
+    private var _state = MutableStateFlow<ActivitiesState>(ActivitiesState.Loading)
+    val state = _state.asStateFlow()
+        .onStart { refreshEvents() }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, ActivitiesState.Loading)
 
     private fun refreshEvents() {
         viewModelScope.launch {
@@ -38,7 +44,7 @@ class ActivitiesViewModel @Inject constructor(
             val eventsResult = eventRepository.getUserEvents((user as Result.Success<User>).data.id)
 
             if (eventsResult is Result.Success) {
-                _events.value = eventsResult.data
+                _state.value = ActivitiesState.Content(eventsResult.data.createdEvents, eventsResult.data.joinedEvents)
             }
         }
     }
