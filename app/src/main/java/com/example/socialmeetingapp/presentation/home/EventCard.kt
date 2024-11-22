@@ -28,10 +28,10 @@ import com.example.socialmeetingapp.domain.model.Event
 import java.util.Locale
 
 @Composable
-fun EventCard(event: Event, onCardClick: (String) -> Unit) {
+fun EventCard(event: Event, onCardClick: (String) -> Unit, modifier: Modifier = Modifier) {
     ElevatedCard(
         onClick = { onCardClick(event.id) },
-        modifier = Modifier.padding(vertical = 16.dp, horizontal = 8.dp)
+        modifier = modifier
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(

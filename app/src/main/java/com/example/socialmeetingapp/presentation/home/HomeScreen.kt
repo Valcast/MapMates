@@ -64,7 +64,7 @@ fun HomeScreen(eventsResult: Result<List<Event>>, currentLocationResult: Result<
                 if (isListView) {
                     LazyColumn {
                         items(events.size) { index ->
-                            EventCard(events[index], onCardClick = onEventClick)
+                            EventCard(events[index], onCardClick = onEventClick, modifier = Modifier.padding(top = 16.dp, start = 8.dp, end = 8.dp))
                         }
                     }
                 } else {
@@ -171,7 +171,7 @@ fun HomeScreen(eventsResult: Result<List<Event>>, currentLocationResult: Result<
                 }
 
                 if (selectedEventIndex != null) {
-                    EventCard(events[selectedEventIndex!!], onCardClick = onEventClick)
+                    EventCard(events[selectedEventIndex!!], onCardClick = onEventClick, modifier = Modifier.padding(top = 16.dp, start = 8.dp, end = 8.dp))
                 }
             }
 

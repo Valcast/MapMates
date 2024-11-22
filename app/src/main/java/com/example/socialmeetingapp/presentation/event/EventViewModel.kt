@@ -76,6 +76,15 @@ class EventViewModel @Inject constructor(
     }
 
     fun leaveEvent(eventID: String) {
+        if (state.value is EventState.Content) {
+            if ((state.value as EventState.Content).currentUser.id == (state.value as EventState.Content).event.author.id) {
+                SnackbarManager.showMessage("You are the author of this event")
+                return
+            } else if (!(state.value as EventState.Content).event.participants.any { it.id == (state.value as EventState.Content).currentUser.id }) {
+                SnackbarManager.showMessage("You have not joined this event")
+                return
+            }
+        }
         viewModelScope.launch {
             when (val leaveResult = eventRepository.leaveEvent(eventID)) {
                 is Result.Success -> {
@@ -121,6 +130,37 @@ class EventViewModel @Inject constructor(
                     SnackbarManager.showMessage(removeResult.message)
                 }
 
+                else -> {}
+            }
+        }
+    }
+
+    fun sendJoinRequest(eventID: String) {
+        if (state.value is EventState.Content) {
+            if ((state.value as EventState.Content).currentUser.id == (state.value as EventState.Content).event.author.id) {
+                SnackbarManager.showMessage("You are the author of this event")
+                return
+            } else if ((state.value as EventState.Content).event.participants.any { it.id == (state.value as EventState.Content).currentUser.id }) {
+                SnackbarManager.showMessage("You have already joined this event")
+                return
+            } else if ((state.value as EventState.Content).event.participants.size >= (state.value as EventState.Content).event.maxParticipants) {
+                SnackbarManager.showMessage("Event is full")
+                return
+            } else if ((state.value as EventState.Content).event.joinRequests.any { it.id == (state.value as EventState.Content).currentUser.id }) {
+                SnackbarManager.showMessage("You have already sent a join request")
+                return
+            }
+        }
+
+        viewModelScope.launch {
+            when (val result = eventRepository.sendJoinRequest(eventID)) {
+                is Result.Success -> {
+                    SnackbarManager.showMessage("Join request sent")
+                    getEvent(eventID)
+                }
+                is Result.Error -> {
+                    SnackbarManager.showMessage(result.message)
+                }
                 else -> {}
             }
         }

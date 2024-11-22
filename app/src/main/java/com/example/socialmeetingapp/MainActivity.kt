@@ -313,7 +313,9 @@ class MainActivity : ComponentActivity() {
                                             )
                                         )
                                     },
-                                    onExploreEventClick = { NavigationManager.navigateTo(Routes.Map) }
+                                    onExploreEventClick = { NavigationManager.navigateTo(Routes.Map) },
+                                    onAcceptJoinRequest = { eventID, userID -> viewModel.acceptJoinRequest(eventID, userID) },
+                                    onDeclineJoinRequest = { eventID, userID -> viewModel.declineJoinRequest(eventID, userID) }
                                 )
                             }
 
@@ -426,7 +428,8 @@ class MainActivity : ComponentActivity() {
                                     onGoToAuthor = { NavigationManager.navigateTo(Routes.Profile(it)) },
                                     onLeaveEvent = { viewModel.leaveEvent(args.id) },
                                     onDeleteEvent = { viewModel.deleteEvent(args.id) },
-                                    onRemoveParticipant = { viewModel.removeParticipant(args.id, it) }
+                                    onRemoveParticipant = { viewModel.removeParticipant(args.id, it) },
+                                    onSendJoinRequest = { viewModel.sendJoinRequest(args.id) },
                                 )
                             }
                         }

@@ -18,4 +18,8 @@ interface EventRepository {
 
     fun getCategoriesReferences(categories: List<String>): List<DocumentReference>
     suspend fun removeParticipant(eventID: String, userID: String): Result<Unit>
+
+    suspend fun sendJoinRequest(eventID: String): Result<Unit>
+    suspend fun acceptJoinRequest(eventID: String, userID: String): Result<Unit>
+    suspend fun declineJoinRequest(eventID: String, userID: String): Result<Unit>
 }

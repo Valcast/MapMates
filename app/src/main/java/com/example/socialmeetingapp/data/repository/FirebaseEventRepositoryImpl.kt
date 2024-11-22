@@ -61,6 +61,7 @@ class FirebaseEventRepositoryImpl(
                 "locationAddress" to event.locationAddress,
                 "author" to db.collection("users").document(firebaseAuth.currentUser!!.uid),
                 "participants" to emptyList<DocumentReference>(),
+                "joinRequests" to emptyList<DocumentReference>(),
                 "maxParticipants" to event.maxParticipants,
                 "startTime" to event.startTime.toString(),
                 "endTime" to event.endTime.toString(),
@@ -68,6 +69,7 @@ class FirebaseEventRepositoryImpl(
                 "updatedAt" to currentTime.toString(),
                 "isPrivate" to event.isPrivate,
                 "isOnline" to event.isOnline,
+
             )
 
             val createdEvent = db.collection("events").add(eventData).await()
@@ -126,6 +128,43 @@ class FirebaseEventRepositoryImpl(
         }
     }
 
+    override suspend fun sendJoinRequest(eventID: String): Result<Unit> {
+        return try {
+            val eventDocument = db.collection("events").document(eventID)
+
+            val userRef = db.collection("users").document(firebaseAuth.currentUser!!.uid)
+            eventDocument.update("joinRequests", FieldValue.arrayUnion(userRef)).await()
+            Success(Unit)
+        } catch (e: FirebaseFirestoreException) {
+            Error(e.message ?: "Unknown error")
+        }
+    }
+
+    override suspend fun acceptJoinRequest(eventID: String, userID: String): Result<Unit> {
+        return try {
+            val eventDocument = db.collection("events").document(eventID)
+
+            val userRef = db.collection("users").document(userID)
+            eventDocument.update("participants", FieldValue.arrayUnion(userRef)).await()
+            eventDocument.update("joinRequests", FieldValue.arrayRemove(userRef)).await()
+            Success(Unit)
+        } catch (e: FirebaseFirestoreException) {
+            Error(e.message ?: "Unknown error")
+        }
+    }
+
+    override suspend fun declineJoinRequest(eventID: String, userID: String): Result<Unit> {
+        return try {
+            val eventDocument = db.collection("events").document(eventID)
+
+            val userRef = db.collection("users").document(userID)
+            eventDocument.update("joinRequests", FieldValue.arrayRemove(userRef)).await()
+            Success(Unit)
+        } catch (e: FirebaseFirestoreException) {
+            Error(e.message ?: "Unknown error")
+        }
+    }
+
     override suspend fun joinEvent(id: String): Result<Unit> =
         updateEventParticipants(id, FieldValue::arrayUnion)
 
@@ -167,6 +206,18 @@ class FirebaseEventRepositoryImpl(
             }
         }
 
+        val joinRequestsDocument =
+            eventDocument.get("joinRequests") as? List<DocumentReference> ?: return null
+
+        val joinRequests = joinRequestsDocument.mapNotNull { joinRequest ->
+            val userResult = userRepository.getUser(joinRequest.path.split("/").last())
+            if (userResult is Success) {
+                userResult.data
+            } else {
+                null
+            }
+        }
+
         val authorDocument = eventDocument.getDocumentReference("author") ?: return null
         val authorResult = userRepository.getUser(authorDocument.path.split("/").last())
 
@@ -186,6 +237,7 @@ class FirebaseEventRepositoryImpl(
             author = author,
             maxParticipants = eventDocument.getLong("maxParticipants")?.toInt() ?: return null,
             participants = participants,
+            joinRequests = joinRequests,
             startTime = eventDocument.getString("startTime")?.let { LocalDateTime.parse(it) }
                 ?: return null,
             endTime = eventDocument.getString("endTime")?.let { LocalDateTime.parse(it) }

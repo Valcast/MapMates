@@ -70,7 +70,8 @@ fun EventScreen(
     onGoToAuthor: (authorId: String) -> Unit,
     onDeleteEvent: () -> Unit,
     onLeaveEvent: () -> Unit,
-    onRemoveParticipant: (participantId: String) -> Unit
+    onRemoveParticipant: (participantId: String) -> Unit,
+    onSendJoinRequest: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState()
     var showBottomSheet by remember { mutableStateOf(false) }
@@ -159,7 +160,7 @@ fun EventScreen(
                     }
 
                     Text(
-                        text = state.event.title,
+                        text = "${state.event.title} ${if (state.event.isPrivate) "(Private)" else ""}",
                         style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.onBackground,
                         fontWeight = FontWeight.Bold
@@ -244,7 +245,14 @@ fun EventScreen(
 
                     }
 
-
+                    if (state.event.isPrivate) {
+                        Text(
+                            text = "This is a private event. You can only join if approved by the author.",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(vertical = 16.dp)
+                        )
+                    }
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -391,7 +399,13 @@ fun EventScreen(
 
 
                 ExtendedFloatingActionButton(
-                    onClick = onJoinEvent,
+                    onClick = {
+                        if (state.event.isPrivate) {
+                            onSendJoinRequest()
+                        } else {
+                            onJoinEvent()
+                        }
+                    },
                     modifier = Modifier
                         .align(Alignment.End)
                         .fillMaxWidth(),
@@ -401,10 +415,14 @@ fun EventScreen(
                         state.event.participants.any { it.id == state.currentUser.id } -> stringResource(
                             R.string.event_joined
                         )
+                        state.event.joinRequests.any { it.id == state.currentUser.id } -> stringResource(
+                            R.string.event_join_request_sent
+                        )
                         state.event.participants.size >= state.event.maxParticipants -> stringResource(
                             R.string.event_full
                         )
                         state.currentUser.id == state.event.author.id -> stringResource(R.string.event_host)
+                        state.event.isPrivate -> stringResource(R.string.event_join_request)
                         else -> stringResource(R.string.event_join)
                     })
                 }
@@ -425,7 +443,8 @@ fun EventScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically,
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.clip(MaterialTheme.shapes.small).clickable {
                                     NavigationManager.navigateTo(
                                         Routes.Profile(participant.id)
@@ -459,17 +478,19 @@ fun EventScreen(
                             var participantActionsExpanded by remember { mutableStateOf(false) }
 
                             if (state.currentUser.id == state.event.author.id) {
-                            Box {
-                                IconButton(
-                                    onClick = { participantActionsExpanded = !participantActionsExpanded },
-                                    modifier = Modifier.size(24.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Filled.MoreVert,
-                                        contentDescription = "Edit Profile",
-                                        tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
-                                    )
-                                }
+                                Box {
+                                    IconButton(
+                                        onClick = {
+                                            participantActionsExpanded = !participantActionsExpanded
+                                        },
+                                        modifier = Modifier.size(24.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Filled.MoreVert,
+                                            contentDescription = "Edit Profile",
+                                            tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                                        )
+                                    }
 
 
                                     DropdownMenu(
@@ -486,7 +507,8 @@ fun EventScreen(
                                             },
                                             onClick = {
                                                 onRemoveParticipant(participant.id)
-                                                showBottomSheet = false },
+                                                showBottomSheet = false
+                                            },
                                         )
                                     }
                                 }

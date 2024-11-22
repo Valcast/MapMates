@@ -86,4 +86,6 @@
     <string name="event_joined">You are going</string>
     <string name="event_host">You are the host</string>
     <string name="event_join">Join Event</string>
+    <string name="event_join_request">Send a request</string>
+    <string name="event_join_request_sent">Join request sent</string>
 </resources>
