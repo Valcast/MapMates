@@ -1,8 +1,7 @@
 package com.example.socialmeetingapp.domain.repository
 
-import com.example.socialmeetingapp.domain.model.Result
 import com.example.socialmeetingapp.domain.model.Event
-import com.example.socialmeetingapp.domain.model.UserEvents
+import com.example.socialmeetingapp.domain.model.Result
 import com.google.firebase.firestore.DocumentReference
 import kotlinx.coroutines.flow.StateFlow
 

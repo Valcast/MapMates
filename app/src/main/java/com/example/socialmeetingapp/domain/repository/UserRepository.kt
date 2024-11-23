@@ -10,8 +10,6 @@ interface UserRepository {
     val currentUser: StateFlow<Result<User?>>
 
     suspend fun getUser(id: String): Result<User>
-    fun isCurrentUserVerified(): Boolean
-    suspend fun refreshUser(): Result<Unit>
 
     suspend fun signIn(email: String, password: String): Result<Unit>
 

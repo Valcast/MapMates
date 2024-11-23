@@ -100,35 +100,6 @@ class FirebaseUserRepositoryImpl(
 
     }.stateIn(coroutineScope, SharingStarted.WhileSubscribed(5000), Result.Loading)
 
-    private fun isLoggedIn(): Boolean {
-        return firebaseAuth.currentUser != null
-    }
-
-    override fun isCurrentUserVerified(): Boolean {
-        return firebaseAuth.currentUser?.isEmailVerified == true
-    }
-
-
-
-    override suspend fun refreshUser(): Result<Unit> {
-        if (!networkManager.isConnected) {
-            return Result.Error("No internet connection")
-        }
-
-        if (!isLoggedIn()) {
-            return Result.Error("User not authenticated")
-        }
-
-        return try {
-            firebaseAuth.currentUser!!.reload().await()
-
-            Result.Success(Unit)
-        } catch (e: Exception) {
-            Result.Error(e.message ?: "Unknown error")
-        }
-
-    }
-
     override suspend fun getUser(id: String): Result<User> {
         if (!networkManager.isConnected) {
             return Result.Error("No internet connection")
@@ -295,10 +266,6 @@ class FirebaseUserRepositoryImpl(
             return Result.Error("No internet connection")
         }
 
-        if (!isLoggedIn()) {
-            return Result.Error("User not authenticated")
-        }
-
         try {
             val userDocument = db.collection("users").document(firebaseAuth.currentUser!!.uid)
 
@@ -327,10 +294,6 @@ class FirebaseUserRepositoryImpl(
             return Result.Error("No internet connection")
         }
 
-        if (!isLoggedIn()) {
-            return Result.Error("User not authenticated")
-        }
-
         try {
             val storageRef =
                 storage.reference.child("profile_pictures/${firebaseAuth.currentUser!!.uid}")
@@ -348,10 +311,6 @@ class FirebaseUserRepositoryImpl(
     override suspend fun sendEmailVerification(): Result<Unit> {
         if (!networkManager.isConnected) {
             return Result.Error("No internet connection")
-        }
-
-        if (!isLoggedIn()) {
-            return Result.Error("User not authenticated")
         }
 
         try {
