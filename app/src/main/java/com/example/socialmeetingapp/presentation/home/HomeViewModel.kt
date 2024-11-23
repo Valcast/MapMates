@@ -8,16 +8,12 @@ import com.example.socialmeetingapp.domain.repository.EventRepository
 import com.example.socialmeetingapp.domain.repository.LocationRepository
 import com.google.android.gms.maps.model.LatLng
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.merge
-import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
 import javax.inject.Inject
 
 
@@ -33,7 +29,12 @@ class HomeViewModel @Inject constructor(
     eventRepository: EventRepository
 ) : ViewModel() {
     val state: StateFlow<HomeState> = combine(eventRepository.eventsStateFlow, locationRepository.latestLocation) { events, locationResult ->
-        HomeState.Content(events, locationResult)
+
+        val filteredEvents = events.filter { event ->
+            event.endTime.toInstant(TimeZone.currentSystemDefault()).toEpochMilliseconds() > System.currentTimeMillis()
+        }
+
+        HomeState.Content(filteredEvents, locationResult)
     }.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5000),

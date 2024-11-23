@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.BasicAlertDialog
@@ -24,6 +25,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SmallFloatingActionButton
@@ -41,10 +43,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.socialmeetingapp.domain.model.Result
+import com.example.socialmeetingapp.presentation.components.EventCard
 import com.google.android.gms.maps.GoogleMapOptions
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
-import com.google.maps.android.compose.ComposeMapColorScheme
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
@@ -64,19 +66,27 @@ fun HomeScreen(
     var isListView by rememberSaveable { mutableStateOf(false) }
 
 
-
     var isRequestPermissionDialogVisible by remember { mutableStateOf(false) }
 
     var selectedEventIndex by remember { mutableStateOf<Int?>(null) }
     var selectedCreateEventPosition by remember { mutableStateOf<LatLng?>(null) }
 
+    var shouldShowEventDialog by rememberSaveable { mutableStateOf(true) }
+
 
     when (state) {
         is HomeState.Content -> {
-            val startPosition = locationCoordinates ?: if (state.location is Result.Success) state.location.data else LatLng(52.237049, 21.017532)
+            val startPosition = locationCoordinates
+                ?: if (state.location is Result.Success) state.location.data else LatLng(
+                    52.237049,
+                    21.017532
+                )
 
             val cameraPositionState = rememberCameraPositionState {
-                position = CameraPosition.fromLatLngZoom(startPosition, if (locationCoordinates != null) 15f else 10f)
+                position = CameraPosition.fromLatLngZoom(
+                    startPosition,
+                    if (locationCoordinates != null) 15f else 10f
+                )
             }
 
             Box(
@@ -114,7 +124,6 @@ fun HomeScreen(
                             selectedEventIndex = null
                             selectedCreateEventPosition = null
                         },
-                        mapColorScheme = ComposeMapColorScheme.FOLLOW_SYSTEM
                     ) {
                         if (state.location is Result.Success) {
                             Marker(
@@ -141,13 +150,14 @@ fun HomeScreen(
                     }
                 }
 
-                selectedCreateEventPosition?.let {
+                if (selectedCreateEventPosition != null) {
+                    shouldShowEventDialog = false
                     Card(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             .padding(16.dp)
                             .clickable {
-                                onMapLongClick(it)
+                                onMapLongClick(selectedCreateEventPosition!!)
                                 selectedCreateEventPosition = null
                             }
                     ) {
@@ -164,6 +174,36 @@ fun HomeScreen(
                             )
                         }
 
+                    }
+                } else {
+
+                    if (shouldShowEventDialog) {
+                        Card(
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .padding(16.dp)
+                        ) {
+                            Row (modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "Long press on the map to create an event",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.padding(end = 8.dp)
+                                )
+
+                                IconButton(
+                                    onClick = {
+                                        shouldShowEventDialog = false
+                                    }
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Close,
+                                        contentDescription = "Close"
+                                    )
+                                }
+                            }
+
+                        }
                     }
                 }
 

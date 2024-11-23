@@ -3,8 +3,10 @@ package com.example.socialmeetingapp.presentation.profile
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.socialmeetingapp.domain.model.Event
 import com.example.socialmeetingapp.domain.model.Result
 import com.example.socialmeetingapp.domain.model.User
+import com.example.socialmeetingapp.domain.repository.EventRepository
 import com.example.socialmeetingapp.domain.repository.UserRepository
 import com.example.socialmeetingapp.presentation.common.SnackbarManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,12 +21,13 @@ import javax.inject.Inject
 sealed class ProfileState {
     data object Loading : ProfileState()
     data class Error(val message: String) : ProfileState()
-    data class Content(val user: User, val isMyProfile: Boolean = false) : ProfileState()
+    data class Content(val user: User, val userEvents: List<Event> = emptyList(), val isMyProfile: Boolean = false, val isObservedUser: Boolean = false) : ProfileState()
 }
 
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val eventRepository: EventRepository
 ) : ViewModel() {
     private val _userData = MutableStateFlow<ProfileState>(ProfileState.Loading)
     val userData = _userData.asStateFlow()
@@ -36,12 +39,16 @@ class ProfileViewModel @Inject constructor(
         viewModelScope.launch {
             val userResult = async { userRepository.getUser(userID) }.await()
             val currentUser = userRepository.currentUser.value
+            val userEvents = eventRepository.eventsStateFlow.value.filter { it.author.id == userID }
+
 
             if (userResult is Result.Success && currentUser is Result.Success && currentUser.data != null) {
                 _userData.update {
                     ProfileState.Content(
                         user = userResult.data,
-                        isMyProfile = userResult.data.id == currentUser.data.id
+                        userEvents = userEvents,
+                        isMyProfile = userResult.data.id == currentUser.data.id,
+                        isObservedUser = currentUser.data.following.contains(userResult.data.id)
                     )
                 }
             } else {
@@ -82,6 +89,40 @@ class ProfileViewModel @Inject constructor(
     fun updateGender(gender: String) {
         _newUser.update { it.copy(gender = gender) }
 
+    }
+
+    fun addFriend(friendID: String) {
+        viewModelScope.launch {
+            when (val addFriendResult = userRepository.addFriend(friendID)) {
+                is Result.Success -> {
+                    SnackbarManager.showMessage("Friend added")
+                    getUserByID(friendID)
+                }
+
+                is Result.Error -> {
+                    SnackbarManager.showMessage(addFriendResult.message)
+                }
+
+                else -> {}
+            }
+        }
+    }
+
+    fun deleteFriend(friendID: String) {
+        viewModelScope.launch {
+            when (val deleteFriendResult = userRepository.deleteFriend(friendID)) {
+                is Result.Success -> {
+                    SnackbarManager.showMessage("Friend deleted")
+                    getUserByID(friendID)
+                }
+
+                is Result.Error -> {
+                    SnackbarManager.showMessage(deleteFriendResult.message)
+                }
+
+                else -> {}
+            }
+        }
     }
 
     fun logout() = userRepository.signOut()

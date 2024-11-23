@@ -1,4 +1,4 @@
-package com.example.socialmeetingapp.presentation.home
+package com.example.socialmeetingapp.presentation.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column

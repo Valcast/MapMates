@@ -1,8 +1,6 @@
 package com.example.socialmeetingapp
 
-import android.annotation.SuppressLint
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -10,11 +8,13 @@ import androidx.activity.viewModels
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -227,12 +227,16 @@ class MainActivity : ComponentActivity() {
                                     currentRoute == Routes.Profile(state.user.id) ||
                                     currentRoute == Routes.Settings)
                         ) {
-                            NavigationBar(
-                                currentRoute = currentRoute,
-                                onItemClicked = { NavigationManager.navigateTo(it) },
-                                profileImageUrl = state.user.profilePictureUri,
-                                profileID = state.user.id
-                            )
+                            Column {
+                                HorizontalDivider()
+                                NavigationBar(
+                                    currentRoute = currentRoute,
+                                    onItemClicked = { NavigationManager.navigateTo(it) },
+                                    profileImageUrl = state.user.profilePictureUri,
+                                    profileID = state.user.id
+                                )
+                            }
+
                         }
 
                     }) { innerPadding ->
@@ -296,6 +300,9 @@ class MainActivity : ComponentActivity() {
                                     onUpdateBio = { viewModel.updateBio(it) },
                                     onUpdateProfilePicture = { viewModel.updateProfilePicture(it) },
                                     onUpdateDateOfBirth = { viewModel.updateDateOfBirth(it) },
+                                    onAddFriend = {
+                                        viewModel.addFriend(it) },
+                                    onDeleteFriend = { viewModel.deleteFriend(it) },
                                 )
                             }
 

@@ -1,6 +1,5 @@
 package com.example.socialmeetingapp.presentation.common
 
-import android.util.Log
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 

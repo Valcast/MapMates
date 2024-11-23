@@ -13,6 +13,8 @@ data class User(
     val dateOfBirth: LocalDateTime,
     val gender: String = "Not specified",
     val role: String = "User",
+    val following: List<String> = emptyList(),
+    val followers: List<String> = emptyList(),
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime,
     val lastLogin: LocalDateTime,

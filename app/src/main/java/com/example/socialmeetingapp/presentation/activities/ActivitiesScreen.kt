@@ -24,7 +24,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -32,13 +31,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import coil3.compose.AsyncImage
 import com.example.socialmeetingapp.presentation.common.NavigationManager
 import com.example.socialmeetingapp.presentation.common.Routes
-import com.example.socialmeetingapp.presentation.home.EventCard
+import com.example.socialmeetingapp.presentation.components.EventCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -77,7 +78,8 @@ fun ActivitiesScreen(
                     text = "Your Activities",
                     style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(16.dp)
+                    modifier = Modifier.padding(16.dp),
+                    letterSpacing = 1.sp
                 )
                 PrimaryTabRow(selectedTabIndex = tabState) {
                     titles.forEachIndexed { index, title ->
@@ -88,7 +90,10 @@ fun ActivitiesScreen(
                                 Text(
                                     text = title,
                                     maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis
+                                    overflow = TextOverflow.Ellipsis,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onBackground,
                                 )
                             }
                         )
@@ -98,23 +103,25 @@ fun ActivitiesScreen(
                 when (tabState) {
                     0 -> {
                         if (state.joinedEvents.isEmpty()) {
-                            Text(
-                                text = "You have not joined any events yet",
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier
-                                    .padding(16.dp)
-                                    .align(Alignment.CenterHorizontally)
-                            )
 
-                            Button(
-                                onClick = onExploreEventClick,
-                                shape = MaterialTheme.shapes.medium,
-                                modifier = Modifier.align(
-                                    Alignment.CenterHorizontally
+                            Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = "You haven't joined any events yet. Discover exciting events and join the fun!",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.padding(horizontal = 40.dp),
+                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                                 )
-                            ) {
-                                Text(text = "Explore Events")
+
+                                Button(
+                                    onClick = onExploreEventClick,
+                                    shape = MaterialTheme.shapes.medium,
+                                    modifier = Modifier.padding(top = 16.dp)
+                                ) {
+                                    Text(text = "Explore Events")
+                                }
                             }
+
                         } else {
                             LazyColumn {
                                 items(state.joinedEvents.size) { event ->
@@ -134,22 +141,22 @@ fun ActivitiesScreen(
 
                     1 -> {
                         if (state.createdEvents.isEmpty()) {
-                            Text(
-                                text = "You have not created any events yet",
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier
-                                    .padding(16.dp)
-                                    .align(Alignment.CenterHorizontally)
-                            )
-
-                            Button(
-                                onClick = onCreateEventClick,
-                                shape = MaterialTheme.shapes.medium,
-                                modifier = Modifier.align(
-                                    Alignment.CenterHorizontally
+                            Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = "You haven't created any events yet. Start creating events and invite your friends!",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.padding(horizontal = 40.dp),
+                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                                 )
-                            ) {
-                                Text(text = "Create Event")
+
+                                Button(
+                                    onClick = onCreateEventClick,
+                                    shape = MaterialTheme.shapes.medium,
+                                    modifier = Modifier.padding(top = 16.dp)
+                                ) {
+                                    Text(text = "Create Event")
+                                }
                             }
                         } else {
                             LazyColumn {
@@ -167,7 +174,7 @@ fun ActivitiesScreen(
                                             items(state.createdEvents[event].joinRequests.size) { joinRequest ->
                                                 ElevatedCard(
                                                     elevation = CardDefaults.elevatedCardElevation(
-                                                        defaultElevation = 4.dp
+                                                        defaultElevation = 1.dp
                                                     ),
                                                     modifier = Modifier
                                                         .fillMaxWidth()

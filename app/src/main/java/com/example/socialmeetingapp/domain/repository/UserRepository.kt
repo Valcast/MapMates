@@ -22,6 +22,9 @@ interface UserRepository {
     suspend fun uploadProfilePicture(imageUri: Uri): Result<Uri>
     suspend fun sendEmailVerification(): Result<Unit>
 
+    suspend fun addFriend(friendID: String): Result<Unit>
+    suspend fun deleteFriend(friendID: String): Result<Unit>
+
     suspend fun getUserPreferences(): Result<Map<String, Any>>
     suspend fun updateUserPreferences(preferences: Map<String, Any>): Result<Unit>
 

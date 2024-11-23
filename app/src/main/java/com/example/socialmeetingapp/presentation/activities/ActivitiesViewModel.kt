@@ -4,16 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.socialmeetingapp.domain.model.Event
 import com.example.socialmeetingapp.domain.model.Result
-import com.example.socialmeetingapp.domain.model.User
 import com.example.socialmeetingapp.domain.repository.EventRepository
 import com.example.socialmeetingapp.domain.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -30,7 +25,7 @@ class ActivitiesViewModel @Inject constructor(
     private val eventRepository: EventRepository
 ) : ViewModel() {
     val state = combine(userRepository.currentUser, eventRepository.eventsStateFlow) { userResult, events ->
-        if (userResult is Result.Success && userResult.data != null && events.isNotEmpty()) {
+        if (userResult is Result.Success && userResult.data != null) {
             val createdEvents = events.filter { it.author.id == userResult.data.id }
             val joinedEvents = events.filter { it.participants.any { it.id == userResult.data.id } }
 

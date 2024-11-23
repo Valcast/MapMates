@@ -1,14 +1,13 @@
 package com.example.socialmeetingapp.presentation.navigation
 
 import android.net.Uri
-import android.util.Log
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.automirrored.outlined.List
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
@@ -43,7 +42,7 @@ fun NavigationBar(currentRoute: Routes, onItemClicked: (Routes) -> Unit, profile
         NavigationBarItem(
             icon = {
                 Icon(
-                    imageVector = if (currentRoute == Routes.Activities) Icons.AutoMirrored.Filled.List else Icons.AutoMirrored.Outlined.List,
+                    imageVector = if (currentRoute == Routes.Activities) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                     contentDescription = "Features"
                 )
             },

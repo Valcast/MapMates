@@ -15,8 +15,7 @@ import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.FirebaseAuthWeakPasswordException
 import com.google.firebase.auth.GoogleAuthProvider
-import com.google.firebase.firestore.DocumentSnapshot
-import com.google.firebase.firestore.EventListener
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.ListenerRegistration
@@ -61,6 +60,11 @@ class FirebaseUserRepositoryImpl(
                     }
 
                     if (snapshot != null) {
+                        if (firebaseAuth.currentUser == null) {
+                            trySend(Result.Success(null))
+                            return@addSnapshotListener
+                        }
+
                         val user = User(
                             id = firebaseAuth.currentUser!!.uid,
                             email = firebaseAuth.currentUser!!.email!!,
@@ -73,6 +77,8 @@ class FirebaseUserRepositoryImpl(
                                     LocalDateTime.parse(it)
                                 }
                             } ?: return@addSnapshotListener,
+                            following = snapshot.get("following") as List<String>? ?: return@addSnapshotListener,
+                            followers = snapshot.get("followers") as List<String>?  ?: return@addSnapshotListener,
                             gender = snapshot.getString("gender") ?: return@addSnapshotListener,
                             role = snapshot.getString("role") ?: return@addSnapshotListener,
                             createdAt = snapshot.getString("createdAt")?.let { LocalDateTime.parse(it) }
@@ -124,6 +130,8 @@ class FirebaseUserRepositoryImpl(
                     ?: return Result.Error("Birth Date is missing"),
                 gender = userDocument.getString("gender") ?: return Result.Error("User not found"),
                 role = userDocument.getString("role") ?: return Result.Error("User not found"),
+                following = userDocument.get("following") as List<String>? ?: return Result.Error("User not found"),
+                followers = userDocument.get("followers") as List<String>? ?: return Result.Error("User not found"),
                 createdAt = userDocument.getString("createdAt")?.let { LocalDateTime.parse(it) }
                     ?: return Result.Error("Created at is missing"),
                 updatedAt = userDocument.getString("updatedAt")?.let { LocalDateTime.parse(it) }
@@ -134,7 +142,7 @@ class FirebaseUserRepositoryImpl(
                 lastLogin = userDocument.getString("lastLogin")?.let { LocalDateTime.parse(it) }
                     ?: return Result.Error("Last login is missing"),
                 profilePictureUri = userDocument.getString("profilePictureUri")
-                    ?.let { Uri.parse(it) } ?: Uri.EMPTY
+                    ?.let { Uri.parse(it) } ?: Uri.EMPTY,
             )
 
 
@@ -167,6 +175,8 @@ class FirebaseUserRepositoryImpl(
                     "updatedAt" to currentMoment.toString(),
                     "lastLogin" to currentMoment.toString(),
                     "lastPasswordChange" to currentMoment.toString(),
+                    "following" to emptyList<String>(),
+                    "followers" to emptyList<String>(),
                     "role" to "User",
                     "gender" to "Not specified",
                     "dateOfBirth" to "Not specified",
@@ -238,6 +248,8 @@ class FirebaseUserRepositoryImpl(
                     "role" to "User",
                     "gender" to "Not specified",
                     "dateOfBirth" to "Not specified",
+                    "following" to emptyList<String>(),
+                    "followers" to emptyList<String>(),
                     "bio" to "",
                     "username" to "",
                     "profilePictureUri" to ""
@@ -286,7 +298,36 @@ class FirebaseUserRepositoryImpl(
         } catch (e: Exception) {
             return Result.Error(e.message ?: "Unknown error")
         }
+    }
 
+    private suspend fun updateFriendship(
+        friendID: String,
+        action: FieldValue
+    ): Result<Unit> {
+        if (!networkManager.isConnected) {
+            return Result.Error("No internet connection")
+        }
+
+        try {
+            val currentUserId = firebaseAuth.currentUser!!.uid
+            val currentUserDocument = db.collection("users").document(currentUserId)
+            val friendDocument = db.collection("users").document(friendID)
+
+            currentUserDocument.update("following", action).await()
+            friendDocument.update("followers", action).await()
+
+            return Result.Success(Unit)
+        } catch (e: Exception) {
+            return Result.Error(e.message ?: "Unknown error")
+        }
+    }
+
+    override suspend fun addFriend(friendID: String): Result<Unit> {
+        return updateFriendship(friendID, FieldValue.arrayUnion(friendID))
+    }
+
+    override suspend fun deleteFriend(friendID: String): Result<Unit> {
+        return updateFriendship(friendID, FieldValue.arrayRemove(friendID))
     }
 
     override suspend fun uploadProfilePicture(imageUri: Uri): Result<Uri> {
