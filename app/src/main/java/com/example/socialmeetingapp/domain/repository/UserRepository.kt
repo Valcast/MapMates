@@ -4,9 +4,11 @@ import android.net.Uri
 import com.example.socialmeetingapp.domain.model.Result
 import com.example.socialmeetingapp.domain.model.SignUpStatus
 import com.example.socialmeetingapp.domain.model.User
+import kotlinx.coroutines.flow.StateFlow
 
 interface UserRepository {
-    suspend fun getCurrentUser(): Result<User>
+    val currentUser: StateFlow<Result<User?>>
+
     suspend fun getUser(id: String): Result<User>
     fun isCurrentUserVerified(): Boolean
     suspend fun refreshUser(): Result<Unit>

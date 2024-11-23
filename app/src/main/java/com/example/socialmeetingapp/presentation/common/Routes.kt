@@ -21,7 +21,7 @@ sealed class Routes {
     data object Activities : Routes()
 
     @Serializable
-    data class Profile(val userID: String) : Routes()
+    data class Profile(val userID: String = "") : Routes()
 
     @Serializable
     data object CreateProfile : Routes()

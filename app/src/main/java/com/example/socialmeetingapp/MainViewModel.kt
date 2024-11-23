@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -40,39 +41,28 @@ class MainViewModel @Inject constructor(
     private val dataStore: DataStore<Preferences>,
     private val userRepository: UserRepository,
 ) : ViewModel() {
-    private var _state = MutableStateFlow<MainState>(MainState.Loading)
-    val state = _state.asStateFlow().onStart {
 
+    val state = userRepository.currentUser.map { userResult ->
         if (isFirstTimeLaunch()) {
-            _state.value = MainState.Welcome
-            return@onStart
+            return@map MainState.Welcome
         }
 
-        refreshUser()
-    }.stateIn(viewModelScope, SharingStarted.Lazily, MainState.Loading)
-
-    fun refreshUser() {
-        viewModelScope.launch {
-            when (val userResult = userRepository.getCurrentUser()) {
-                is Result.Success -> {
-                    val user = userResult.data
-                    val isEmailVerified = userRepository.isCurrentUserVerified()
-
-                    if (user.username.isEmpty()) {
-                        _state.value = MainState.CreateProfile
-                        return@launch
-                    }
-
-                    _state.value = MainState.Content(user, isEmailVerified)
-                }
-                is Result.Error -> {
-                    Log.d("MainViewModel", "refreshUser: ${userResult.message}")
-                    _state.value = MainState.Content(null, false)
-                }
-                else -> { }
-            }
+        if (userResult is Result.Success && userResult.data == null) {
+            return@map MainState.CreateProfile
+        } else if (userResult is Result.Success) {
+            return@map MainState.Content(
+                user = userResult.data,
+                isEmailVerified = FirebaseAuth.getInstance().currentUser?.isEmailVerified == true
+            )
+        } else {
+            return@map MainState.Loading
         }
-    }
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5000),
+        MainState.Loading
+    )
+
 
     fun onIntroductionFinished() {
         viewModelScope.launch {

@@ -80,7 +80,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        mainViewModel.refreshUser()
         permissionManager.checkPermissions(PermissionManager.FINE_LOCATION_PERMISSION)
     }
 
@@ -113,8 +112,6 @@ class MainActivity : ComponentActivity() {
                 NavigationManager.route.collect { screen ->
                     when (screen) {
                         Routes.Map, Routes.Login -> {
-                            mainViewModel.refreshUser()
-
                             navController.navigate(screen) {
                                 popUpTo(0) { inclusive = true }
                                 launchSingleTop = true
@@ -266,8 +263,7 @@ class MainActivity : ComponentActivity() {
                                 val viewModel = hiltViewModel<HomeViewModel>()
 
                                 HomeScreen(
-                                    eventsResult = viewModel.eventsData.collectAsStateWithLifecycle().value,
-                                    currentLocationResult = viewModel.locationData.collectAsStateWithLifecycle().value,
+                                    state = viewModel.state.collectAsStateWithLifecycle().value,
                                     onMapLongClick = {
                                         NavigationManager.navigateTo(
                                             Routes.CreateEvent(

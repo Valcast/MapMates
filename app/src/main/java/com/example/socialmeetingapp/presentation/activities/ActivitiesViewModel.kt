@@ -11,6 +11,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -24,42 +26,33 @@ sealed class ActivitiesState {
 
 @HiltViewModel
 class ActivitiesViewModel @Inject constructor(
-    private val userRepository: UserRepository,
+    userRepository: UserRepository,
     private val eventRepository: EventRepository
 ) : ViewModel() {
+    val state = combine(userRepository.currentUser, eventRepository.eventsStateFlow) { userResult, events ->
+        if (userResult is Result.Success && userResult.data != null && events.isNotEmpty()) {
+            val createdEvents = events.filter { it.author.id == userResult.data.id }
+            val joinedEvents = events.filter { it.participants.any { it.id == userResult.data.id } }
 
-    private var _state = MutableStateFlow<ActivitiesState>(ActivitiesState.Loading)
-    val state = _state.asStateFlow()
-        .onStart { refreshEvents() }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, ActivitiesState.Loading)
-
-    private fun refreshEvents() {
-        viewModelScope.launch {
-            val user = userRepository.getCurrentUser()
-
-            if (user is Result.Error) {
-                return@launch
-            }
-
-            val eventsResult = eventRepository.getUserEvents((user as Result.Success<User>).data.id)
-
-            if (eventsResult is Result.Success) {
-                _state.value = ActivitiesState.Content(eventsResult.data.createdEvents, eventsResult.data.joinedEvents)
-            }
+            ActivitiesState.Content(createdEvents, joinedEvents)
+        } else {
+            ActivitiesState.Loading
         }
-    }
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5000),
+        ActivitiesState.Loading
+    )
 
     fun acceptJoinRequest(eventID: String, userID: String) {
         viewModelScope.launch {
             eventRepository.acceptJoinRequest(eventID, userID)
-            refreshEvents()
         }
     }
 
     fun declineJoinRequest(eventID: String, userID: String) {
         viewModelScope.launch {
             eventRepository.declineJoinRequest(eventID, userID)
-            refreshEvents()
         }
     }
 

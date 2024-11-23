@@ -15,10 +15,20 @@ import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.FirebaseAuthWeakPasswordException
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.EventListener
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
+import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.storage.FirebaseStorage
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.tasks.await
 import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDateTime
@@ -32,6 +42,63 @@ class FirebaseUserRepositoryImpl(
     private val storage: FirebaseStorage,
     private val dataStore: DataStore<Preferences>
 ) : UserRepository {
+    private val coroutineScope = CoroutineScope(Dispatchers.IO)
+
+    private lateinit var userDataListenerRegistration: ListenerRegistration
+
+    override val currentUser: StateFlow<Result<User?>> = callbackFlow {
+        val authStateListener = FirebaseAuth.AuthStateListener { auth ->
+            if (auth.currentUser == null) {
+                trySend(Result.Success(null))
+
+                if (::userDataListenerRegistration.isInitialized) {
+                    userDataListenerRegistration.remove()
+                }
+            } else {
+                db.collection("users").document(auth.currentUser!!.uid).addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        trySend(Result.Error(error.message ?: "Unknown error"))
+                    }
+
+                    if (snapshot != null) {
+                        val user = User(
+                            id = firebaseAuth.currentUser!!.uid,
+                            email = firebaseAuth.currentUser!!.email!!,
+                            username = snapshot.getString("username") ?: return@addSnapshotListener,
+                            bio = snapshot.getString("bio") ?: return@addSnapshotListener,
+                            dateOfBirth = snapshot.getString("dateOfBirth")?.let {
+                                if (it == "Not specified") {
+                                    Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                                } else {
+                                    LocalDateTime.parse(it)
+                                }
+                            } ?: return@addSnapshotListener,
+                            gender = snapshot.getString("gender") ?: return@addSnapshotListener,
+                            role = snapshot.getString("role") ?: return@addSnapshotListener,
+                            createdAt = snapshot.getString("createdAt")?.let { LocalDateTime.parse(it) }
+                                ?: return@addSnapshotListener,
+                            updatedAt = snapshot.getString("updatedAt")?.let { LocalDateTime.parse(it) }
+                                ?: return@addSnapshotListener,
+                            lastPasswordChange = snapshot.getString("lastPasswordChange")
+                                ?.let { LocalDateTime.parse(it) } ?: return@addSnapshotListener,
+                            lastLogin = snapshot.getString("lastLogin")?.let { LocalDateTime.parse(it) }
+                                ?: return@addSnapshotListener,
+                            profilePictureUri = snapshot.getString("profilePictureUri")
+                                ?.let { Uri.parse(it) } ?: Uri.EMPTY
+                        )
+
+                        trySend(Result.Success(user))
+                    }
+                }
+            }
+        }
+
+        firebaseAuth.addAuthStateListener(authStateListener)
+
+        awaitClose { firebaseAuth.removeAuthStateListener(authStateListener) }
+
+
+    }.stateIn(coroutineScope, SharingStarted.WhileSubscribed(5000), Result.Loading)
 
     private fun isLoggedIn(): Boolean {
         return firebaseAuth.currentUser != null
@@ -40,6 +107,8 @@ class FirebaseUserRepositoryImpl(
     override fun isCurrentUserVerified(): Boolean {
         return firebaseAuth.currentUser?.isEmailVerified == true
     }
+
+
 
     override suspend fun refreshUser(): Result<Unit> {
         if (!networkManager.isConnected) {
@@ -58,14 +127,6 @@ class FirebaseUserRepositoryImpl(
             Result.Error(e.message ?: "Unknown error")
         }
 
-    }
-
-    override suspend fun getCurrentUser(): Result<User> {
-        if (!isLoggedIn()) {
-            return Result.Error("User not authenticated")
-        }
-
-        return getUser(firebaseAuth.currentUser!!.uid)
     }
 
     override suspend fun getUser(id: String): Result<User> {
@@ -179,7 +240,7 @@ class FirebaseUserRepositoryImpl(
     }
 
     override suspend fun signUpWithGoogle(idToken: String): Result<SignUpStatus> {
-            if (!networkManager.isConnected) {
+        if (!networkManager.isConnected) {
             return Result.Error("No internet connection")
         }
 
@@ -213,11 +274,11 @@ class FirebaseUserRepositoryImpl(
             )
 
             Result.Success(SignUpStatus.NewUser)
-        }
-        catch (e: Exception) {
+        } catch (e: Exception) {
             e.printStackTrace()
             Result.Error(e.message ?: "Unknown error")
-        } }
+        }
+    }
 
     override suspend fun resetPassword(email: String): Result<Unit> {
         return try {

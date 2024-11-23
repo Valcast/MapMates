@@ -14,6 +14,9 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -32,19 +35,20 @@ class EventViewModel @Inject constructor(
     val state = _state.asStateFlow()
 
 
-    fun getEvent(id: String) {
+    fun getEvent(eventID: String) {
         viewModelScope.launch {
-            val eventResult = async { eventRepository.getEvent(id) }.await()
-            val currentUserResult = async { userRepository.getCurrentUser() }.await()
+            combine(eventRepository.eventsStateFlow, userRepository.currentUser) { events, userResult ->
+                if (events.isEmpty()) return@combine EventState.Loading
 
-            if (eventResult is Result.Success && currentUserResult is Result.Success) {
-                _state.value = EventState.Content(eventResult.data, currentUserResult.data)
-            } else if (eventResult is Result.Error) {
-                _state.value = EventState.Error(eventResult.message)
-            } else if (currentUserResult is Result.Error) {
-                _state.value = EventState.Error(currentUserResult.message)
-            }
+                val event = events.find { it.id == eventID } ?: return@combine EventState.Error("Event not found")
 
+
+                if (userResult is Result.Success && userResult.data != null) {
+                    EventState.Content(event, userResult.data)
+                } else {
+                    EventState.Error("User not found")
+                }
+            }.collectLatest { _state.value = it }
         }
     }
 

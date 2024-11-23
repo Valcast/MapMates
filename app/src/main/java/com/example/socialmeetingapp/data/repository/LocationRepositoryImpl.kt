@@ -14,9 +14,14 @@ import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.model.LatLng
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.stateIn
 import retrofit2.HttpException
 
 class LocationRepositoryImpl(
@@ -24,7 +29,11 @@ class LocationRepositoryImpl(
     private val context: Context,
     private val geocodingApi: GeocodingApi
 ) : LocationRepository {
-    override val latestLocation: Flow<Result<LatLng>> = callbackFlow {
+
+    private val coroutineScope = CoroutineScope(Dispatchers.IO)
+
+
+    override val latestLocation: StateFlow<Result<LatLng>> = callbackFlow {
         if (hasLocationPermission()) {
             val locationCallback = object : LocationCallback() {
                 override fun onLocationResult(locationResult: com.google.android.gms.location.LocationResult) {
@@ -55,7 +64,11 @@ class LocationRepositoryImpl(
             trySend(Result.Error("Location permission not granted"))
             close()
         }
-    }
+    }.stateIn(
+        coroutineScope,
+        SharingStarted.WhileSubscribed(5000),
+        Result.Loading
+    )
 
     private val locationRequest =
         LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5000L).build()

@@ -1,9 +1,9 @@
 package com.example.socialmeetingapp.data.repository
 
+import com.example.socialmeetingapp.domain.model.Event
 import com.example.socialmeetingapp.domain.model.Result
 import com.example.socialmeetingapp.domain.model.Result.Error
 import com.example.socialmeetingapp.domain.model.Result.Success
-import com.example.socialmeetingapp.domain.model.Event
 import com.example.socialmeetingapp.domain.model.UserEvents
 import com.example.socialmeetingapp.domain.repository.EventRepository
 import com.example.socialmeetingapp.domain.repository.UserRepository
@@ -15,6 +15,16 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.GeoPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.asDeferred
 import kotlinx.coroutines.tasks.await
 import kotlinx.datetime.Clock
@@ -27,24 +37,38 @@ class FirebaseEventRepositoryImpl(
     private val userRepository: UserRepository,
     private val firebaseAuth: FirebaseAuth,
 ) : EventRepository {
-    override suspend fun getEvents(): Result<List<Event>> {
-        return try {
-            val events = db.collection("events").get().asDeferred()
-                .await().documents.mapNotNull { eventDocument ->
-                    mapToEvent(eventDocument)
-                }
 
-            Success(events)
-        } catch (e: FirebaseFirestoreException) {
-            return Error(e.message ?: "Unknown error")
+    private val coroutineScope = CoroutineScope(Dispatchers.IO)
+
+    override val eventsStateFlow: StateFlow<List<Event>> = callbackFlow {
+        val listenerRegistration = db.collection("events").addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                close(error)
+            } else if (snapshot != null) {
+                coroutineScope.launch {
+                    val events = snapshot.documents.mapNotNull { eventDocument ->
+                        async { mapToEvent(eventDocument) }
+                    }
+
+                    send(events.awaitAll().filterNotNull())
+                }
+            }
         }
-    }
+
+        awaitClose { listenerRegistration.remove() }
+    }.stateIn(
+        coroutineScope,
+        SharingStarted.WhileSubscribed(5000),
+        emptyList()
+    )
+
 
     override suspend fun getEvent(id: String): Result<Event> {
         return try {
             val eventDocument = db.collection("events").document(id).get().asDeferred().await()
+            val event = mapToEvent(eventDocument)
 
-            Success(mapToEvent(eventDocument) ?: return Error("Event not found"))
+            Success(event ?: return Error("Event not found"))
         } catch (e: FirebaseFirestoreException) {
             return Error(e.message ?: "Unknown error")
         }
@@ -95,6 +119,7 @@ class FirebaseEventRepositoryImpl(
     override suspend fun deleteEvent(id: String): Result<Unit> {
         return try {
             db.collection("events").document(id).delete().await()
+
             Success(Unit)
         } catch (e: FirebaseFirestoreException) {
             return Error(e.message ?: "Unknown error")
@@ -110,6 +135,7 @@ class FirebaseEventRepositoryImpl(
 
             val userRef = db.collection("users").document(firebaseAuth.currentUser!!.uid)
             eventDocument.update("participants", updateAction(userRef)).await()
+
             Success(Unit)
         } catch (e: FirebaseFirestoreException) {
             Error(e.message ?: "Unknown error")
@@ -122,6 +148,7 @@ class FirebaseEventRepositoryImpl(
 
             val userRef = db.collection("users").document(userID)
             eventDocument.update("participants", FieldValue.arrayRemove(userRef)).await()
+
             Success(Unit)
         } catch (e: FirebaseFirestoreException) {
             Error(e.message ?: "Unknown error")
@@ -170,22 +197,6 @@ class FirebaseEventRepositoryImpl(
 
     override suspend fun leaveEvent(id: String): Result<Unit> =
         updateEventParticipants(id, FieldValue::arrayRemove)
-
-    override suspend fun getUserEvents(userId: String): Result<UserEvents> {
-        return try {
-            val userRef = db.collection("users").document(userId)
-
-            val authorEvents = db.collection("events").whereEqualTo("author", userRef).get()
-                .await().documents.mapNotNull { eventDocument -> mapToEvent(eventDocument) }
-
-            val participantEvents = db.collection("events").whereArrayContains("participants", userRef).get()
-                .await().documents.mapNotNull { eventDocument -> mapToEvent(eventDocument) }
-
-            Success(UserEvents(authorEvents, participantEvents))
-        } catch (e: FirebaseFirestoreException) {
-            return Error(e.message ?: "Unknown error")
-        }
-    }
 
     override fun getCategoriesReferences(categories: List<String>): List<DocumentReference> {
         return categories.map { category ->

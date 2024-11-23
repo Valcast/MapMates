@@ -35,9 +35,9 @@ class ProfileViewModel @Inject constructor(
     fun getUserByID(userID: String) {
         viewModelScope.launch {
             val userResult = async { userRepository.getUser(userID) }.await()
-            val currentUser = async { userRepository.getCurrentUser() }.await()
+            val currentUser = userRepository.currentUser.value
 
-            if (userResult is Result.Success && currentUser is Result.Success) {
+            if (userResult is Result.Success && currentUser is Result.Success && currentUser.data != null) {
                 _userData.update {
                     ProfileState.Content(
                         user = userResult.data,

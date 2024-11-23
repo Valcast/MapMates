@@ -39,7 +39,7 @@ import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberMarkerState
 
 @Composable
-fun HomeScreen(eventsResult: Result<List<Event>>, currentLocationResult: Result<LatLng>, onMapLongClick: (LatLng) -> Unit, onEventClick: (String) -> Unit) {
+fun HomeScreen(state: HomeState, onMapLongClick: (LatLng) -> Unit, onEventClick: (String) -> Unit) {
 
     var isListView by rememberSaveable { mutableStateOf(false) }
 
@@ -53,18 +53,16 @@ fun HomeScreen(eventsResult: Result<List<Event>>, currentLocationResult: Result<
     var selectedCreateEventPosition by remember { mutableStateOf<LatLng?>(null) }
 
 
-    when (eventsResult) {
-        is Result.Success -> {
-            val events = eventsResult.data
-
+    when (state) {
+        is HomeState.Content  -> {
             Box(
                 Modifier
                     .fillMaxSize()) {
 
                 if (isListView) {
                     LazyColumn {
-                        items(events.size) { index ->
-                            EventCard(events[index], onCardClick = onEventClick, modifier = Modifier.padding(top = 16.dp, start = 8.dp, end = 8.dp))
+                        items(state.events.size) { index ->
+                            EventCard(state.events[index], onCardClick = onEventClick, modifier = Modifier.padding(top = 16.dp, start = 8.dp, end = 8.dp))
                         }
                     }
                 } else {
@@ -89,18 +87,18 @@ fun HomeScreen(eventsResult: Result<List<Event>>, currentLocationResult: Result<
                         },
                         mapColorScheme = ComposeMapColorScheme.FOLLOW_SYSTEM
                     ) {
-                        if (currentLocationResult is Result.Success) {
+                        if (state.location is Result.Success) {
                             Marker(
-                                state = rememberMarkerState(position = currentLocationResult.data),
+                                state = rememberMarkerState(position = state.location.data),
 
                             )
                         }
 
-                        for (event in events) {
+                        for (event in state.events) {
                             Marker(
                                 state = rememberMarkerState(position = event.locationCoordinates),
                                 onClick = {
-                                    selectedEventIndex = events.indexOf(event)
+                                    selectedEventIndex = state.events.indexOf(event)
                                     true
                                 }
                             )
@@ -155,9 +153,9 @@ fun HomeScreen(eventsResult: Result<List<Event>>, currentLocationResult: Result<
                 if (!isListView) {
                     SmallFloatingActionButton(
                         onClick = {
-                            if (currentLocationResult is Result.Success) {
+                            if (state.location is Result.Success) {
                                 cameraPositionState.position = CameraPosition.fromLatLngZoom(
-                                    currentLocationResult.data,
+                                    state.location.data,
                                     15f
                                 )
                             }
@@ -171,16 +169,16 @@ fun HomeScreen(eventsResult: Result<List<Event>>, currentLocationResult: Result<
                 }
 
                 if (selectedEventIndex != null) {
-                    EventCard(events[selectedEventIndex!!], onCardClick = onEventClick, modifier = Modifier.padding(top = 16.dp, start = 8.dp, end = 8.dp))
+                    EventCard(state.events[selectedEventIndex!!], onCardClick = onEventClick, modifier = Modifier.padding(top = 16.dp, start = 8.dp, end = 8.dp))
                 }
             }
 
         }
 
-        is Result.Error -> {
-            Text(text = eventsResult.message)
+        is HomeState.Error -> {
+            Text(text = state.message)
         }
-        else -> {
+        is HomeState.Loading -> {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
