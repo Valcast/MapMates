@@ -55,7 +55,7 @@ class LoginViewModel @Inject constructor(
                             is Result.Success -> {
                                 when (result.data) {
                                     is SignUpStatus.NewUser -> NavigationManager.navigateTo(Routes.CreateProfile)
-                                    is SignUpStatus.ExistingUser -> NavigationManager.navigateTo(Routes.Map)
+                                    is SignUpStatus.ExistingUser -> NavigationManager.navigateTo(Routes.Map())
                                 }
                             }
 
@@ -97,7 +97,7 @@ class LoginViewModel @Inject constructor(
 
             when (val result = userRepository.signIn(email, password)) {
                 is Result.Success -> {
-                    NavigationManager.navigateTo(Routes.Map)
+                    NavigationManager.navigateTo(Routes.Map())
                 }
 
                 is Result.Error -> {

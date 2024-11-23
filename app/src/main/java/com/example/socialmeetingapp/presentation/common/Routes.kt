@@ -1,12 +1,12 @@
 package com.example.socialmeetingapp.presentation.common
 
-import kotlinx.serialization.Polymorphic
 import kotlinx.serialization.Serializable
 
 @Serializable
 sealed class Routes {
+
     @Serializable
-    data object Map : Routes()
+    data class Map(val latitude: Double? = null, val longitude: Double? = null) : Routes()
 
     @Serializable
     data object Login : Routes()

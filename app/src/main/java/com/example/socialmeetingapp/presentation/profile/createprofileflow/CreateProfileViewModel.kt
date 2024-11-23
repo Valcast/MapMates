@@ -38,7 +38,7 @@ class CreateProfileViewModel @Inject constructor(
             viewModelScope.launch {
                 when (val updateUserResult = userRepository.updateUser(user.value)) {
                     is Result.Success -> {
-                        NavigationManager.navigateTo(Routes.Map)
+                        NavigationManager.navigateTo(Routes.Map())
                     }
 
                     is Result.Error -> {

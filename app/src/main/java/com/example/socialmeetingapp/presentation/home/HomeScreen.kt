@@ -1,9 +1,16 @@
 package com.example.socialmeetingapp.presentation.home
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
@@ -11,10 +18,14 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Place
+import androidx.compose.material3.BasicAlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,9 +36,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.socialmeetingapp.domain.model.Result
-import com.example.socialmeetingapp.domain.model.Event
 import com.google.android.gms.maps.GoogleMapOptions
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
@@ -38,31 +51,47 @@ import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberMarkerState
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(state: HomeState, onMapLongClick: (LatLng) -> Unit, onEventClick: (String) -> Unit) {
+fun HomeScreen(
+    state: HomeState,
+    locationCoordinates: LatLng? = null,
+    onMapLongClick: (LatLng) -> Unit,
+    onEventClick: (String) -> Unit,
+    requestPermission: () -> Unit
+) {
 
     var isListView by rememberSaveable { mutableStateOf(false) }
 
-    val defaultPosition = LatLng(52.237049, 21.017532)
 
-    val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(defaultPosition, 10f)
-    }
+
+    var isRequestPermissionDialogVisible by remember { mutableStateOf(false) }
 
     var selectedEventIndex by remember { mutableStateOf<Int?>(null) }
     var selectedCreateEventPosition by remember { mutableStateOf<LatLng?>(null) }
 
 
     when (state) {
-        is HomeState.Content  -> {
+        is HomeState.Content -> {
+            val startPosition = locationCoordinates ?: if (state.location is Result.Success) state.location.data else LatLng(52.237049, 21.017532)
+
+            val cameraPositionState = rememberCameraPositionState {
+                position = CameraPosition.fromLatLngZoom(startPosition, if (locationCoordinates != null) 15f else 10f)
+            }
+
             Box(
                 Modifier
-                    .fillMaxSize()) {
+                    .fillMaxSize()
+            ) {
 
                 if (isListView) {
                     LazyColumn {
                         items(state.events.size) { index ->
-                            EventCard(state.events[index], onCardClick = onEventClick, modifier = Modifier.padding(top = 16.dp, start = 8.dp, end = 8.dp))
+                            EventCard(
+                                state.events[index],
+                                onCardClick = onEventClick,
+                                modifier = Modifier.padding(top = 16.dp, start = 8.dp, end = 8.dp)
+                            )
                         }
                     }
                 } else {
@@ -91,7 +120,7 @@ fun HomeScreen(state: HomeState, onMapLongClick: (LatLng) -> Unit, onEventClick:
                             Marker(
                                 state = rememberMarkerState(position = state.location.data),
 
-                            )
+                                )
                         }
 
                         for (event in state.events) {
@@ -129,7 +158,8 @@ fun HomeScreen(state: HomeState, onMapLongClick: (LatLng) -> Unit, onEventClick:
                                 contentDescription = "Create Event",
                                 modifier = Modifier.padding(end = 4.dp)
                             )
-                            Text(text = "Create Event",
+                            Text(
+                                text = "Create Event",
                                 style = MaterialTheme.typography.titleMedium
                             )
                         }
@@ -158,6 +188,8 @@ fun HomeScreen(state: HomeState, onMapLongClick: (LatLng) -> Unit, onEventClick:
                                     state.location.data,
                                     15f
                                 )
+                            } else {
+                                isRequestPermissionDialogVisible = true
                             }
                         },
                         modifier = Modifier
@@ -169,7 +201,69 @@ fun HomeScreen(state: HomeState, onMapLongClick: (LatLng) -> Unit, onEventClick:
                 }
 
                 if (selectedEventIndex != null) {
-                    EventCard(state.events[selectedEventIndex!!], onCardClick = onEventClick, modifier = Modifier.padding(top = 16.dp, start = 8.dp, end = 8.dp))
+                    EventCard(
+                        state.events[selectedEventIndex!!],
+                        onCardClick = onEventClick,
+                        modifier = Modifier.padding(top = 16.dp, start = 8.dp, end = 8.dp)
+                    )
+                }
+
+                if (isRequestPermissionDialogVisible) {
+                    BasicAlertDialog(onDismissRequest = {
+                        isRequestPermissionDialogVisible = false
+
+                    }) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .clip(MaterialTheme.shapes.medium)
+                                .background(MaterialTheme.colorScheme.background)
+                                .padding(16.dp)
+                        ) {
+                            Text(
+                                text = "MapMates needs your location permission",
+                                style = MaterialTheme.typography.titleLarge,
+                                color = MaterialTheme.colorScheme.onBackground,
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center
+                            )
+                            Text(
+                                text = "We need your location to show you events near you",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onBackground,
+                                modifier = Modifier.padding(top = 16.dp),
+                                textAlign = TextAlign.Center
+                            )
+                            Row(
+                                horizontalArrangement = Arrangement.SpaceAround,
+                                modifier = Modifier
+                                    .padding(top = 32.dp)
+                                    .fillMaxWidth()
+                            ) {
+                                OutlinedButton(onClick = {
+                                    isRequestPermissionDialogVisible = false
+                                }) {
+                                    Text(
+                                        text = "Skip",
+                                        color = MaterialTheme.colorScheme.onBackground,
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                }
+
+                                Button(onClick = requestPermission) {
+                                    Text(
+
+                                        text = "Allow",
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                }
+
+                            }
+                        }
+
+
+                    }
                 }
             }
 
@@ -178,6 +272,7 @@ fun HomeScreen(state: HomeState, onMapLongClick: (LatLng) -> Unit, onEventClick:
         is HomeState.Error -> {
             Text(text = state.message)
         }
+
         is HomeState.Loading -> {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -189,3 +284,12 @@ fun HomeScreen(state: HomeState, onMapLongClick: (LatLng) -> Unit, onEventClick:
     }
 }
 
+fun Context.getActivityOrNull(): Activity? {
+    var context = this
+    while (context is ContextWrapper) {
+        if (context is Activity) return context
+        context = context.baseContext
+    }
+
+    return null
+}

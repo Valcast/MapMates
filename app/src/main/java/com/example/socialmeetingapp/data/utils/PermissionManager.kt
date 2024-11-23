@@ -16,11 +16,8 @@ class PermissionManager(
     private val requestPermissionLauncher =
         activity.registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
             if (!isGranted) {
-                // Explain to the user that the feature is unavailable because the
-                // feature requires a permission that the user has denied. At the
-                // same time, respect the user's decision. Don't link to system
-                // settings in an effort to convince the user to change their
-                // decision.
+
+
             }
             onPermissionsGranted?.invoke(isGranted)
         }
@@ -29,7 +26,6 @@ class PermissionManager(
         activity.registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
             val isGranted = result.values.all { it == true }
             if (!isGranted) {
-                // As above: Handle the case where permissions are denied.
             }
             onPermissionsGranted?.invoke(isGranted)
         }

@@ -78,13 +78,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var splashScreen: SplashScreen
     private val mainViewModel: MainViewModel by viewModels()
 
-    override fun onResume() {
-        super.onResume()
-        permissionManager.checkPermissions(PermissionManager.FINE_LOCATION_PERMISSION)
-    }
 
-
-    @SuppressLint("RestrictedApi")
     override fun onCreate(savedInstanceState: Bundle?) {
         splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
@@ -109,9 +103,13 @@ class MainActivity : ComponentActivity() {
             }
 
             LaunchedEffect(Unit) {
+                permissionManager.checkPermissions(PermissionManager.FINE_LOCATION_PERMISSION)
+            }
+
+            LaunchedEffect(Unit) {
                 NavigationManager.route.collect { screen ->
                     when (screen) {
-                        Routes.Map, Routes.Login -> {
+                        is Routes.Map, Routes.Login -> {
                             navController.navigate(screen) {
                                 popUpTo(0) { inclusive = true }
                                 launchSingleTop = true
@@ -126,7 +124,7 @@ class MainActivity : ComponentActivity() {
                         }
                         Routes.Activities, Routes.Settings -> {
                             navController.navigate(screen) {
-                                popUpTo(Routes.Map) {
+                                popUpTo(Routes.Map()) {
                                     saveState = true
                                 }
                                 launchSingleTop = true
@@ -163,7 +161,7 @@ class MainActivity : ComponentActivity() {
                     is MainState.Welcome -> startDestination = Routes.Introduction
                     is MainState.CreateProfile -> startDestination = Routes.CreateProfile
                     is MainState.Content -> startDestination =
-                        if (state.user == null) Routes.Login else Routes.Map
+                        if (state.user == null) Routes.Login else Routes.Map()
                     else -> {}
                 }
             }
@@ -192,7 +190,7 @@ class MainActivity : ComponentActivity() {
                 Scaffold(
                     snackbarHost = { SnackbarHost(snackbarHostState) },
                     topBar = {
-                        if (state is MainState.Content && state.user != null && !state.isEmailVerified && currentRoute == Routes.Map) {
+                        if (state is MainState.Content && state.user != null && !state.isEmailVerified && currentRoute is Routes.Map) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -222,10 +220,13 @@ class MainActivity : ComponentActivity() {
                         }
                     },
                     bottomBar = {
-                        if (state is MainState.Content
-                            && state.user != null
-                            && currentRoute != null
-                            && currentRoute in listOf(Routes.Map, Routes.Activities, Routes.Settings, Routes.Profile(state.user.id))) {
+                        if (state is MainState.Content &&
+                            state.user != null &&
+                            (currentRoute is Routes.Map ||
+                                    currentRoute == Routes.Activities ||
+                                    currentRoute == Routes.Profile(state.user.id) ||
+                                    currentRoute == Routes.Settings)
+                        ) {
                             NavigationBar(
                                 currentRoute = currentRoute,
                                 onItemClicked = { NavigationManager.navigateTo(it) },
@@ -262,8 +263,12 @@ class MainActivity : ComponentActivity() {
                             composable<Routes.Map> {
                                 val viewModel = hiltViewModel<HomeViewModel>()
 
+                                val args = it.toRoute<Routes.Map>()
+
+
                                 HomeScreen(
                                     state = viewModel.state.collectAsStateWithLifecycle().value,
+                                    locationCoordinates = if (args.latitude != null && args.longitude != null) LatLng(args.latitude, args.longitude) else null,
                                     onMapLongClick = {
                                         NavigationManager.navigateTo(
                                             Routes.CreateEvent(
@@ -272,7 +277,8 @@ class MainActivity : ComponentActivity() {
                                             )
                                         )
                                     },
-                                    onEventClick = { NavigationManager.navigateTo(Routes.Event(it)) }
+                                    onEventClick = { NavigationManager.navigateTo(Routes.Event(it)) },
+                                    requestPermission = {permissionManager.checkPermissions(PermissionManager.FINE_LOCATION_PERMISSION)}
                                 )
                             }
 
@@ -309,7 +315,7 @@ class MainActivity : ComponentActivity() {
                                             )
                                         )
                                     },
-                                    onExploreEventClick = { NavigationManager.navigateTo(Routes.Map) },
+                                    onExploreEventClick = { NavigationManager.navigateTo(Routes.Map()) },
                                     onAcceptJoinRequest = { eventID, userID -> viewModel.acceptJoinRequest(eventID, userID) },
                                     onDeclineJoinRequest = { eventID, userID -> viewModel.declineJoinRequest(eventID, userID) }
                                 )
@@ -408,7 +414,7 @@ class MainActivity : ComponentActivity() {
                                     onSetEndTime = { viewModel.setEndTime(it) },
                                     onUpdateLocation = { viewModel.updateLocation(it) },
                                     onUpdateRules = { viewModel.updateRulesAccepted() },
-                                    onCancel = { NavigationManager.navigateTo(Routes.Map) }
+                                    onCancel = { NavigationManager.navigateTo(Routes.Map()) }
                                 )
                             }
 
@@ -420,7 +426,7 @@ class MainActivity : ComponentActivity() {
                                 EventScreen(
                                     state = viewModel.state.collectAsStateWithLifecycle().value,
                                     onJoinEvent = { viewModel.joinEvent(args.id) },
-                                    onBack = { NavigationManager.navigateTo(Routes.Map) },
+                                    onBack = { NavigationManager.navigateTo(Routes.Map()) },
                                     onGoToAuthor = { NavigationManager.navigateTo(Routes.Profile(it)) },
                                     onLeaveEvent = { viewModel.leaveEvent(args.id) },
                                     onDeleteEvent = { viewModel.deleteEvent(args.id) },

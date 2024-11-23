@@ -110,7 +110,7 @@ class EventViewModel @Inject constructor(
             when (val deleteResult = eventRepository.deleteEvent(eventID)) {
                 is Result.Success -> {
                     SnackbarManager.showMessage("Event deleted")
-                    NavigationManager.navigateTo(Routes.Map)
+                    NavigationManager.navigateTo(Routes.Map())
                 }
 
                 is Result.Error -> {

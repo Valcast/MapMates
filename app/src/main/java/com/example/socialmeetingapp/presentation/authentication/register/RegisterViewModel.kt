@@ -39,7 +39,7 @@ class RegisterViewModel @Inject constructor(
                             is Result.Success -> {
                                 when (result.data) {
                                     is SignUpStatus.NewUser -> NavigationManager.navigateTo(Routes.CreateProfile)
-                                    is SignUpStatus.ExistingUser -> NavigationManager.navigateTo(Routes.Map)
+                                    is SignUpStatus.ExistingUser -> NavigationManager.navigateTo(Routes.Map())
                                 }
                             }
 

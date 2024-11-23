@@ -367,6 +367,7 @@ fun EventScreen(
                                 CameraPosition.fromLatLngZoom(state.event.locationCoordinates, 15f)
                         },
                         onMapClick = {
+                            NavigationManager.navigateTo(Routes.Map(state.event.locationCoordinates.latitude, state.event.locationCoordinates.longitude))
                         },
                         uiSettings = MapUiSettings(
                             zoomControlsEnabled = false,

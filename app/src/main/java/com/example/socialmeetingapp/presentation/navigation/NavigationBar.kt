@@ -31,13 +31,13 @@ fun NavigationBar(currentRoute: Routes, onItemClicked: (Routes) -> Unit, profile
         NavigationBarItem(
             icon = {
                 Icon(
-                    imageVector = if (currentRoute == Routes.Map) Icons.Default.Home else Icons.Outlined.Home,
+                    imageVector = if (currentRoute is Routes.Map) Icons.Default.Home else Icons.Outlined.Home,
                     contentDescription = "Search"
                 )
             },
-            selected = currentRoute == Routes.Map,
+            selected = currentRoute is Routes.Map,
             onClick = {
-                onItemClicked(Routes.Map)
+                onItemClicked(Routes.Map())
             }
         )
         NavigationBarItem(
@@ -67,8 +67,6 @@ fun NavigationBar(currentRoute: Routes, onItemClicked: (Routes) -> Unit, profile
             },
             selected = currentRoute == Routes.Profile(profileID),
             onClick = {
-                Log.d("NavigationBar", currentRoute.toString())
-                Log.d("NavigationBar", Routes.Profile(profileID).toString())
                 onItemClicked(Routes.Profile(profileID))
             }
         )
