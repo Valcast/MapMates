@@ -222,7 +222,11 @@ class MainActivity : ComponentActivity() {
                                     HorizontalDivider()
                                     NavigationBar(
                                         currentRoute = currentRoute,
-                                        onItemClicked = { NavigationManager.navigateTo(it) },
+                                        onItemClicked = {
+                                            if (it is Routes.Notifications) {
+                                                mainViewModel.markNotificationsAsRead()
+                                            }
+                                            NavigationManager.navigateTo(it) },
                                         profileImageUrl = state.user.profilePictureUri,
                                         profileID = state.user.id,
                                         notReadNotifications = state.user.notifications.count { !it.isRead }

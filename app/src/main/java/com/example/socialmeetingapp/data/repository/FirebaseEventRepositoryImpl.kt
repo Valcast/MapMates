@@ -1,6 +1,11 @@
 package com.example.socialmeetingapp.data.repository
 
+import android.util.Log
+import com.example.socialmeetingapp.data.remote.NotificationService
 import com.example.socialmeetingapp.domain.model.Event
+import com.example.socialmeetingapp.domain.model.Notification
+import com.example.socialmeetingapp.domain.model.NotificationData
+import com.example.socialmeetingapp.domain.model.NotificationType
 import com.example.socialmeetingapp.domain.model.Result
 import com.example.socialmeetingapp.domain.model.Result.Error
 import com.example.socialmeetingapp.domain.model.Result.Success
@@ -35,6 +40,7 @@ class FirebaseEventRepositoryImpl(
     private val db: FirebaseFirestore,
     private val userRepository: UserRepository,
     private val firebaseAuth: FirebaseAuth,
+    private val notificationService: NotificationService
 ) : EventRepository {
 
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
@@ -82,9 +88,9 @@ class FirebaseEventRepositoryImpl(
                 "description" to event.description,
                 "locationCoordinates" to event.locationCoordinates.toGeoPoint(),
                 "locationAddress" to event.locationAddress,
-                "author" to db.collection("users").document(firebaseAuth.currentUser!!.uid),
-                "participants" to emptyList<DocumentReference>(),
-                "joinRequests" to emptyList<DocumentReference>(),
+                "author" to firebaseAuth.currentUser!!.uid,
+                "participants" to emptyList<String>(),
+                "joinRequests" to emptyList<String>(),
                 "maxParticipants" to event.maxParticipants,
                 "startTime" to event.startTime.toString(),
                 "endTime" to event.endTime.toString(),
@@ -93,9 +99,24 @@ class FirebaseEventRepositoryImpl(
                 "isPrivate" to event.isPrivate,
                 "isOnline" to event.isOnline,
 
-            )
+                )
 
             val createdEvent = db.collection("events").add(eventData).await()
+
+            (userRepository.currentUser.value as Success).data!!.followers.forEach { follower ->
+                notificationService.sendNotification(
+                    userId = follower,
+                    notification = Notification(
+                        senderId = firebaseAuth.currentUser!!.uid,
+                        type = NotificationType.FriendCreatedNewEvent,
+                        data = NotificationData.EventNotificationData(
+                            eventId = createdEvent.id,
+                            eventName = event.title
+                        )
+                    )
+
+                )
+            }
 
             Success(createdEvent.id)
         } catch (e: FirebaseFirestoreException) {
@@ -125,28 +146,11 @@ class FirebaseEventRepositoryImpl(
         }
     }
 
-    private suspend fun updateEventParticipants(
-        id: String,
-        updateAction: (DocumentReference) -> FieldValue
-    ): Result<Unit> {
-        return try {
-            val eventDocument = db.collection("events").document(id)
-
-            val userRef = db.collection("users").document(firebaseAuth.currentUser!!.uid)
-            eventDocument.update("participants", updateAction(userRef)).await()
-
-            Success(Unit)
-        } catch (e: FirebaseFirestoreException) {
-            Error(e.message ?: "Unknown error")
-        }
-    }
-
     override suspend fun removeParticipant(eventID: String, userID: String): Result<Unit> {
         return try {
             val eventDocument = db.collection("events").document(eventID)
 
-            val userRef = db.collection("users").document(userID)
-            eventDocument.update("participants", FieldValue.arrayRemove(userRef)).await()
+            eventDocument.update("participants", FieldValue.arrayRemove(userID)).await()
 
             Success(Unit)
         } catch (e: FirebaseFirestoreException) {
@@ -158,8 +162,7 @@ class FirebaseEventRepositoryImpl(
         return try {
             val eventDocument = db.collection("events").document(eventID)
 
-            val userRef = db.collection("users").document(firebaseAuth.currentUser!!.uid)
-            eventDocument.update("joinRequests", FieldValue.arrayUnion(userRef)).await()
+            eventDocument.update("joinRequests", FieldValue.arrayUnion(firebaseAuth.currentUser!!.uid)).await()
             Success(Unit)
         } catch (e: FirebaseFirestoreException) {
             Error(e.message ?: "Unknown error")
@@ -170,9 +173,9 @@ class FirebaseEventRepositoryImpl(
         return try {
             val eventDocument = db.collection("events").document(eventID)
 
-            val userRef = db.collection("users").document(userID)
-            eventDocument.update("participants", FieldValue.arrayUnion(userRef)).await()
-            eventDocument.update("joinRequests", FieldValue.arrayRemove(userRef)).await()
+            eventDocument.update("participants", FieldValue.arrayUnion(userID)).await()
+            eventDocument.update("joinRequests", FieldValue.arrayRemove(userID)).await()
+
             Success(Unit)
         } catch (e: FirebaseFirestoreException) {
             Error(e.message ?: "Unknown error")
@@ -183,19 +186,48 @@ class FirebaseEventRepositoryImpl(
         return try {
             val eventDocument = db.collection("events").document(eventID)
 
-            val userRef = db.collection("users").document(userID)
-            eventDocument.update("joinRequests", FieldValue.arrayRemove(userRef)).await()
+            eventDocument.update("joinRequests", FieldValue.arrayRemove(userID)).await()
             Success(Unit)
         } catch (e: FirebaseFirestoreException) {
             Error(e.message ?: "Unknown error")
         }
     }
 
-    override suspend fun joinEvent(id: String): Result<Unit> =
-        updateEventParticipants(id, FieldValue::arrayUnion)
+    override suspend fun joinEvent(id: String): Result<Unit> {
+        return try {
+            val eventDocument = db.collection("events").document(id)
+            eventDocument.update("participants", FieldValue.arrayUnion(firebaseAuth.currentUser!!.uid)).await()
 
-    override suspend fun leaveEvent(id: String): Result<Unit> =
-        updateEventParticipants(id, FieldValue::arrayRemove)
+            notificationService.sendNotification(
+                userId = eventDocument.get().await().getString("author")!!,
+                notification = Notification(
+                    senderId = firebaseAuth.currentUser!!.uid,
+                    type = NotificationType.JoinEvent,
+                    data = NotificationData.EventNotificationData(
+                        eventId = id,
+                        eventName = db.collection("events").document(id).get().await()
+                            .getString("title")!!
+                    )
+                )
+            )
+
+            Success(Unit)
+        } catch (e: FirebaseFirestoreException) {
+            Error(e.message ?: "Unknown error")
+        }
+
+    }
+
+    override suspend fun leaveEvent(id: String): Result<Unit> {
+        return try {
+            val eventDocument = db.collection("events").document(id)
+            eventDocument.update("participants", FieldValue.arrayRemove(firebaseAuth.currentUser!!.uid)).await()
+
+            Success(Unit)
+        } catch (e: FirebaseFirestoreException) {
+            Error(e.message ?: "Unknown error")
+        }
+    }
 
     override fun getCategoriesReferences(categories: List<String>): List<DocumentReference> {
         return categories.map { category ->
@@ -204,37 +236,38 @@ class FirebaseEventRepositoryImpl(
     }
 
     private suspend fun mapToEvent(eventDocument: DocumentSnapshot): Event? {
-        val participantsDocument =
-            eventDocument.get("participants") as? List<DocumentReference> ?: return null
+        val participantsDocument = eventDocument.get("participants") as? List<String> ?: return null
+        val participants = participantsDocument.map { participant ->
+            coroutineScope.async {
+                val userResult = userRepository.getUser(participant)
+                if (userResult is Success) {
+                    userResult.data
+                } else {
+                    null
+                }
+            }
+        }
 
-        val participants = participantsDocument.mapNotNull { participant ->
-            val userResult = userRepository.getUser(participant.path.split("/").last())
+        val joinRequestsDocument = eventDocument.get("joinRequests") as? List<String> ?: return null
+        val joinRequests = joinRequestsDocument.map { joinRequest ->
+            coroutineScope.async {
+                val userResult = userRepository.getUser(joinRequest)
+                if (userResult is Success) {
+                    userResult.data
+                } else {
+                    null
+                }
+            }
+        }
+
+        val authorDocument = eventDocument.getString("author") ?: return null
+        val author = coroutineScope.async {
+            val userResult = userRepository.getUser(authorDocument)
             if (userResult is Success) {
                 userResult.data
             } else {
                 null
             }
-        }
-
-        val joinRequestsDocument =
-            eventDocument.get("joinRequests") as? List<DocumentReference> ?: return null
-
-        val joinRequests = joinRequestsDocument.mapNotNull { joinRequest ->
-            val userResult = userRepository.getUser(joinRequest.path.split("/").last())
-            if (userResult is Success) {
-                userResult.data
-            } else {
-                null
-            }
-        }
-
-        val authorDocument = eventDocument.getDocumentReference("author") ?: return null
-        val authorResult = userRepository.getUser(authorDocument.path.split("/").last())
-
-        val author = if (authorResult is Success) {
-            authorResult.data
-        } else {
-            return null
         }
 
         return Event(
@@ -244,10 +277,10 @@ class FirebaseEventRepositoryImpl(
             locationCoordinates = eventDocument.getGeoPoint("locationCoordinates")?.toLatLng()
                 ?: return null,
             locationAddress = eventDocument.getString("locationAddress") ?: return null,
-            author = author,
+            author = author.await() ?: return null,
             maxParticipants = eventDocument.getLong("maxParticipants")?.toInt() ?: return null,
-            participants = participants,
-            joinRequests = joinRequests,
+            participants = participants.awaitAll().filterNotNull(),
+            joinRequests = joinRequests.awaitAll().filterNotNull(),
             startTime = eventDocument.getString("startTime")?.let { LocalDateTime.parse(it) }
                 ?: return null,
             endTime = eventDocument.getString("endTime")?.let { LocalDateTime.parse(it) }

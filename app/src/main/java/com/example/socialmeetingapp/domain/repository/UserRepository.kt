@@ -29,5 +29,7 @@ interface UserRepository {
     suspend fun getUserPreferences(): Result<Map<String, Any>>
     suspend fun updateUserPreferences(preferences: Map<String, Any>): Result<Unit>
 
+    suspend fun markNotificationAsRead(notificationId: String): Result<Unit>
+
     fun signOut()
 }

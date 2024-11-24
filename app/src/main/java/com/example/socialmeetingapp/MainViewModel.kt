@@ -1,6 +1,5 @@
 package com.example.socialmeetingapp
 
-import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -48,6 +47,7 @@ class MainViewModel @Inject constructor(
                 user = userResult.data,
                 isEmailVerified = FirebaseAuth.getInstance().currentUser?.isEmailVerified == true
             )
+
             userResult is Result.Error -> MainState.NotAuthenticated
             else -> MainState.Loading
         }
@@ -60,7 +60,6 @@ class MainViewModel @Inject constructor(
 
     fun onIntroductionFinished() {
         viewModelScope.launch {
-            Log.d("MainViewModel", "onIntroductionFinished")
             dataStore.edit {
                 it[FIRST_TIME_LAUNCH] = false
             }
@@ -73,18 +72,31 @@ class MainViewModel @Inject constructor(
                 is Result.Success -> {
                     SnackbarManager.showMessage("Verification email sent")
                 }
+
                 is Result.Error -> {
                     SnackbarManager.showMessage(result.message)
                 }
+
                 else -> {}
             }
         }
     }
 
-    private suspend fun isFirstTimeLaunch(): Boolean {
-        Log.d("MainViewModel", (dataStore.data.first()[FIRST_TIME_LAUNCH] != false).toString())
-        return dataStore.data.first()[FIRST_TIME_LAUNCH] != false
+    fun markNotificationsAsRead() {
+        viewModelScope.launch {
+            if (state.value is MainState.Content) {
+                val unreadNotifications =
+                    (state.value as MainState.Content).user.notifications.filter { !it.isRead }
 
+                unreadNotifications.forEach { notification ->
+                    userRepository.markNotificationAsRead(notification.id)
+                }
+            }
+        }
+    }
+
+    private suspend fun isFirstTimeLaunch(): Boolean {
+        return dataStore.data.first()[FIRST_TIME_LAUNCH] != false
     }
 
     companion object {

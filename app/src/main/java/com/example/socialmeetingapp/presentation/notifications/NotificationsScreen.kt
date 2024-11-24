@@ -22,10 +22,13 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.example.socialmeetingapp.domain.model.Notification
+import com.example.socialmeetingapp.domain.model.NotificationData
+import com.example.socialmeetingapp.domain.model.NotificationType
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.periodUntil
@@ -78,42 +81,64 @@ fun NotificationsScreen(state: NotificationsState, onNotificationAvatarClick: (S
                         )
 
                         Column(verticalArrangement = Arrangement.SpaceAround) {
-                            when (state.notifications[id]) {
-                                is Notification.JoinEventNotification -> {
-                                    val notification = state.notifications[id] as Notification.JoinEventNotification
+                            when (state.notifications[id].type) {
+                                NotificationType.NewFollower -> {
                                     Text(
                                         text = buildAnnotatedString {
-                                            pushStyle(SpanStyle(fontWeight = FontWeight.Bold))
-                                            append(notification.senderName)
-                                            pop()
-                                            append(" has joined your ")
-                                            pushStyle(SpanStyle(fontWeight = FontWeight.Bold))
-                                            append(notification.eventName)
-                                            pop()
-                                            append(" event")
-
-                                        },
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        modifier = Modifier.padding(start = 8.dp).clickable {
-                                            onJoinEventNotificationClick(notification.eventId)
-                                        }
-                                    )
-                                }
-
-                                is Notification.NewFollowerNotification -> {
-                                    val notification = state.notifications[id] as Notification.NewFollowerNotification
-                                    Text(
-                                        text = buildAnnotatedString {
-                                            pushStyle(SpanStyle(fontWeight = FontWeight.Bold))
-                                            append(notification.senderName)
-                                            pop()
+                                            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                                                append(state.notifications[id].senderName)
+                                            }
                                             append(" started following you")
                                         },
                                         style = MaterialTheme.typography.bodyMedium,
                                         modifier = Modifier.padding(start = 8.dp)
                                     )
                                 }
+
+                                NotificationType.JoinEvent -> {
+                                    Text(
+                                        text = buildAnnotatedString {
+                                            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                                                append(state.notifications[id].senderName)
+                                            }
+                                            append(" joined your ")
+                                            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                                                append((state.notifications[id].data as NotificationData.EventNotificationData).eventName)
+                                            }
+                                            append(" event")
+                                        },
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        modifier = Modifier.padding(start = 8.dp)
+                                    )
+                                }
+
+                                NotificationType.FriendCreatedNewEvent -> {
+                                    Text(
+                                        text = buildAnnotatedString {
+                                            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                                                append(state.notifications[id].senderName)
+                                            }
+                                            append(" created a new event")
+                                        },
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        modifier = Modifier.padding(start = 8.dp)
+                                    )
+                                }
+
+                                NotificationType.RemovedFromEvent -> {
+                                    Text(
+                                        text = buildAnnotatedString {
+                                            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                                                append(state.notifications[id].senderName)
+                                            }
+                                            append(" removed you from an event")
+                                        },
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        modifier = Modifier.padding(start = 8.dp)
+                                    )
+                                }
                             }
+
 
                             Text(
                                 text = "${

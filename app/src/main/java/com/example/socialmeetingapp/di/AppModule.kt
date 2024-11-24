@@ -101,9 +101,10 @@ object AppModule {
     fun provideEventRepository(
         firestoreDatabase: FirebaseFirestore,
         userRepository: UserRepository,
-        firebaseAuth: FirebaseAuth
+        firebaseAuth: FirebaseAuth,
+        notificationService: NotificationService
     ): EventRepository {
-        return FirebaseEventRepositoryImpl(firestoreDatabase, userRepository, firebaseAuth)
+        return FirebaseEventRepositoryImpl(firestoreDatabase, userRepository, firebaseAuth, notificationService)
     }
 
 

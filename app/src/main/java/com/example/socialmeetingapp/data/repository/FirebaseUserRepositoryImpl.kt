@@ -339,14 +339,11 @@ class FirebaseUserRepositoryImpl(
             val friendDocument = db.collection("users").document(friendID)
 
             currentUserDocument.update("following", action).await()
-            friendDocument.update("followers", action).await()
-
-            if(action.javaClass == FieldValue.arrayUnion().javaClass){
-                Log.d("Friend", "Friend added")
-                val notification = Notification.NewFollowerNotification(senderId = currentUserId)
-
-                notificationService.sendNotification(notification, friendID)
-            }
+            friendDocument.update("followers", if (action.javaClass == FieldValue.arrayUnion().javaClass) {
+                FieldValue.arrayUnion(currentUserId)
+            } else {
+                FieldValue.arrayRemove(currentUserId)
+            }).await()
 
             return Result.Success(Unit)
         } catch (e: Exception) {
@@ -397,6 +394,8 @@ class FirebaseUserRepositoryImpl(
             return Result.Error(e.message ?: "Unknown error")
         }
     }
+
+    override suspend fun markNotificationAsRead(notificationId: String) = notificationService.markNotificationAsRead(notificationId)
 
     override suspend fun getUserPreferences(): Result<Map<String, Any>> {
         TODO("Not yet implemented")
