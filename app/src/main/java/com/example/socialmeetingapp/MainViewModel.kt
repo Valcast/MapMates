@@ -24,9 +24,10 @@ sealed class MainState {
     data object Loading : MainState()
     data object Welcome : MainState()
     data object CreateProfile : MainState()
+    data object NotAuthenticated : MainState()
 
     data class Content(
-        val user: User? = null,
+        val user: User,
         val isEmailVerified: Boolean = false,
     ) : MainState()
 
@@ -40,19 +41,15 @@ class MainViewModel @Inject constructor(
 ) : ViewModel() {
 
     val state = userRepository.currentUser.map { userResult ->
-        if (isFirstTimeLaunch()) {
-            return@map MainState.Welcome
-        }
-
-        if (userResult is Result.Success && userResult.data == null) {
-            return@map MainState.CreateProfile
-        } else if (userResult is Result.Success) {
-            return@map MainState.Content(
+        return@map when {
+            isFirstTimeLaunch() -> MainState.Welcome
+            userResult is Result.Success && userResult.data == null -> MainState.CreateProfile
+            userResult is Result.Success && userResult.data != null -> MainState.Content(
                 user = userResult.data,
                 isEmailVerified = FirebaseAuth.getInstance().currentUser?.isEmailVerified == true
             )
-        } else {
-            return@map MainState.Loading
+            userResult is Result.Error -> MainState.NotAuthenticated
+            else -> MainState.Loading
         }
     }.stateIn(
         viewModelScope,

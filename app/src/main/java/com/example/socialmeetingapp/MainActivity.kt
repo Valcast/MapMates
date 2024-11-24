@@ -1,6 +1,7 @@
 package com.example.socialmeetingapp
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -21,10 +22,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -58,11 +56,16 @@ import com.example.socialmeetingapp.presentation.home.HomeScreen
 import com.example.socialmeetingapp.presentation.home.HomeViewModel
 import com.example.socialmeetingapp.presentation.introduction.IntroductionScreen
 import com.example.socialmeetingapp.presentation.navigation.NavigationBar
+import com.example.socialmeetingapp.presentation.notifications.NotificationsScreen
+import com.example.socialmeetingapp.presentation.notifications.NotificationsViewModel
 import com.example.socialmeetingapp.presentation.profile.ProfileScreen
 import com.example.socialmeetingapp.presentation.profile.ProfileViewModel
 import com.example.socialmeetingapp.presentation.profile.createprofileflow.CreateProfileScreen
 import com.example.socialmeetingapp.presentation.profile.createprofileflow.CreateProfileViewModel
+import com.example.socialmeetingapp.presentation.profile.editprofile.EditProfileScreen
+import com.example.socialmeetingapp.presentation.profile.editprofile.EditProfileViewModel
 import com.example.socialmeetingapp.presentation.settings.SettingsScreen
+import com.example.socialmeetingapp.presentation.settings.SettingsViewModel
 import com.google.android.gms.maps.model.LatLng
 import com.google.firebase.Firebase
 import com.google.firebase.appcheck.appCheck
@@ -93,8 +96,6 @@ class MainActivity : ComponentActivity() {
             val state = mainViewModel.state.collectAsStateWithLifecycle().value
             splashScreen.setKeepOnScreenCondition { state is MainState.Loading }
 
-            var startDestination by remember { mutableStateOf<Routes?>(null) }
-
             val navController = rememberNavController()
             val snackbarHostState = remember { SnackbarHostState() }
 
@@ -109,20 +110,14 @@ class MainActivity : ComponentActivity() {
             LaunchedEffect(Unit) {
                 NavigationManager.route.collect { screen ->
                     when (screen) {
-                        is Routes.Map, Routes.Login -> {
+                        is Routes.Map, Routes.Login, Routes.CreateProfile -> {
                             navController.navigate(screen) {
                                 popUpTo(0) { inclusive = true }
                                 launchSingleTop = true
                             }
                         }
 
-                        Routes.CreateProfile -> {
-                            navController.navigate(screen) {
-                                popUpTo(0) { inclusive = true }
-                                launchSingleTop = true
-                            }
-                        }
-                        Routes.Activities, Routes.Settings -> {
+                        Routes.Activities, Routes.Notifications -> {
                             navController.navigate(screen) {
                                 popUpTo(Routes.Map()) {
                                     saveState = true
@@ -130,10 +125,16 @@ class MainActivity : ComponentActivity() {
                                 launchSingleTop = true
                             }
                         }
+
                         is Routes.Profile -> {
-                            if (state is MainState.Content && state.user != null && screen.userID == state.user.id) {
+                            Log.d("TAG", "Profile ${state is MainState.Content}")
+                            if (state is MainState.Content && state.user != null && screen == Routes.Profile(
+                                    state.user.id
+                                )
+                            ) {
+                                Log.d("TAG", "${state.user.id} ${screen.userID}")
                                 navController.navigate(Routes.Profile(screen.userID)) {
-                                    popUpTo(Routes.Map) {
+                                    popUpTo(Routes.Map()) {
                                         saveState = true
                                     }
                                     launchSingleTop = true
@@ -144,11 +145,9 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                         }
+
                         else -> {
                             navController.navigate(screen) {
-                                popUpTo(navController.graph.startDestinationId) {
-                                    saveState = true
-                                }
                                 launchSingleTop = true
                             }
                         }
@@ -156,95 +155,95 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            if (startDestination == null) {
-                when (state) {
-                    is MainState.Welcome -> startDestination = Routes.Introduction
-                    is MainState.CreateProfile -> startDestination = Routes.CreateProfile
-                    is MainState.Content -> startDestination =
-                        if (state.user == null) Routes.Login else Routes.Map()
-                    else -> {}
-                }
-            }
+            if (state !is MainState.Loading) {
 
-            val currentRoute = navController.currentBackStackEntryAsState().value?.run {
-                val route = destination.route!!
+                val currentRoute = navController.currentBackStackEntryAsState().value?.run {
+                    val route = destination.route!!
 
-                when {
-                    route.contains("Map") -> toRoute<Routes.Map>()
-                    route.contains("Login") -> toRoute<Routes.Login>()
-                    route.contains("Register") -> toRoute<Routes.Register>()
-                    route.contains("Settings") -> toRoute<Routes.Settings>()
-                    route.contains("Activities") -> toRoute<Routes.Activities>()
-                    route.contains("Profile") -> toRoute<Routes.Profile>()
-                    route.contains("CreateProfile") -> toRoute<Routes.CreateProfile>()
-                    route.contains("Introduction") -> toRoute<Routes.Introduction>()
-                    route.contains("ForgotPassword") -> toRoute<Routes.ForgotPassword>()
-                    route.contains("CreateEvent") -> toRoute<Routes.CreateEvent>()
-                    route.contains("Event") -> toRoute<Routes.Event>()
-                    else -> null
+                    when {
+                        route.contains("Map") -> toRoute<Routes.Map>()
+                        route.contains("Login") -> toRoute<Routes.Login>()
+                        route.contains("Register") -> toRoute<Routes.Register>()
+                        route.contains("Settings") -> toRoute<Routes.Settings>()
+                        route.contains("Activities") -> toRoute<Routes.Activities>()
+                        route.contains("Profile") -> toRoute<Routes.Profile>()
+                        route.contains("CreateProfile") -> toRoute<Routes.CreateProfile>()
+                        route.contains("EditProfile") -> toRoute<Routes.EditProfile>()
+                        route.contains("Introduction") -> toRoute<Routes.Introduction>()
+                        route.contains("ForgotPassword") -> toRoute<Routes.ForgotPassword>()
+                        route.contains("CreateEvent") -> toRoute<Routes.CreateEvent>()
+                        route.contains("Event") -> toRoute<Routes.Event>()
+                        route.contains("Notifications") -> toRoute<Routes.Notifications>()
+                        else -> null
+                    }
+
                 }
 
-            } ?: startDestination
-
-            SocialMeetingAppTheme {
-                Scaffold(
-                    snackbarHost = { SnackbarHost(snackbarHostState) },
-                    topBar = {
-                        if (state is MainState.Content && state.user != null && !state.isEmailVerified && currentRoute is Routes.Map) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(
-                                        top = 32.dp,
-                                        start = 16.dp,
-                                        end = 16.dp,
-                                        bottom = 8.dp
-                                    ),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(
-                                    text = "Your account is not verified yet.",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onBackground,
-                                )
-
-                                Button(onClick = { mainViewModel.resendVerificationEmail() }) {
+                SocialMeetingAppTheme {
+                    Scaffold(
+                        snackbarHost = { SnackbarHost(snackbarHostState) },
+                        topBar = {
+                            if (state is MainState.Content && !state.isEmailVerified && currentRoute is Routes.Map) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(
+                                            top = 32.dp,
+                                            start = 16.dp,
+                                            end = 16.dp,
+                                            bottom = 8.dp
+                                        ),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
                                     Text(
-                                        text = "Verify",
+                                        text = "Your account is not verified yet.",
                                         style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        color = MaterialTheme.colorScheme.onBackground,
                                     )
+
+                                    Button(onClick = { mainViewModel.resendVerificationEmail() }) {
+                                        Text(
+                                            text = "Verify",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onPrimary,
+                                        )
+                                    }
                                 }
                             }
-                        }
-                    },
-                    bottomBar = {
-                        if (state is MainState.Content &&
-                            state.user != null &&
-                            (currentRoute is Routes.Map ||
-                                    currentRoute == Routes.Activities ||
-                                    currentRoute == Routes.Profile(state.user.id) ||
-                                    currentRoute == Routes.Settings)
-                        ) {
-                            Column {
-                                HorizontalDivider()
-                                NavigationBar(
-                                    currentRoute = currentRoute,
-                                    onItemClicked = { NavigationManager.navigateTo(it) },
-                                    profileImageUrl = state.user.profilePictureUri,
-                                    profileID = state.user.id
-                                )
+                        },
+                        bottomBar = {
+                            if (state is MainState.Content && (currentRoute is Routes.Map ||
+                                        currentRoute == Routes.Activities ||
+                                        currentRoute == Routes.Notifications ||
+                                        currentRoute == Routes.Profile(state.user.id))
+                            ) {
+                                Column {
+                                    HorizontalDivider()
+                                    NavigationBar(
+                                        currentRoute = currentRoute,
+                                        onItemClicked = { NavigationManager.navigateTo(it) },
+                                        profileImageUrl = state.user.profilePictureUri,
+                                        profileID = state.user.id,
+                                        notReadNotifications = state.user.notifications.count { !it.isRead }
+                                    )
+                                }
+
                             }
 
-                        }
+                        }) { innerPadding ->
 
-                    }) { innerPadding ->
 
-                    if (startDestination != null) {
                         NavHost(
                             navController = navController,
-                            startDestination = startDestination!!,
+                            startDestination = when (state) {
+                                is MainState.Welcome -> Routes.Introduction
+                                is MainState.CreateProfile -> Routes.CreateProfile
+                                is MainState.Content -> Routes.Map()
+                                is MainState.NotAuthenticated -> Routes.Login
+
+                                else -> {}
+                            },
                             enterTransition = { EnterTransition.None },
                             exitTransition = { ExitTransition.None },
                             popEnterTransition = { EnterTransition.None },
@@ -272,7 +271,10 @@ class MainActivity : ComponentActivity() {
 
                                 HomeScreen(
                                     state = viewModel.state.collectAsStateWithLifecycle().value,
-                                    locationCoordinates = if (args.latitude != null && args.longitude != null) LatLng(args.latitude, args.longitude) else null,
+                                    locationCoordinates = if (args.latitude != null && args.longitude != null) LatLng(
+                                        args.latitude,
+                                        args.longitude
+                                    ) else null,
                                     onMapLongClick = {
                                         NavigationManager.navigateTo(
                                             Routes.CreateEvent(
@@ -282,8 +284,27 @@ class MainActivity : ComponentActivity() {
                                         )
                                     },
                                     onEventClick = { NavigationManager.navigateTo(Routes.Event(it)) },
-                                    requestPermission = {permissionManager.checkPermissions(PermissionManager.FINE_LOCATION_PERMISSION)}
+                                    requestPermission = {
+                                        permissionManager.checkPermissions(
+                                            PermissionManager.FINE_LOCATION_PERMISSION
+                                        )
+                                    }
                                 )
+                            }
+
+                            composable<Routes.Notifications> {
+                                val viewModel = hiltViewModel<NotificationsViewModel>()
+                                NotificationsScreen(state = viewModel.state.collectAsStateWithLifecycle().value,
+                                    onNotificationAvatarClick = {
+                                        NavigationManager.navigateTo(
+                                            Routes.Profile(it)
+                                        )
+                                    },
+                                    onJoinEventNotificationClick = {
+                                        NavigationManager.navigateTo(
+                                            Routes.Event(it)
+                                        )
+                                    })
                             }
 
                             composable<Routes.Profile> {
@@ -294,19 +315,13 @@ class MainActivity : ComponentActivity() {
 
                                 ProfileScreen(
                                     state = viewModel.userData.collectAsStateWithLifecycle().value,
-                                    onLogout = { viewModel.logout()
-                                               NavigationManager.navigateTo(Routes.Login)},
-                                    onUpdateUsername = { viewModel.updateUsername(it) },
-                                    onUpdateBio = { viewModel.updateBio(it) },
-                                    onUpdateProfilePicture = { viewModel.updateProfilePicture(it) },
-                                    onUpdateDateOfBirth = { viewModel.updateDateOfBirth(it) },
-                                    onAddFriend = {
-                                        viewModel.addFriend(it) },
+                                    onAddFriend = { viewModel.addFriend(it) },
                                     onDeleteFriend = { viewModel.deleteFriend(it) },
+                                    onEditProfile = { NavigationManager.navigateTo(Routes.EditProfile) },
+                                    onGoToSettings = { NavigationManager.navigateTo(Routes.Settings) }
                                 )
                             }
 
-                            composable<Routes.Settings> { SettingsScreen() }
 
                             composable<Routes.Activities> {
                                 val viewModel = hiltViewModel<ActivitiesViewModel>()
@@ -323,8 +338,18 @@ class MainActivity : ComponentActivity() {
                                         )
                                     },
                                     onExploreEventClick = { NavigationManager.navigateTo(Routes.Map()) },
-                                    onAcceptJoinRequest = { eventID, userID -> viewModel.acceptJoinRequest(eventID, userID) },
-                                    onDeclineJoinRequest = { eventID, userID -> viewModel.declineJoinRequest(eventID, userID) }
+                                    onAcceptJoinRequest = { eventID, userID ->
+                                        viewModel.acceptJoinRequest(
+                                            eventID,
+                                            userID
+                                        )
+                                    },
+                                    onDeclineJoinRequest = { eventID, userID ->
+                                        viewModel.declineJoinRequest(
+                                            eventID,
+                                            userID
+                                        )
+                                    }
                                 )
                             }
 
@@ -391,6 +416,29 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
 
+                            composable<Routes.EditProfile> {
+                                val viewModel = hiltViewModel<EditProfileViewModel>()
+
+                                EditProfileScreen(
+                                    onBack = { NavigationManager.navigateTo(Routes.Profile(if (state is MainState.Content) state.user!!.id else "")) },
+                                    onUpdateBio = { viewModel.updateBio(it) },
+                                    onUpdateUsernameAndDateOfBirth = { username, dateOfBirth ->
+                                        viewModel.updateUsernameAndDateOfBirth(
+                                            username,
+                                            dateOfBirth
+                                        )
+                                    },
+                                )
+                            }
+
+                            composable<Routes.Settings> {
+                                val viewModel = hiltViewModel<SettingsViewModel>()
+
+                                SettingsScreen(
+                                    onBack = { NavigationManager.navigateTo(Routes.Profile(if (state is MainState.Content) state.user.id else "")) },
+                                    onSignOut = viewModel::signOut
+                                )
+                            }
 
                             //////////////////
                             //    EVENT    //
@@ -437,16 +485,25 @@ class MainActivity : ComponentActivity() {
                                     onGoToAuthor = { NavigationManager.navigateTo(Routes.Profile(it)) },
                                     onLeaveEvent = { viewModel.leaveEvent(args.id) },
                                     onDeleteEvent = { viewModel.deleteEvent(args.id) },
-                                    onRemoveParticipant = { viewModel.removeParticipant(args.id, it) },
+                                    onRemoveParticipant = {
+                                        viewModel.removeParticipant(
+                                            args.id,
+                                            it
+                                        )
+                                    },
                                     onSendJoinRequest = { viewModel.sendJoinRequest(args.id) },
                                 )
                             }
                         }
+
                     }
+
+
                 }
 
-
             }
+
+
         }
     }
 }

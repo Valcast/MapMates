@@ -27,6 +27,12 @@ sealed class Routes {
     data object CreateProfile : Routes()
 
     @Serializable
+    data object EditProfile : Routes()
+
+    @Serializable
+    data object Notifications : Routes()
+
+    @Serializable
     data object Introduction : Routes()
 
     @Serializable

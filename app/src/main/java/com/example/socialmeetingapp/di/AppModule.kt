@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStoreFile
 import com.example.socialmeetingapp.data.api.GeocodingApi
+import com.example.socialmeetingapp.data.remote.NotificationService
 import com.example.socialmeetingapp.data.repository.FirebaseEventRepositoryImpl
 import com.example.socialmeetingapp.data.repository.FirebaseUserRepositoryImpl
 import com.example.socialmeetingapp.data.repository.LocationRepositoryImpl
@@ -61,6 +62,12 @@ object AppModule {
     @Singleton
     fun provideCredentialManager(@ApplicationContext context: Context): CredentialManager {
         return CredentialManager(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideNotificationService(firestoreDatabase: FirebaseFirestore): NotificationService {
+        return NotificationService(firestoreDatabase)
     }
 
     @Provides
@@ -122,14 +129,16 @@ object AppModule {
         networkManager: NetworkManager,
         firestoreDatabase: FirebaseFirestore,
         firebaseStorage: FirebaseStorage,
-        dataStore: DataStore<Preferences>
+        dataStore: DataStore<Preferences>,
+        notificationService: NotificationService
     ): UserRepository {
         return FirebaseUserRepositoryImpl(
             firebaseAuth,
             networkManager,
             firestoreDatabase,
             firebaseStorage,
-            dataStore
+            dataStore,
+            notificationService
         )
     }
 

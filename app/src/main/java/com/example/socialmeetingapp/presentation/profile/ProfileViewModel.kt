@@ -1,6 +1,5 @@
 package com.example.socialmeetingapp.presentation.profile
 
-import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.socialmeetingapp.domain.model.Event
@@ -15,7 +14,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.datetime.LocalDateTime
 import javax.inject.Inject
 
 sealed class ProfileState {
@@ -58,39 +56,6 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
-    fun updateUsername(username: String) {
-        _newUser.update { it.copy(username = username) }
-    }
-
-    fun updateBio(bio: String) {
-        _newUser.update { it.copy(bio = bio) }
-    }
-
-    fun updateProfilePicture(imageUri: Uri) {
-        viewModelScope.launch {
-            when (val updateProfilePictureResult = userRepository.uploadProfilePicture(imageUri)) {
-                is Result.Success<Uri> -> {
-                    _newUser.update { it.copy(profilePictureUri = updateProfilePictureResult.data) }
-                }
-
-                is Result.Error -> {
-                    SnackbarManager.showMessage(updateProfilePictureResult.message)
-                }
-
-                else -> {}
-            }
-        }
-    }
-
-    fun updateDateOfBirth(dateOfBirth: LocalDateTime) {
-        _newUser.update { it.copy(dateOfBirth = dateOfBirth) }
-    }
-
-    fun updateGender(gender: String) {
-        _newUser.update { it.copy(gender = gender) }
-
-    }
-
     fun addFriend(friendID: String) {
         viewModelScope.launch {
             when (val addFriendResult = userRepository.addFriend(friendID)) {
@@ -124,8 +89,6 @@ class ProfileViewModel @Inject constructor(
             }
         }
     }
-
-    fun logout() = userRepository.signOut()
 
 }
 

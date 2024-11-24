@@ -6,13 +6,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -22,7 +25,7 @@ import coil3.compose.AsyncImage
 import com.example.socialmeetingapp.presentation.common.Routes
 
 @Composable
-fun NavigationBar(currentRoute: Routes, onItemClicked: (Routes) -> Unit, profileID: String, profileImageUrl: Uri) {
+fun NavigationBar(currentRoute: Routes, onItemClicked: (Routes) -> Unit, profileID: String, profileImageUrl: Uri, notReadNotifications: Int = 0) {
     androidx.compose.material3.NavigationBar(
         containerColor = MaterialTheme.colorScheme.background,
         tonalElevation = 0.dp
@@ -52,6 +55,27 @@ fun NavigationBar(currentRoute: Routes, onItemClicked: (Routes) -> Unit, profile
             }
         )
 
+        NavigationBarItem(
+            icon = {
+                BadgedBox(badge = {
+                    if (notReadNotifications > 0) {
+                        Badge {
+                            Text(text = notReadNotifications.toString())
+                        }
+                    }
+                }) {
+                    Icon(
+                        imageVector = if (currentRoute == Routes.Notifications) Icons.Filled.Notifications else Icons.Outlined.Notifications,
+                        contentDescription = "Settings"
+                    )
+                }
+            },
+            selected = currentRoute == Routes.Notifications,
+            onClick = {
+                onItemClicked(Routes.Notifications)
+            }
+        )
+
 
         NavigationBarItem(
             icon = {
@@ -67,19 +91,6 @@ fun NavigationBar(currentRoute: Routes, onItemClicked: (Routes) -> Unit, profile
             selected = currentRoute == Routes.Profile(profileID),
             onClick = {
                 onItemClicked(Routes.Profile(profileID))
-            }
-        )
-
-        NavigationBarItem(
-            icon = {
-                Icon(
-                    imageVector = if (currentRoute == Routes.Settings) Icons.Default.Settings else Icons.Outlined.Settings,
-                    contentDescription = "Settings"
-                )
-            },
-            selected = currentRoute == Routes.Settings,
-            onClick = {
-                onItemClicked(Routes.Settings)
             }
         )
     }

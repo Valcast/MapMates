@@ -15,6 +15,7 @@ data class User(
     val role: String = "User",
     val following: List<String> = emptyList(),
     val followers: List<String> = emptyList(),
+    val notifications: List<Notification> = emptyList(),
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime,
     val lastLogin: LocalDateTime,

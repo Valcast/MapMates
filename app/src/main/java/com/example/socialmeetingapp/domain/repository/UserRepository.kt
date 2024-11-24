@@ -20,6 +20,7 @@ interface UserRepository {
     suspend fun updateUser(user: User): Result<Unit>
 
     suspend fun uploadProfilePicture(imageUri: Uri): Result<Uri>
+
     suspend fun sendEmailVerification(): Result<Unit>
 
     suspend fun addFriend(friendID: String): Result<Unit>

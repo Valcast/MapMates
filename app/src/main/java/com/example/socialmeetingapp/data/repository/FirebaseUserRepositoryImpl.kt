@@ -1,9 +1,12 @@
 package com.example.socialmeetingapp.data.repository
 
 import android.net.Uri
+import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import com.example.socialmeetingapp.data.remote.NotificationService
 import com.example.socialmeetingapp.data.utils.NetworkManager
+import com.example.socialmeetingapp.domain.model.Notification
 import com.example.socialmeetingapp.domain.model.Result
 import com.example.socialmeetingapp.domain.model.SignUpStatus
 import com.example.socialmeetingapp.domain.model.User
@@ -23,11 +26,13 @@ import com.google.firebase.firestore.SetOptions
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDateTime
@@ -39,7 +44,8 @@ class FirebaseUserRepositoryImpl(
     private val networkManager: NetworkManager,
     private val db: FirebaseFirestore,
     private val storage: FirebaseStorage,
-    private val dataStore: DataStore<Preferences>
+    private val dataStore: DataStore<Preferences>,
+    private val notificationService: NotificationService
 ) : UserRepository {
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
 
@@ -48,54 +54,71 @@ class FirebaseUserRepositoryImpl(
     override val currentUser: StateFlow<Result<User?>> = callbackFlow {
         val authStateListener = FirebaseAuth.AuthStateListener { auth ->
             if (auth.currentUser == null) {
-                trySend(Result.Success(null))
+                trySend(Result.Error("User not authenticated"))
 
                 if (::userDataListenerRegistration.isInitialized) {
                     userDataListenerRegistration.remove()
                 }
             } else {
-                db.collection("users").document(auth.currentUser!!.uid).addSnapshotListener { snapshot, error ->
-                    if (error != null) {
-                        trySend(Result.Error(error.message ?: "Unknown error"))
-                    }
-
-                    if (snapshot != null) {
-                        if (firebaseAuth.currentUser == null) {
-                            trySend(Result.Success(null))
-                            return@addSnapshotListener
+                db.collection("users").document(auth.currentUser!!.uid)
+                    .addSnapshotListener { snapshot, error ->
+                        if (error != null) {
+                            trySend(Result.Error(error.message ?: "Unknown error"))
                         }
 
-                        val user = User(
-                            id = firebaseAuth.currentUser!!.uid,
-                            email = firebaseAuth.currentUser!!.email!!,
-                            username = snapshot.getString("username") ?: return@addSnapshotListener,
-                            bio = snapshot.getString("bio") ?: return@addSnapshotListener,
-                            dateOfBirth = snapshot.getString("dateOfBirth")?.let {
-                                if (it == "Not specified") {
-                                    Clock.System.now().toLocalDateTime(TimeZone.UTC)
-                                } else {
-                                    LocalDateTime.parse(it)
-                                }
-                            } ?: return@addSnapshotListener,
-                            following = snapshot.get("following") as List<String>? ?: return@addSnapshotListener,
-                            followers = snapshot.get("followers") as List<String>?  ?: return@addSnapshotListener,
-                            gender = snapshot.getString("gender") ?: return@addSnapshotListener,
-                            role = snapshot.getString("role") ?: return@addSnapshotListener,
-                            createdAt = snapshot.getString("createdAt")?.let { LocalDateTime.parse(it) }
-                                ?: return@addSnapshotListener,
-                            updatedAt = snapshot.getString("updatedAt")?.let { LocalDateTime.parse(it) }
-                                ?: return@addSnapshotListener,
-                            lastPasswordChange = snapshot.getString("lastPasswordChange")
-                                ?.let { LocalDateTime.parse(it) } ?: return@addSnapshotListener,
-                            lastLogin = snapshot.getString("lastLogin")?.let { LocalDateTime.parse(it) }
-                                ?: return@addSnapshotListener,
-                            profilePictureUri = snapshot.getString("profilePictureUri")
-                                ?.let { Uri.parse(it) } ?: Uri.EMPTY
-                        )
+                        if (snapshot != null) {
+                            if (firebaseAuth.currentUser == null) {
+                                trySend(Result.Error("User not authenticated"))
+                                return@addSnapshotListener
+                            }
 
-                        trySend(Result.Success(user))
+                            coroutineScope.launch {
+                                val notifications = async {
+                                    notificationService.getNotifications(
+                                        snapshot.get("notifications") as? List<String>
+                                            ?: emptyList()
+                                    )
+                                }
+
+                                val user = User(
+                                    id = firebaseAuth.currentUser!!.uid,
+                                    email = firebaseAuth.currentUser!!.email!!,
+                                    username = snapshot.getString("username")
+                                        ?: return@launch,
+                                    bio = snapshot.getString("bio") ?: return@launch,
+                                    dateOfBirth = snapshot.getString("dateOfBirth")?.let {
+                                        if (it == "Not specified") {
+                                            Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                                        } else {
+                                            LocalDateTime.parse(it)
+                                        }
+                                    } ?: return@launch,
+                                    notifications = notifications.await(),
+                                    following = snapshot.get("following") as List<String>?
+                                        ?: return@launch,
+                                    followers = snapshot.get("followers") as List<String>?
+                                        ?: return@launch,
+                                    gender = snapshot.getString("gender") ?: return@launch,
+                                    role = snapshot.getString("role") ?: return@launch,
+                                    createdAt = snapshot.getString("createdAt")
+                                        ?.let { LocalDateTime.parse(it) }
+                                        ?: return@launch,
+                                    updatedAt = snapshot.getString("updatedAt")
+                                        ?.let { LocalDateTime.parse(it) }
+                                        ?: return@launch,
+                                    lastPasswordChange = snapshot.getString("lastPasswordChange")
+                                        ?.let { LocalDateTime.parse(it) } ?: return@launch,
+                                    lastLogin = snapshot.getString("lastLogin")
+                                        ?.let { LocalDateTime.parse(it) }
+                                        ?: return@launch,
+                                    profilePictureUri = snapshot.getString("profilePictureUri")
+                                        ?.let { Uri.parse(it) } ?: Uri.EMPTY
+                                )
+
+                                trySend(Result.Success(user))
+                            }
+                        }
                     }
-                }
             }
         }
 
@@ -130,8 +153,10 @@ class FirebaseUserRepositoryImpl(
                     ?: return Result.Error("Birth Date is missing"),
                 gender = userDocument.getString("gender") ?: return Result.Error("User not found"),
                 role = userDocument.getString("role") ?: return Result.Error("User not found"),
-                following = userDocument.get("following") as List<String>? ?: return Result.Error("User not found"),
-                followers = userDocument.get("followers") as List<String>? ?: return Result.Error("User not found"),
+                following = userDocument.get("following") as List<String>?
+                    ?: return Result.Error("User not found"),
+                followers = userDocument.get("followers") as List<String>?
+                    ?: return Result.Error("User not found"),
                 createdAt = userDocument.getString("createdAt")?.let { LocalDateTime.parse(it) }
                     ?: return Result.Error("Created at is missing"),
                 updatedAt = userDocument.getString("updatedAt")?.let { LocalDateTime.parse(it) }
@@ -316,6 +341,13 @@ class FirebaseUserRepositoryImpl(
             currentUserDocument.update("following", action).await()
             friendDocument.update("followers", action).await()
 
+            if(action.javaClass == FieldValue.arrayUnion().javaClass){
+                Log.d("Friend", "Friend added")
+                val notification = Notification.NewFollowerNotification(senderId = currentUserId)
+
+                notificationService.sendNotification(notification, friendID)
+            }
+
             return Result.Success(Unit)
         } catch (e: Exception) {
             return Result.Error(e.message ?: "Unknown error")
@@ -323,6 +355,7 @@ class FirebaseUserRepositoryImpl(
     }
 
     override suspend fun addFriend(friendID: String): Result<Unit> {
+
         return updateFriendship(friendID, FieldValue.arrayUnion(friendID))
     }
 
@@ -349,6 +382,7 @@ class FirebaseUserRepositoryImpl(
         }
     }
 
+
     override suspend fun sendEmailVerification(): Result<Unit> {
         if (!networkManager.isConnected) {
             return Result.Error("No internet connection")
@@ -371,7 +405,6 @@ class FirebaseUserRepositoryImpl(
     override suspend fun updateUserPreferences(preferences: Map<String, Any>): Result<Unit> {
         TODO("Not yet implemented")
     }
-
 
     override fun signOut() = firebaseAuth.signOut()
 }
