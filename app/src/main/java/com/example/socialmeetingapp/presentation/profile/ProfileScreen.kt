@@ -1,16 +1,22 @@
 package com.example.socialmeetingapp.presentation.profile
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.Card
@@ -38,6 +44,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import coil3.compose.AsyncImage
 import com.example.socialmeetingapp.R
+import com.example.socialmeetingapp.presentation.common.NavigationManager
+import com.example.socialmeetingapp.presentation.common.Routes
 import com.example.socialmeetingapp.presentation.components.EventCard
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
@@ -46,30 +54,35 @@ import kotlinx.datetime.toLocalDateTime
 @Composable
 fun ProfileScreen(
     state: ProfileState,
-    onAddFriend: (String) -> Unit,
-    onDeleteFriend: (String) -> Unit,
+    onFollowUser: (String) -> Unit,
+    onUnfollowUser: (String) -> Unit,
+    onDeleteFollower: (String) -> Unit,
     onEditProfile: () -> Unit,
     onGoToSettings: () -> Unit
 ) {
-
     var isProfilePictureDialogVisible by remember { mutableStateOf(false) }
+    var isFollowersDialogVisible by remember { mutableStateOf(false) }
+    var isFollowingDialogVisible by remember { mutableStateOf(false) }
 
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.verticalScroll(rememberScrollState())
-    ) {
-
-        when (state) {
-            is ProfileState.Loading -> {
+    when (state) {
+        is ProfileState.Loading -> {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
                 CircularProgressIndicator()
             }
+        }
 
-            is ProfileState.Content -> {
+        is ProfileState.Content -> {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.verticalScroll(rememberScrollState())
+            ) {
 
                 Row(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 16.dp, top = 16.dp, end = 16.dp),
+                        .fillMaxWidth().padding(16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -84,9 +97,9 @@ fun ProfileScreen(
                         IconButton(
                             onClick = {
                                 if (state.isObservedUser) {
-                                    onDeleteFriend(state.user.id)
+                                    onUnfollowUser(state.user.id)
                                 } else {
-                                    onAddFriend(state.user.id)
+                                    onFollowUser(state.user.id)
                                 }
                             }
                         ) {
@@ -99,7 +112,7 @@ fun ProfileScreen(
                 }
 
 
-                HorizontalDivider(modifier = Modifier.padding(bottom = 16.dp, top = 8.dp))
+                HorizontalDivider(modifier = Modifier.padding(bottom = 16.dp))
 
                 AsyncImage(
                     model = state.user.profilePictureUri,
@@ -142,12 +155,25 @@ fun ProfileScreen(
                     modifier = Modifier.padding(top = 8.dp)
                 )
 
-                Row(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Card(modifier = Modifier.fillMaxWidth(0.5f).padding(end = 8.dp)) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth(0.5f)
+                            .padding(end = 8.dp)
+                            .clip(MaterialTheme.shapes.medium)
+                            .clickable { isFollowersDialogVisible = true }) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.padding(16.dp).fillMaxWidth()
+                            modifier = Modifier
+                                .padding(16.dp)
+                                .fillMaxWidth()
                         ) {
                             Text(
                                 text = "Followers",
@@ -162,11 +188,95 @@ fun ProfileScreen(
                         }
                     }
 
-                    Card(modifier = Modifier.fillMaxWidth().padding(start = 8.dp)) {
+                    if (state.isMyProfile && isFollowersDialogVisible) {
+                        Dialog(onDismissRequest = { isFollowersDialogVisible = false }) {
+                            LazyColumn(
+                                modifier = Modifier
+                                    .clip(MaterialTheme.shapes.medium)
+                                    .background(MaterialTheme.colorScheme.surface)
+                                    .padding(16.dp)
+                            ) {
+                                item {
+                                    Text(
+                                        text = "Followers",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier
+                                            .padding(
+                                                top = 16.dp,
+                                                bottom = 8.dp,
+                                                start = 16.dp,
+                                                end = 16.dp
+                                            )
+                                    )
+                                }
+
+                                if (state.followers.isEmpty()) {
+                                    item {
+                                        Text(
+                                            text = "You are not following anyone",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onBackground.copy(
+                                                alpha = 0.5f
+                                            ),
+                                            textAlign = TextAlign.Center,
+                                            modifier = Modifier
+                                                .padding(16.dp)
+                                        )
+                                    }
+                                }
+                                items(state.followers.size) { follower ->
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        modifier = Modifier
+                                            .padding(16.dp)
+                                            .fillMaxWidth()
+                                    ) {
+                                        AsyncImage(
+                                            model = state.followers[follower].profilePictureUri,
+                                            contentDescription = "Follower Avatar",
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier
+                                                .size(50.dp)
+                                                .clip(RoundedCornerShape(25.dp))
+                                        )
+
+                                        Text(
+                                            text = state.followers[follower].username,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            modifier = Modifier.padding(start = 8.dp)
+                                        )
+
+                                        Spacer(modifier = Modifier.weight(1f))
+
+                                        IconButton(onClick = { onDeleteFollower(state.followers[follower].id) }) {
+                                            Icon(
+                                                imageVector = Icons.Default.Close,
+                                                contentDescription = "Unfollow"
+                                            )
+                                        }
+                                    }
+
+                                }
+                            }
+                        }
+                    }
+
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 8.dp)
+                            .clip(MaterialTheme.shapes.medium)
+                            .clickable { isFollowingDialogVisible = true },
+                        shape = MaterialTheme.shapes.medium
+                            ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.padding(16.dp).fillMaxWidth()
+                            modifier = Modifier
+                                .padding(16.dp)
+                                .fillMaxWidth()
                         ) {
                             Text(
                                 text = "Following",
@@ -178,6 +288,83 @@ fun ProfileScreen(
                                 style = MaterialTheme.typography.titleSmall,
                                 color = MaterialTheme.colorScheme.primary
                             )
+                        }
+                    }
+                }
+
+                if (state.isMyProfile && isFollowingDialogVisible) {
+                    Dialog(onDismissRequest = { isFollowingDialogVisible = false }) {
+                        LazyColumn(
+                            modifier = Modifier
+                                .clip(MaterialTheme.shapes.medium)
+                                .background(MaterialTheme.colorScheme.surface)
+                                .padding(16.dp)
+                        ) {
+                            item {
+                                Text(
+                                    text = "Following",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier
+                                        .padding(
+                                            top = 16.dp,
+                                            bottom = 8.dp,
+                                            start = 16.dp,
+                                            end = 16.dp
+                                        )
+                                )
+                            }
+
+                            if (state.following.isEmpty()) {
+                                item {
+                                    Text(
+                                        text = "You are not following anyone",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier
+                                            .padding(16.dp)
+                                            .align(Alignment.CenterHorizontally)
+                                    )
+                                }
+                            }
+
+                            items(state.following.size) { following ->
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .padding(16.dp)
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            NavigationManager.navigateTo(Routes.Profile(state.following[following].id))
+                                        }
+                                ) {
+                                    AsyncImage(
+                                        model = state.following[following].profilePictureUri,
+                                        contentDescription = "Follower Avatar",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier
+                                            .size(50.dp)
+                                            .clip(RoundedCornerShape(25.dp))
+                                    )
+
+                                    Text(
+                                        text = state.following[following].username,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        modifier = Modifier.padding(start = 8.dp)
+                                    )
+
+                                    Spacer(modifier = Modifier.weight(1f))
+
+                                    IconButton(onClick = { onUnfollowUser(state.following[following].id) }) {
+                                        Icon(
+                                            imageVector = Icons.Default.Close,
+                                            contentDescription = "Unfollow"
+                                        )
+                                    }
+                                }
+
+                            }
                         }
                     }
                 }
@@ -270,7 +457,9 @@ fun ProfileScreen(
                     OutlinedButton(
                         onClick = onEditProfile,
                         shape = MaterialTheme.shapes.medium,
-                        modifier = Modifier.padding(top = 16.dp, start = 16.dp, end = 16.dp).fillMaxWidth()
+                        modifier = Modifier
+                            .padding(top = 16.dp, start = 16.dp, end = 16.dp)
+                            .fillMaxWidth()
                     ) {
                         Text(
                             text = "Edit Profile",
@@ -281,7 +470,9 @@ fun ProfileScreen(
                     OutlinedButton(
                         onClick = onGoToSettings,
                         shape = MaterialTheme.shapes.medium,
-                        modifier = Modifier.padding(top = 16.dp, start = 16.dp, end = 16.dp).fillMaxWidth()
+                        modifier = Modifier
+                            .padding(top = 16.dp, start = 16.dp, end = 16.dp)
+                            .fillMaxWidth()
                     ) {
                         Text(
                             text = "Settings",
@@ -320,15 +511,20 @@ fun ProfileScreen(
                         )
                     }
                 }
-
-
             }
+        }
 
-            is ProfileState.Error -> {
-                val error = state.message
-                Text(text = "Error: $error")
+        is ProfileState.Error -> {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = state.message,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error
+                )
             }
         }
     }
-
 }

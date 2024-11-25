@@ -40,7 +40,6 @@ class EventViewModel @Inject constructor(
 
                 val event = events.find { it.id == eventID } ?: return@combine EventState.Error("Event not found")
 
-
                 if (userResult is Result.Success && userResult.data != null) {
                     EventState.Content(event, userResult.data)
                 } else {

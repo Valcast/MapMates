@@ -64,8 +64,8 @@ import com.example.socialmeetingapp.presentation.profile.createprofileflow.Creat
 import com.example.socialmeetingapp.presentation.profile.createprofileflow.CreateProfileViewModel
 import com.example.socialmeetingapp.presentation.profile.editprofile.EditProfileScreen
 import com.example.socialmeetingapp.presentation.profile.editprofile.EditProfileViewModel
-import com.example.socialmeetingapp.presentation.settings.SettingsScreen
-import com.example.socialmeetingapp.presentation.settings.SettingsViewModel
+import com.example.socialmeetingapp.presentation.profile.settings.SettingsScreen
+import com.example.socialmeetingapp.presentation.profile.settings.SettingsViewModel
 import com.google.android.gms.maps.model.LatLng
 import com.google.firebase.Firebase
 import com.google.firebase.appcheck.appCheck
@@ -319,8 +319,9 @@ class MainActivity : ComponentActivity() {
 
                                 ProfileScreen(
                                     state = viewModel.userData.collectAsStateWithLifecycle().value,
-                                    onAddFriend = { viewModel.addFriend(it) },
-                                    onDeleteFriend = { viewModel.deleteFriend(it) },
+                                    onFollowUser = { viewModel.followUser(it) },
+                                    onUnfollowUser = { viewModel.unfollowUser(it) },
+                                    onDeleteFollower = { viewModel.deleteFollower(it) },
                                     onEditProfile = { NavigationManager.navigateTo(Routes.EditProfile) },
                                     onGoToSettings = { NavigationManager.navigateTo(Routes.Settings) }
                                 )

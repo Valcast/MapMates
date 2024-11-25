@@ -1,4 +1,4 @@
-package com.example.socialmeetingapp.presentation.settings
+package com.example.socialmeetingapp.presentation.profile.settings
 
 import androidx.lifecycle.ViewModel
 import com.example.socialmeetingapp.domain.repository.UserRepository

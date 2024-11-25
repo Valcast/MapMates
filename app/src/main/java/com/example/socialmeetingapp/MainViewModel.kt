@@ -42,7 +42,7 @@ class MainViewModel @Inject constructor(
     val state = userRepository.currentUser.map { userResult ->
         return@map when {
             isFirstTimeLaunch() -> MainState.Welcome
-            userResult is Result.Success && userResult.data == null -> MainState.CreateProfile
+            userResult is Result.Success && userResult.data?.username?.isEmpty() ?: false -> MainState.CreateProfile
             userResult is Result.Success && userResult.data != null -> MainState.Content(
                 user = userResult.data,
                 isEmailVerified = FirebaseAuth.getInstance().currentUser?.isEmailVerified == true

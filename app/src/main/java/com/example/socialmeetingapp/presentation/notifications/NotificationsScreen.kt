@@ -118,10 +118,15 @@ fun NotificationsScreen(state: NotificationsState, onNotificationAvatarClick: (S
                                             withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
                                                 append(state.notifications[id].senderName)
                                             }
-                                            append(" created a new event")
+                                            append(" created a new event ")
+                                            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                                                append((state.notifications[id].data as NotificationData.EventNotificationData).eventName)
+                                            }
                                         },
                                         style = MaterialTheme.typography.bodyMedium,
-                                        modifier = Modifier.padding(start = 8.dp)
+                                        modifier = Modifier.padding(start = 8.dp).clickable {
+                                            onJoinEventNotificationClick((state.notifications[id].data as NotificationData.EventNotificationData).eventId)
+                                        }
                                     )
                                 }
 
@@ -139,16 +144,21 @@ fun NotificationsScreen(state: NotificationsState, onNotificationAvatarClick: (S
                                 }
                             }
 
+                            val notificationCreatedTime = state.notifications[id].createdAt.toInstant(
+                                TimeZone.currentSystemDefault()
+                            ).periodUntil(
+                                Clock.System.now(),
+                                TimeZone.currentSystemDefault()
+                            )
+
 
                             Text(
-                                text = "${
-                                    state.notifications[id].createdAt.toInstant(
-                                        TimeZone.currentSystemDefault()
-                                    ).periodUntil(
-                                        Clock.System.now(),
-                                        TimeZone.currentSystemDefault()
-                                    ).hours
-                                } hours ago",
+                                text = when {
+                                    notificationCreatedTime.days > 0 -> "${notificationCreatedTime.days} days ago"
+                                    notificationCreatedTime.hours > 0 -> "${notificationCreatedTime.hours} hours ago"
+                                    notificationCreatedTime.minutes > 0 -> "${notificationCreatedTime.minutes} minutes ago"
+                                    else -> "Just now"
+                                },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                                 modifier = Modifier.padding(start = 8.dp)

@@ -23,8 +23,11 @@ interface UserRepository {
 
     suspend fun sendEmailVerification(): Result<Unit>
 
-    suspend fun addFriend(friendID: String): Result<Unit>
-    suspend fun deleteFriend(friendID: String): Result<Unit>
+    suspend fun followUser(friendID: String): Result<Unit>
+    suspend fun unfollowUser(friendID: String): Result<Unit>
+
+
+    suspend fun deleteFollower(friendID: String): Result<Unit>
 
     suspend fun getUserPreferences(): Result<Map<String, Any>>
     suspend fun updateUserPreferences(preferences: Map<String, Any>): Result<Unit>

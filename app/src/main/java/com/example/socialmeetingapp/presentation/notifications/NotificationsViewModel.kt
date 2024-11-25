@@ -23,7 +23,7 @@ class NotificationsViewModel @Inject constructor(
 ): ViewModel() {
     val state = userRepository.currentUser.map { userResult ->
         if (userResult is Result.Success && userResult.data != null) {
-            NotificationsState.Content(userResult.data.notifications)
+            NotificationsState.Content(userResult.data.notifications.sortedByDescending { it.createdAt })
         } else {
             NotificationsState.Error("Failed to load notifications")
         }

@@ -1,4 +1,4 @@
-package com.example.socialmeetingapp.presentation.settings
+package com.example.socialmeetingapp.presentation.profile.settings
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row

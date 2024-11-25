@@ -1,12 +1,10 @@
 package com.example.socialmeetingapp.data.repository
 
 import android.net.Uri
-import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import com.example.socialmeetingapp.data.remote.NotificationService
 import com.example.socialmeetingapp.data.utils.NetworkManager
-import com.example.socialmeetingapp.domain.model.Notification
 import com.example.socialmeetingapp.domain.model.Result
 import com.example.socialmeetingapp.domain.model.SignUpStatus
 import com.example.socialmeetingapp.domain.model.User
@@ -85,9 +83,9 @@ class FirebaseUserRepositoryImpl(
                                     email = firebaseAuth.currentUser!!.email!!,
                                     username = snapshot.getString("username")
                                         ?: return@launch,
-                                    bio = snapshot.getString("bio") ?: return@launch,
+                                    bio = snapshot.getString("bio") ?: "",
                                     dateOfBirth = snapshot.getString("dateOfBirth")?.let {
-                                        if (it == "Not specified") {
+                                        if (it.isEmpty()) {
                                             Clock.System.now().toLocalDateTime(TimeZone.UTC)
                                         } else {
                                             LocalDateTime.parse(it)
@@ -104,10 +102,9 @@ class FirebaseUserRepositoryImpl(
                                         ?.let { LocalDateTime.parse(it) }
                                         ?: return@launch,
                                     updatedAt = snapshot.getString("updatedAt")
-                                        ?.let { LocalDateTime.parse(it) }
-                                        ?: return@launch,
+                                        ?.let { try { LocalDateTime.parse(it) } catch(_: Exception) { null } },
                                     lastPasswordChange = snapshot.getString("lastPasswordChange")
-                                        ?.let { LocalDateTime.parse(it) } ?: return@launch,
+                                        ?.let { try { LocalDateTime.parse(it) } catch(_: Exception) { null } },
                                     lastLogin = snapshot.getString("lastLogin")
                                         ?.let { LocalDateTime.parse(it) }
                                         ?: return@launch,
@@ -142,32 +139,32 @@ class FirebaseUserRepositoryImpl(
                 email = userDocument.getString("email") ?: return Result.Error("User not found"),
                 username = userDocument.getString("username")
                     ?: return Result.Error("User not found"),
-                bio = userDocument.getString("bio") ?: return Result.Error("User not found"),
+                bio = userDocument.getString("bio") ?: "",
                 dateOfBirth = userDocument.getString("dateOfBirth")?.let {
-                    if (it == "Not specified") {
+                    if (it.isEmpty()) {
                         Clock.System.now().toLocalDateTime(TimeZone.UTC)
                     } else {
                         LocalDateTime.parse(it)
                     }
-                }
-                    ?: return Result.Error("Birth Date is missing"),
-                gender = userDocument.getString("gender") ?: return Result.Error("User not found"),
-                role = userDocument.getString("role") ?: return Result.Error("User not found"),
+                } ?: return Result.Error("User not found"),
                 following = userDocument.get("following") as List<String>?
                     ?: return Result.Error("User not found"),
                 followers = userDocument.get("followers") as List<String>?
                     ?: return Result.Error("User not found"),
-                createdAt = userDocument.getString("createdAt")?.let { LocalDateTime.parse(it) }
-                    ?: return Result.Error("Created at is missing"),
-                updatedAt = userDocument.getString("updatedAt")?.let { LocalDateTime.parse(it) }
-                    ?: return Result.Error("Updated at is missing"),
-                lastPasswordChange = userDocument.getString("lastPasswordChange")
+                gender = userDocument.getString("gender") ?: return Result.Error("User not found"),
+                role = userDocument.getString("role") ?: return Result.Error("User not found"),
+                createdAt = userDocument.getString("createdAt")
                     ?.let { LocalDateTime.parse(it) }
-                    ?: return Result.Error("Last password change is missing"),
-                lastLogin = userDocument.getString("lastLogin")?.let { LocalDateTime.parse(it) }
-                    ?: return Result.Error("Last login is missing"),
+                    ?: return Result.Error("User not found"),
+                updatedAt = userDocument.getString("updatedAt")
+                    ?.let { try { LocalDateTime.parse(it) } catch(_: Exception) { null } },
+                lastPasswordChange = userDocument.getString("lastPasswordChange")
+                    ?.let { try { LocalDateTime.parse(it) } catch(_: Exception) { null } },
+                lastLogin = userDocument.getString("lastLogin")
+                    ?.let { LocalDateTime.parse(it) }
+                    ?: return Result.Error("User not found"),
                 profilePictureUri = userDocument.getString("profilePictureUri")
-                    ?.let { Uri.parse(it) } ?: Uri.EMPTY,
+                    ?.let { Uri.parse(it) } ?: Uri.EMPTY
             )
 
 
@@ -197,22 +194,19 @@ class FirebaseUserRepositoryImpl(
                 hashMapOf(
                     "email" to email,
                     "createdAt" to currentMoment.toString(),
-                    "updatedAt" to currentMoment.toString(),
+                    "updatedAt" to "",
                     "lastLogin" to currentMoment.toString(),
-                    "lastPasswordChange" to currentMoment.toString(),
+                    "lastPasswordChange" to "",
                     "following" to emptyList<String>(),
                     "followers" to emptyList<String>(),
                     "role" to "User",
-                    "gender" to "Not specified",
-                    "dateOfBirth" to "Not specified",
+                    "gender" to "",
+                    "dateOfBirth" to "",
                     "bio" to "",
                     "username" to "",
                     "profilePictureUri" to ""
                 )
             )
-
-
-
             Result.Success(Unit)
         } catch (_: FirebaseAuthWeakPasswordException) {
             Result.Error("Password is too weak")
@@ -267,12 +261,12 @@ class FirebaseUserRepositoryImpl(
                 hashMapOf(
                     "email" to authResult.user!!.email,
                     "createdAt" to currentMoment.toString(),
-                    "updatedAt" to currentMoment.toString(),
+                    "updatedAt" to "",
                     "lastLogin" to currentMoment.toString(),
-                    "lastPasswordChange" to currentMoment.toString(),
+                    "lastPasswordChange" to "",
                     "role" to "User",
-                    "gender" to "Not specified",
-                    "dateOfBirth" to "Not specified",
+                    "gender" to "",
+                    "dateOfBirth" to "",
                     "following" to emptyList<String>(),
                     "followers" to emptyList<String>(),
                     "bio" to "",
@@ -339,11 +333,13 @@ class FirebaseUserRepositoryImpl(
             val friendDocument = db.collection("users").document(friendID)
 
             currentUserDocument.update("following", action).await()
-            friendDocument.update("followers", if (action.javaClass == FieldValue.arrayUnion().javaClass) {
-                FieldValue.arrayUnion(currentUserId)
-            } else {
-                FieldValue.arrayRemove(currentUserId)
-            }).await()
+            friendDocument.update(
+                "followers", if (action.javaClass == FieldValue.arrayUnion().javaClass) {
+                    FieldValue.arrayUnion(currentUserId)
+                } else {
+                    FieldValue.arrayRemove(currentUserId)
+                }
+            ).await()
 
             return Result.Success(Unit)
         } catch (e: Exception) {
@@ -351,13 +347,28 @@ class FirebaseUserRepositoryImpl(
         }
     }
 
-    override suspend fun addFriend(friendID: String): Result<Unit> {
+    override suspend fun followUser(friendID: String): Result<Unit> {
 
         return updateFriendship(friendID, FieldValue.arrayUnion(friendID))
     }
 
-    override suspend fun deleteFriend(friendID: String): Result<Unit> {
+    override suspend fun unfollowUser(friendID: String): Result<Unit> {
         return updateFriendship(friendID, FieldValue.arrayRemove(friendID))
+    }
+
+    override suspend fun deleteFollower(friendID: String): Result<Unit> {
+        try {
+            val currentUserId = firebaseAuth.currentUser!!.uid
+            val currentUserDocument = db.collection("users").document(currentUserId)
+            val friendDocument = db.collection("users").document(friendID)
+
+            currentUserDocument.update("followers", FieldValue.arrayRemove(friendID)).await()
+            friendDocument.update("following", FieldValue.arrayRemove(currentUserId)).await()
+
+            return Result.Success(Unit)
+        } catch (e: Exception) {
+            return Result.Error(e.message ?: "Unknown error")
+        }
     }
 
     override suspend fun uploadProfilePicture(imageUri: Uri): Result<Uri> {
@@ -395,7 +406,8 @@ class FirebaseUserRepositoryImpl(
         }
     }
 
-    override suspend fun markNotificationAsRead(notificationId: String) = notificationService.markNotificationAsRead(notificationId)
+    override suspend fun markNotificationAsRead(notificationId: String) =
+        notificationService.markNotificationAsRead(notificationId)
 
     override suspend fun getUserPreferences(): Result<Map<String, Any>> {
         TODO("Not yet implemented")

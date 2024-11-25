@@ -17,9 +17,9 @@ data class User(
     val followers: List<String> = emptyList(),
     val notifications: List<Notification> = emptyList(),
     val createdAt: LocalDateTime,
-    val updatedAt: LocalDateTime,
+    val updatedAt: LocalDateTime?,
     val lastLogin: LocalDateTime,
-    val lastPasswordChange: LocalDateTime,
+    val lastPasswordChange: LocalDateTime?,
     val profilePictureUri: Uri,
     val bio: String = "",
 
