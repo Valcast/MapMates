@@ -8,6 +8,8 @@ You can create your own events, invite others, or browse through a variety of ev
 - 🗺️ **Map Integration**: Google Maps API for rendering event locations and Geocoding API for retrieving formatted addresses.
 - :tada: **Event Creation**: Allow users to create and manage events, specifying details like date, time, and location.
 - :man: **User Profile**: Users can create and edit their profile, including personal details
+- 🔔 Notifications: Stay updated on new activities from people you follow.
+- 🤝 Social Features: Follow other users and track their actions in real time.
 ## Tech Stack
 
 ![Android](https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)
@@ -26,6 +28,4 @@ The app follows Clean Architecture and MVVM with a separation between the UI lay
 Uses Dagger Hilt for Dependency Injection
 
 ## Future Improvements
-- 🤝 **Implement social features**: Friend list, event sharing and inviting
 - 🗪 **Add in-app messaging**: Users could chat with other participants
-- 🔔 **Create notification system**: Event reminders, updates
