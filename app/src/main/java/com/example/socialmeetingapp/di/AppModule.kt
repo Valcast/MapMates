@@ -12,7 +12,6 @@ import com.example.socialmeetingapp.data.remote.NotificationService
 import com.example.socialmeetingapp.data.repository.FirebaseEventRepositoryImpl
 import com.example.socialmeetingapp.data.repository.FirebaseUserRepositoryImpl
 import com.example.socialmeetingapp.data.repository.LocationRepositoryImpl
-import com.example.socialmeetingapp.data.utils.NetworkManager
 import com.example.socialmeetingapp.domain.repository.EventRepository
 import com.example.socialmeetingapp.domain.repository.LocationRepository
 import com.example.socialmeetingapp.domain.repository.UserRepository
@@ -107,13 +106,6 @@ object AppModule {
         return FirebaseEventRepositoryImpl(firestoreDatabase, userRepository, firebaseAuth, notificationService)
     }
 
-
-    @Provides
-    @Singleton
-    fun provideNetworkManager(connectivityManager: ConnectivityManager): NetworkManager {
-        return NetworkManager(connectivityManager)
-    }
-
     @Provides
     @Singleton
     fun provideDataStore(@ApplicationContext context: Context): DataStore<Preferences> {
@@ -127,7 +119,6 @@ object AppModule {
     @Singleton
     fun provideUserRepository(
         firebaseAuth: FirebaseAuth,
-        networkManager: NetworkManager,
         firestoreDatabase: FirebaseFirestore,
         firebaseStorage: FirebaseStorage,
         dataStore: DataStore<Preferences>,
@@ -135,7 +126,6 @@ object AppModule {
     ): UserRepository {
         return FirebaseUserRepositoryImpl(
             firebaseAuth,
-            networkManager,
             firestoreDatabase,
             firebaseStorage,
             dataStore,

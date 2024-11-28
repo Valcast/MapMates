@@ -17,6 +17,7 @@ import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.callbackFlow
@@ -29,10 +30,7 @@ class LocationRepositoryImpl(
     private val geocodingApi: GeocodingApi
 ) : LocationRepository {
 
-    private val coroutineScope = CoroutineScope(Dispatchers.IO)
-
-
-    override val latestLocation: StateFlow<Result<LatLng>> = callbackFlow {
+    override val latestLocation: Flow<Result<LatLng>> = callbackFlow {
         if (hasLocationPermission()) {
             val locationCallback = object : LocationCallback() {
                 override fun onLocationResult(locationResult: com.google.android.gms.location.LocationResult) {
@@ -63,11 +61,7 @@ class LocationRepositoryImpl(
             trySend(Result.Error("Location permission not granted"))
             close()
         }
-    }.stateIn(
-        coroutineScope,
-        SharingStarted.WhileSubscribed(5000),
-        Result.Loading
-    )
+    }
 
     private val locationRequest =
         LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5000L).build()

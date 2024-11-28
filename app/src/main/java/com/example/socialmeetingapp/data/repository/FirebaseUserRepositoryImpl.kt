@@ -4,7 +4,6 @@ import android.net.Uri
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import com.example.socialmeetingapp.data.remote.NotificationService
-import com.example.socialmeetingapp.data.utils.NetworkManager
 import com.example.socialmeetingapp.domain.model.Result
 import com.example.socialmeetingapp.domain.model.SignUpStatus
 import com.example.socialmeetingapp.domain.model.User
@@ -39,7 +38,6 @@ import kotlinx.datetime.toLocalDateTime
 
 class FirebaseUserRepositoryImpl(
     private val firebaseAuth: FirebaseAuth,
-    private val networkManager: NetworkManager,
     private val db: FirebaseFirestore,
     private val storage: FirebaseStorage,
     private val dataStore: DataStore<Preferences>,
@@ -127,10 +125,6 @@ class FirebaseUserRepositoryImpl(
     }.stateIn(coroutineScope, SharingStarted.WhileSubscribed(5000), Result.Loading)
 
     override suspend fun getUser(id: String): Result<User> {
-        if (!networkManager.isConnected) {
-            return Result.Error("No internet connection")
-        }
-
         try {
             val userDocument = db.collection("users").document(id).get().await()
 
@@ -180,10 +174,6 @@ class FirebaseUserRepositoryImpl(
         email: String,
         password: String
     ): Result<Unit> {
-        if (!networkManager.isConnected) {
-            return Result.Error("No internet connection")
-        }
-
         return try {
             val authResult: AuthResult =
                 firebaseAuth.createUserWithEmailAndPassword(email, password).await()
@@ -220,10 +210,6 @@ class FirebaseUserRepositoryImpl(
     }
 
     override suspend fun signIn(email: String, password: String): Result<Unit> {
-        if (!networkManager.isConnected) {
-            return Result.Error("No internet connection")
-        }
-
         return try {
             val authResult = firebaseAuth.signInWithEmailAndPassword(email, password).await()
             db.collection("users").document(authResult.user!!.uid).update(
@@ -240,10 +226,6 @@ class FirebaseUserRepositoryImpl(
     }
 
     override suspend fun signUpWithGoogle(idToken: String): Result<SignUpStatus> {
-        if (!networkManager.isConnected) {
-            return Result.Error("No internet connection")
-        }
-
         return try {
             val credential = GoogleAuthProvider.getCredential(idToken, null)
             val authResult = firebaseAuth.signInWithCredential(credential).await()
@@ -293,10 +275,6 @@ class FirebaseUserRepositoryImpl(
     }
 
     override suspend fun updateUser(user: User): Result<Unit> {
-        if (!networkManager.isConnected) {
-            return Result.Error("No internet connection")
-        }
-
         try {
             val userDocument = db.collection("users").document(firebaseAuth.currentUser!!.uid)
 
@@ -323,10 +301,6 @@ class FirebaseUserRepositoryImpl(
         friendID: String,
         action: FieldValue
     ): Result<Unit> {
-        if (!networkManager.isConnected) {
-            return Result.Error("No internet connection")
-        }
-
         try {
             val currentUserId = firebaseAuth.currentUser!!.uid
             val currentUserDocument = db.collection("users").document(currentUserId)
@@ -372,10 +346,6 @@ class FirebaseUserRepositoryImpl(
     }
 
     override suspend fun uploadProfilePicture(imageUri: Uri): Result<Uri> {
-        if (!networkManager.isConnected) {
-            return Result.Error("No internet connection")
-        }
-
         try {
             val storageRef =
                 storage.reference.child("profile_pictures/${firebaseAuth.currentUser!!.uid}")
@@ -392,10 +362,6 @@ class FirebaseUserRepositoryImpl(
 
 
     override suspend fun sendEmailVerification(): Result<Unit> {
-        if (!networkManager.isConnected) {
-            return Result.Error("No internet connection")
-        }
-
         try {
             firebaseAuth.currentUser!!.sendEmailVerification().await()
             return Result.Success(Unit)
