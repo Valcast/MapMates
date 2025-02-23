@@ -7,8 +7,6 @@ import kotlinx.coroutines.flow.Flow
 interface LocationRepository {
     val latestLocation: Flow<Result<LatLng>>
 
-    fun hasLocationPermission(): Boolean
-
     suspend fun getAddressFromLatLng(location: LatLng): Result<String>
 }
 

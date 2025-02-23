@@ -1,8 +1,5 @@
 package com.example.socialmeetingapp.presentation.home
 
-import android.app.Activity
-import android.content.Context
-import android.content.ContextWrapper
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -31,6 +28,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,6 +42,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.socialmeetingapp.domain.model.Result
 import com.example.socialmeetingapp.presentation.components.EventCard
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.android.gms.maps.GoogleMapOptions
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
@@ -53,25 +53,32 @@ import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberMarkerState
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun HomeScreen(
     state: HomeState,
     locationCoordinates: LatLng? = null,
     onMapLongClick: (LatLng) -> Unit,
     onEventClick: (String) -> Unit,
-    requestPermission: () -> Unit
 ) {
-
     var isListView by rememberSaveable { mutableStateOf(false) }
-
-
     var isRequestPermissionDialogVisible by remember { mutableStateOf(false) }
-
     var selectedEventIndex by remember { mutableStateOf<Int?>(null) }
     var selectedCreateEventPosition by remember { mutableStateOf<LatLng?>(null) }
-
     var shouldShowEventDialog by rememberSaveable { mutableStateOf(true) }
+
+    val locationPermissions = rememberMultiplePermissionsState(
+        permissions = listOf(
+            android.Manifest.permission.ACCESS_FINE_LOCATION,
+            android.Manifest.permission.ACCESS_COARSE_LOCATION
+        )
+    )
+
+    LaunchedEffect(locationPermissions) {
+        if (locationPermissions.allPermissionsGranted) {
+            isRequestPermissionDialogVisible = false
+        }
+    }
 
 
     when (state) {
@@ -290,7 +297,7 @@ fun HomeScreen(
                                     )
                                 }
 
-                                Button(onClick = requestPermission) {
+                                Button(onClick = {locationPermissions.launchMultiplePermissionRequest()}) {
                                     Text(
 
                                         text = "Allow",
@@ -322,14 +329,4 @@ fun HomeScreen(
             }
         }
     }
-}
-
-fun Context.getActivityOrNull(): Activity? {
-    var context = this
-    while (context is ContextWrapper) {
-        if (context is Activity) return context
-        context = context.baseContext
-    }
-
-    return null
 }

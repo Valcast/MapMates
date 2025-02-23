@@ -1,12 +1,11 @@
 package com.example.socialmeetingapp.data.repository
 
+import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Looper
-import androidx.core.content.ContextCompat
 import com.example.socialmeetingapp.BuildConfig
 import com.example.socialmeetingapp.data.api.GeocodingApi
-import com.example.socialmeetingapp.data.utils.PermissionManager
 import com.example.socialmeetingapp.domain.model.Result
 import com.example.socialmeetingapp.domain.repository.LocationRepository
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -26,7 +25,7 @@ class LocationRepositoryImpl(
 ) : LocationRepository {
 
     override val latestLocation: Flow<Result<LatLng>> = callbackFlow {
-        if (hasLocationPermission()) {
+        if (context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             val locationCallback = object : LocationCallback() {
                 override fun onLocationResult(locationResult: com.google.android.gms.location.LocationResult) {
                     val lastLocation = locationResult.lastLocation
@@ -60,17 +59,6 @@ class LocationRepositoryImpl(
 
     private val locationRequest =
         LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5000L).build()
-
-    override fun hasLocationPermission(): Boolean {
-        return ContextCompat.checkSelfPermission(
-            context,
-            PermissionManager.FINE_LOCATION_PERMISSION
-        ) == PackageManager.PERMISSION_GRANTED ||
-                ContextCompat.checkSelfPermission(
-                    context,
-                    PermissionManager.COARSE_LOCATION_PERMISSION
-                ) == PackageManager.PERMISSION_GRANTED
-    }
 
     override suspend fun getAddressFromLatLng(location: LatLng): Result<String> {
         return try {

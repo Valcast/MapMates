@@ -36,7 +36,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.example.compose.SocialMeetingAppTheme
-import com.example.socialmeetingapp.data.utils.PermissionManager
 import com.example.socialmeetingapp.presentation.activities.ActivitiesScreen
 import com.example.socialmeetingapp.presentation.activities.ActivitiesViewModel
 import com.example.socialmeetingapp.presentation.authentication.forgot.ForgotPasswordScreen
@@ -77,7 +76,6 @@ import kotlinx.coroutines.flow.collectLatest
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
-    private var permissionManager = PermissionManager(this)
     private lateinit var splashScreen: SplashScreen
     private val mainViewModel: MainViewModel by viewModels()
 
@@ -101,10 +99,6 @@ class MainActivity : ComponentActivity() {
 
             LaunchedEffect(Unit) {
                 SnackbarManager.messages.collectLatest { snackbarHostState.showSnackbar(it) }
-            }
-
-            LaunchedEffect(Unit) {
-                permissionManager.checkPermissions(PermissionManager.FINE_LOCATION_PERMISSION)
             }
 
             LaunchedEffect(Unit) {
@@ -288,11 +282,6 @@ class MainActivity : ComponentActivity() {
                                         )
                                     },
                                     onEventClick = { NavigationManager.navigateTo(Routes.Event(it)) },
-                                    requestPermission = {
-                                        permissionManager.checkPermissions(
-                                            PermissionManager.FINE_LOCATION_PERMISSION
-                                        )
-                                    }
                                 )
                             }
 

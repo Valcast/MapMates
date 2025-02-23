@@ -102,8 +102,6 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
 
-
-
     implementation(libs.google.location)
 
     implementation(libs.google.maps)
@@ -120,6 +118,8 @@ dependencies {
     implementation(libs.retrofit)
     testImplementation(libs.mockwebserver)
     implementation(libs.converter.gson)
+
+    implementation(libs.accompanist.permissions)
 
     implementation(libs.hilt)
     kapt(libs.hilt.compiler)
