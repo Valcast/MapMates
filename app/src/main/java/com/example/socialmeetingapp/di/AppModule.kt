@@ -12,8 +12,10 @@ import com.example.socialmeetingapp.data.remote.NotificationService
 import com.example.socialmeetingapp.data.repository.FirebaseEventRepositoryImpl
 import com.example.socialmeetingapp.data.repository.FirebaseUserRepositoryImpl
 import com.example.socialmeetingapp.data.repository.LocationRepositoryImpl
+import com.example.socialmeetingapp.data.repository.SettingsRepositoryImpl
 import com.example.socialmeetingapp.domain.repository.EventRepository
 import com.example.socialmeetingapp.domain.repository.LocationRepository
+import com.example.socialmeetingapp.domain.repository.SettingsRepository
 import com.example.socialmeetingapp.domain.repository.UserRepository
 import com.example.socialmeetingapp.presentation.common.CredentialManager
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -135,6 +137,14 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun provideSettingsRepository(
+        dataStore: DataStore<Preferences>
+    ): SettingsRepository {
+        return SettingsRepositoryImpl(dataStore)
+    }
+
+    @Provides
+    @Singleton
     fun provideGeocodingApi(): GeocodingApi {
         return Retrofit.Builder()
             .baseUrl("https://maps.googleapis.com")
@@ -142,6 +152,7 @@ object AppModule {
             .build()
             .create(GeocodingApi::class.java)
     }
+
 }
 
 

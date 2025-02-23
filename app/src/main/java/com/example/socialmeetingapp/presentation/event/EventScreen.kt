@@ -77,7 +77,6 @@ fun EventScreen(
     var showBottomSheet by remember { mutableStateOf(false) }
     var eventActionsExpanded by remember { mutableStateOf(false) }
 
-
     when (state) {
         is EventState.Loading -> {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

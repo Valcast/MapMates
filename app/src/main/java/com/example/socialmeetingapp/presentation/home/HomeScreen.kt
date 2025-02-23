@@ -41,12 +41,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.socialmeetingapp.domain.model.Result
+import com.example.socialmeetingapp.domain.model.Theme
 import com.example.socialmeetingapp.presentation.components.EventCard
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.android.gms.maps.GoogleMapOptions
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.MapColorScheme
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
@@ -57,6 +59,7 @@ import com.google.maps.android.compose.rememberMarkerState
 @Composable
 fun HomeScreen(
     state: HomeState,
+    theme: Theme,
     locationCoordinates: LatLng? = null,
     onMapLongClick: (LatLng) -> Unit,
     onEventClick: (String) -> Unit,
@@ -117,7 +120,13 @@ fun HomeScreen(
                         modifier = Modifier.fillMaxSize(),
                         cameraPositionState = cameraPositionState,
                         googleMapOptionsFactory = {
-                            GoogleMapOptions().mapToolbarEnabled(false).zoomControlsEnabled(false)
+                            GoogleMapOptions().mapToolbarEnabled(false).zoomControlsEnabled(false).mapColorScheme(
+                                when (theme) {
+                                    Theme.LIGHT -> MapColorScheme.LIGHT
+                                    Theme.DARK -> MapColorScheme.DARK
+                                    Theme.SYSTEM -> MapColorScheme.FOLLOW_SYSTEM
+                                }
+                            )
                         },
                         uiSettings = MapUiSettings(
                             compassEnabled = false,

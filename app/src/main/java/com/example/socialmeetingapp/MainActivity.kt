@@ -77,8 +77,7 @@ import kotlinx.coroutines.flow.collectLatest
 class MainActivity : ComponentActivity() {
 
     private lateinit var splashScreen: SplashScreen
-    private val mainViewModel: MainViewModel by viewModels()
-
+    private val viewModel: MainViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         splashScreen = installSplashScreen()
@@ -91,7 +90,8 @@ class MainActivity : ComponentActivity() {
 
         enableEdgeToEdge()
         setContent {
-            val state = mainViewModel.state.collectAsStateWithLifecycle().value
+            val state = viewModel.state.collectAsStateWithLifecycle().value
+            val theme = viewModel.settings.collectAsStateWithLifecycle().value.theme
             splashScreen.setKeepOnScreenCondition { state is MainState.Loading }
 
             val navController = rememberNavController()
@@ -173,7 +173,7 @@ class MainActivity : ComponentActivity() {
 
                 }
 
-                SocialMeetingAppTheme {
+                SocialMeetingAppTheme(theme) {
                     Scaffold(
                         snackbarHost = { SnackbarHost(snackbarHostState) },
                         topBar = {
@@ -196,7 +196,7 @@ class MainActivity : ComponentActivity() {
                                         color = MaterialTheme.colorScheme.onBackground,
                                     )
 
-                                    Button(onClick = { mainViewModel.resendVerificationEmail() }) {
+                                    Button(onClick = { viewModel.resendVerificationEmail() }) {
                                         Text(
                                             text = "Verify",
                                             style = MaterialTheme.typography.bodyMedium,
@@ -218,7 +218,7 @@ class MainActivity : ComponentActivity() {
                                         currentRoute = currentRoute,
                                         onItemClicked = {
                                             if (it is Routes.Notifications) {
-                                                mainViewModel.markNotificationsAsRead()
+                                                viewModel.markNotificationsAsRead()
                                             }
                                             NavigationManager.navigateTo(it) },
                                         profileImageUrl = state.user.profilePictureUri,
@@ -252,7 +252,7 @@ class MainActivity : ComponentActivity() {
                         ) {
                             composable<Routes.Introduction> {
                                 IntroductionScreen(onFinish = {
-                                    mainViewModel.onIntroductionFinished()
+                                    viewModel.onIntroductionFinished()
                                     NavigationManager.navigateTo(Routes.Login)
                                 })
                             }
@@ -273,6 +273,7 @@ class MainActivity : ComponentActivity() {
                                         args.latitude,
                                         args.longitude
                                     ) else null,
+                                    theme = theme,
                                     onMapLongClick = {
                                         NavigationManager.navigateTo(
                                             Routes.CreateEvent(
@@ -427,10 +428,13 @@ class MainActivity : ComponentActivity() {
 
                             composable<Routes.Settings> {
                                 val viewModel = hiltViewModel<SettingsViewModel>()
+                                val settings = viewModel.settings.collectAsStateWithLifecycle().value
 
                                 SettingsScreen(
+                                    settings = settings,
                                     onBack = { NavigationManager.navigateTo(Routes.Profile(if (state is MainState.Content) state.user.id else "")) },
-                                    onSignOut = viewModel::signOut
+                                    onSignOut = viewModel::signOut,
+                                    onThemeChange = { viewModel.updateSettings(settings.copy(theme = it)) },
                                 )
                             }
 
