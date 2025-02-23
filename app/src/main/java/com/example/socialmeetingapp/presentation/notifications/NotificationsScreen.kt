@@ -26,7 +26,6 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
-import com.example.socialmeetingapp.domain.model.Notification
 import com.example.socialmeetingapp.domain.model.NotificationData
 import com.example.socialmeetingapp.domain.model.NotificationType
 import kotlinx.datetime.Clock

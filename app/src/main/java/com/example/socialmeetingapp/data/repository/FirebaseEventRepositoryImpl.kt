@@ -1,6 +1,5 @@
 package com.example.socialmeetingapp.data.repository
 
-import android.util.Log
 import com.example.socialmeetingapp.data.remote.NotificationService
 import com.example.socialmeetingapp.domain.model.Event
 import com.example.socialmeetingapp.domain.model.Notification
@@ -62,11 +61,8 @@ class FirebaseEventRepositoryImpl(
 
         awaitClose { listenerRegistration.remove() }
     }.stateIn(
-        coroutineScope,
-        SharingStarted.WhileSubscribed(5000),
-        emptyList()
+        coroutineScope, SharingStarted.WhileSubscribed(5000), emptyList()
     )
-
 
     override suspend fun getEvent(id: String): Result<Event> {
         return try {
@@ -105,13 +101,11 @@ class FirebaseEventRepositoryImpl(
 
             (userRepository.currentUser.value as Success).data!!.followers.forEach { follower ->
                 notificationService.sendNotification(
-                    userId = follower,
-                    notification = Notification(
+                    userId = follower, notification = Notification(
                         senderId = firebaseAuth.currentUser!!.uid,
                         type = NotificationType.FriendCreatedNewEvent,
                         data = NotificationData.EventNotificationData(
-                            eventId = createdEvent.id,
-                            eventName = event.title
+                            eventId = createdEvent.id, eventName = event.title
                         )
                     )
 
@@ -162,7 +156,9 @@ class FirebaseEventRepositoryImpl(
         return try {
             val eventDocument = db.collection("events").document(eventID)
 
-            eventDocument.update("joinRequests", FieldValue.arrayUnion(firebaseAuth.currentUser!!.uid)).await()
+            eventDocument.update(
+                "joinRequests", FieldValue.arrayUnion(firebaseAuth.currentUser!!.uid)
+            ).await()
             Success(Unit)
         } catch (e: FirebaseFirestoreException) {
             Error(e.message ?: "Unknown error")
@@ -196,7 +192,9 @@ class FirebaseEventRepositoryImpl(
     override suspend fun joinEvent(id: String): Result<Unit> {
         return try {
             val eventDocument = db.collection("events").document(id)
-            eventDocument.update("participants", FieldValue.arrayUnion(firebaseAuth.currentUser!!.uid)).await()
+            eventDocument.update(
+                "participants", FieldValue.arrayUnion(firebaseAuth.currentUser!!.uid)
+            ).await()
 
             notificationService.sendNotification(
                 userId = eventDocument.get().await().getString("author")!!,
@@ -221,7 +219,9 @@ class FirebaseEventRepositoryImpl(
     override suspend fun leaveEvent(id: String): Result<Unit> {
         return try {
             val eventDocument = db.collection("events").document(id)
-            eventDocument.update("participants", FieldValue.arrayRemove(firebaseAuth.currentUser!!.uid)).await()
+            eventDocument.update(
+                "participants", FieldValue.arrayRemove(firebaseAuth.currentUser!!.uid)
+            ).await()
 
             Success(Unit)
         } catch (e: FirebaseFirestoreException) {
@@ -292,8 +292,5 @@ class FirebaseEventRepositoryImpl(
             isPrivate = eventDocument.getBoolean("isPrivate") == true,
             isOnline = eventDocument.getBoolean("isOnline") == true,
         )
-
     }
-
-
 }
