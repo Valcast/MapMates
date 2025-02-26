@@ -40,6 +40,9 @@ import coil3.compose.AsyncImage
 import com.example.socialmeetingapp.presentation.common.NavigationManager
 import com.example.socialmeetingapp.presentation.common.Routes
 import com.example.socialmeetingapp.presentation.components.EventCard
+import kotlinx.datetime.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -102,7 +105,7 @@ fun ActivitiesScreen(
 
                 when (tabState) {
                     0 -> {
-                        if (state.joinedEvents.isEmpty()) {
+                        if (state.joinedEventDetails.isEmpty() || state.joinedEventDetails.all { it.endTime < Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()) }) {
 
                             Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
@@ -124,9 +127,14 @@ fun ActivitiesScreen(
 
                         } else {
                             LazyColumn {
-                                items(state.joinedEvents.size) { event ->
+                                items(state.joinedEventDetails.size) { event ->
+
+                                    if (state.joinedEventDetails[event].endTime < Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())) {
+                                        return@items
+                                    }
+
                                     EventCard(
-                                        event = state.joinedEvents[event],
+                                        event = state.joinedEventDetails[event],
                                         onCardClick = onCardClick,
                                         modifier = Modifier.padding(
                                             top = 16.dp,
@@ -140,7 +148,7 @@ fun ActivitiesScreen(
                     }
 
                     1 -> {
-                        if (state.createdEvents.isEmpty()) {
+                        if (state.createdEventDetails.isEmpty() || state.createdEventDetails.all { it.endTime < Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()) }) {
                             Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
                                     text = "You haven't created any events yet. Start creating events and invite your friends!",
@@ -160,18 +168,22 @@ fun ActivitiesScreen(
                             }
                         } else {
                             LazyColumn {
-                                items(state.createdEvents.size) { event ->
+                                items(state.createdEventDetails.size) { event ->
+                                    if (state.createdEventDetails[event].endTime < Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())) {
+                                        return@items
+                                    }
+
                                     EventCard(
-                                        event = state.createdEvents[event],
+                                        event = state.createdEventDetails[event],
                                         onCardClick = onCardClick,
                                         modifier = Modifier
                                             .zIndex(1f)
                                             .padding(top = 16.dp, start = 8.dp, end = 8.dp)
                                     )
 
-                                    if (state.createdEvents[event].isPrivate && state.createdEvents[event].joinRequests.isNotEmpty()) {
+                                    if (state.createdEventDetails[event].isPrivate && state.createdEventDetails[event].joinRequests.isNotEmpty()) {
                                         LazyColumn(modifier = Modifier.heightIn(max = 200.dp)) {
-                                            items(state.createdEvents[event].joinRequests.size) { joinRequest ->
+                                            items(state.createdEventDetails[event].joinRequests.size) { joinRequest ->
                                                 ElevatedCard(
                                                     elevation = CardDefaults.elevatedCardElevation(
                                                         defaultElevation = 1.dp
@@ -185,10 +197,10 @@ fun ActivitiesScreen(
                                                 ) {
                                                     Column(modifier = Modifier.padding(16.dp)) {
                                                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clip(MaterialTheme.shapes.small).clickable {
-                                                            NavigationManager.navigateTo(Routes.Profile(state.createdEvents[event].joinRequests[joinRequest].id))
+                                                            NavigationManager.navigateTo(Routes.Profile(state.createdEventDetails[event].joinRequests[joinRequest].id))
                                                         }.padding(4.dp)) {
                                                             AsyncImage(
-                                                                model = state.createdEvents[event].joinRequests[joinRequest].profilePictureUri,
+                                                                model = state.createdEventDetails[event].joinRequests[joinRequest].profilePictureUri,
                                                                 contentDescription = "Participant Profile Picture",
                                                                 modifier = Modifier
                                                                     .size(32.dp)
@@ -198,7 +210,7 @@ fun ActivitiesScreen(
                                                                 contentScale = ContentScale.Crop
                                                             )
                                                             Text(
-                                                                text = state.createdEvents[event].joinRequests[joinRequest].username,
+                                                                text = state.createdEventDetails[event].joinRequests[joinRequest].username,
                                                                 style = MaterialTheme.typography.bodyLarge,
                                                                 fontWeight = FontWeight.Bold,
                                                                 modifier = Modifier.padding(start = 8.dp)
@@ -217,8 +229,8 @@ fun ActivitiesScreen(
                                                         ) {
                                                             Button(onClick = {
                                                                 onDeclineJoinRequest(
-                                                                    state.createdEvents[event].id,
-                                                                    state.createdEvents[event].joinRequests[joinRequest].id
+                                                                    state.createdEventDetails[event].id,
+                                                                    state.createdEventDetails[event].joinRequests[joinRequest].id
                                                                 )
                                                             }) {
                                                                 Text(
@@ -230,8 +242,8 @@ fun ActivitiesScreen(
                                                             Button(
                                                                 onClick = {
                                                                     onAcceptJoinRequest(
-                                                                        state.createdEvents[event].id,
-                                                                        state.createdEvents[event].joinRequests[joinRequest].id
+                                                                        state.createdEventDetails[event].id,
+                                                                        state.createdEventDetails[event].joinRequests[joinRequest].id
                                                                     )
                                                                 },
                                                                 modifier = Modifier.padding(start = 16.dp)

@@ -20,7 +20,7 @@ import javax.inject.Inject
 sealed class HomeState {
     data object Loading : HomeState()
     data class Error(val message: String) : HomeState()
-    data class Content(val events: List<Event>, val location: Result<LatLng>) : HomeState()
+    data class Content(val eventDetails: List<Event>, val location: Result<LatLng>) : HomeState()
 }
 
 @HiltViewModel
@@ -28,7 +28,7 @@ class HomeViewModel @Inject constructor(
     locationRepository: LocationRepository,
     eventRepository: EventRepository
 ) : ViewModel() {
-    val state: StateFlow<HomeState> = combine(eventRepository.eventsStateFlow, locationRepository.latestLocation) { events, locationResult ->
+    val state: StateFlow<HomeState> = combine(eventRepository.events, locationRepository.latestLocation) { events, locationResult ->
 
         val filteredEvents = events.filter { event ->
             event.endTime.toInstant(TimeZone.currentSystemDefault()).toEpochMilliseconds() > System.currentTimeMillis()

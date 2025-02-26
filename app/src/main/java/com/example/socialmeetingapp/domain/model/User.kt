@@ -12,14 +12,9 @@ data class User(
     val username: String,
     val dateOfBirth: LocalDateTime,
     val gender: String = "Not specified",
-    val role: String = "User",
     val following: List<String> = emptyList(),
     val followers: List<String> = emptyList(),
-    val notifications: List<Notification> = emptyList(),
     val createdAt: LocalDateTime,
-    val updatedAt: LocalDateTime?,
-    val lastLogin: LocalDateTime,
-    val lastPasswordChange: LocalDateTime?,
     val profilePictureUri: Uri,
     val bio: String = "",
 
@@ -32,11 +27,7 @@ data class User(
             username = "",
             dateOfBirth = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()),
             gender = "Not specified",
-            role = "User",
             createdAt = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()),
-            updatedAt = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()),
-            lastLogin = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()),
-            lastPasswordChange = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()),
             bio = "",
             profilePictureUri = Uri.EMPTY
         )

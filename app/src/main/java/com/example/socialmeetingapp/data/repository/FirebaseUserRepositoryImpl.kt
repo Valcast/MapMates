@@ -1,13 +1,16 @@
 package com.example.socialmeetingapp.data.repository
 
 import android.net.Uri
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import com.example.socialmeetingapp.data.remote.NotificationService
+import android.util.Log
+import com.example.socialmeetingapp.data.utils.MissingFieldException
+import com.example.socialmeetingapp.data.utils.toUser
+import com.example.socialmeetingapp.data.utils.toUserPreview
 import com.example.socialmeetingapp.domain.model.Result
 import com.example.socialmeetingapp.domain.model.SignUpStatus
 import com.example.socialmeetingapp.domain.model.User
+import com.example.socialmeetingapp.domain.model.UserPreview
 import com.example.socialmeetingapp.domain.repository.UserRepository
+import com.google.firebase.Timestamp
 import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthException
@@ -18,180 +21,125 @@ import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
-import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.storage.FirebaseStorage
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.datetime.Clock
-import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.toInstant
+import kotlinx.datetime.toJavaInstant
 
 class FirebaseUserRepositoryImpl(
     private val firebaseAuth: FirebaseAuth,
     private val db: FirebaseFirestore,
     private val storage: FirebaseStorage,
-    private val dataStore: DataStore<Preferences>,
-    private val notificationService: NotificationService
 ) : UserRepository {
-    private val coroutineScope = CoroutineScope(Dispatchers.IO)
 
-    private lateinit var userDataListenerRegistration: ListenerRegistration
+    override fun isUserAuthenticated(): Boolean = firebaseAuth.currentUser != null
 
-    override val currentUser: StateFlow<Result<User?>> = callbackFlow {
-        val authStateListener = FirebaseAuth.AuthStateListener { auth ->
-            if (auth.currentUser == null) {
-                trySend(Result.Error("User not authenticated"))
+    override suspend fun getCurrentUser(): Result<User> {
+        return try {
+            val userDocumentRef = db.collection("users").document(firebaseAuth.currentUser!!.uid).get().await()
 
-                if (::userDataListenerRegistration.isInitialized) {
-                    userDataListenerRegistration.remove()
-                }
-            } else {
-                db.collection("users").document(auth.currentUser!!.uid)
-                    .addSnapshotListener { snapshot, error ->
-                        if (error != null) {
-                            trySend(Result.Error(error.message ?: "Unknown error"))
-                        }
-
-                        if (snapshot != null) {
-                            if (firebaseAuth.currentUser == null) {
-                                trySend(Result.Error("User not authenticated"))
-                                return@addSnapshotListener
-                            }
-
-                            coroutineScope.launch {
-                                val notifications = async {
-                                    notificationService.getNotifications(
-                                        snapshot.get("notifications") as? List<String>
-                                            ?: emptyList()
-                                    )
-                                }
-
-                                val user = User(
-                                    id = firebaseAuth.currentUser!!.uid,
-                                    email = firebaseAuth.currentUser!!.email!!,
-                                    username = snapshot.getString("username")
-                                        ?: return@launch,
-                                    bio = snapshot.getString("bio") ?: "",
-                                    dateOfBirth = snapshot.getString("dateOfBirth")?.let {
-                                        if (it.isEmpty()) {
-                                            Clock.System.now().toLocalDateTime(TimeZone.UTC)
-                                        } else {
-                                            LocalDateTime.parse(it)
-                                        }
-                                    } ?: return@launch,
-                                    notifications = notifications.await(),
-                                    following = snapshot.get("following") as List<String>?
-                                        ?: return@launch,
-                                    followers = snapshot.get("followers") as List<String>?
-                                        ?: return@launch,
-                                    gender = snapshot.getString("gender") ?: return@launch,
-                                    role = snapshot.getString("role") ?: return@launch,
-                                    createdAt = snapshot.getString("createdAt")
-                                        ?.let { LocalDateTime.parse(it) }
-                                        ?: return@launch,
-                                    updatedAt = snapshot.getString("updatedAt")
-                                        ?.let { try { LocalDateTime.parse(it) } catch(_: Exception) { null } },
-                                    lastPasswordChange = snapshot.getString("lastPasswordChange")
-                                        ?.let { try { LocalDateTime.parse(it) } catch(_: Exception) { null } },
-                                    lastLogin = snapshot.getString("lastLogin")
-                                        ?.let { LocalDateTime.parse(it) }
-                                        ?: return@launch,
-                                    profilePictureUri = snapshot.getString("profilePictureUri")
-                                        ?.let { Uri.parse(it) } ?: Uri.EMPTY
-                                )
-
-                                trySend(Result.Success(user))
-                            }
-                        }
-                    }
-            }
-        }
-
-        firebaseAuth.addAuthStateListener(authStateListener)
-
-        awaitClose { firebaseAuth.removeAuthStateListener(authStateListener) }
-
-
-    }.stateIn(coroutineScope, SharingStarted.WhileSubscribed(5000), Result.Loading)
-
-    override suspend fun getUser(id: String): Result<User> {
-        try {
-            val userDocument = db.collection("users").document(id).get().await()
-
-            val user = User(
-                id = userDocument.id,
-                email = userDocument.getString("email") ?: return Result.Error("User not found"),
-                username = userDocument.getString("username")
-                    ?: return Result.Error("User not found"),
-                bio = userDocument.getString("bio") ?: "",
-                dateOfBirth = userDocument.getString("dateOfBirth")?.let {
-                    if (it.isEmpty()) {
-                        Clock.System.now().toLocalDateTime(TimeZone.UTC)
-                    } else {
-                        LocalDateTime.parse(it)
-                    }
-                } ?: return Result.Error("User not found"),
-                following = userDocument.get("following") as List<String>?
-                    ?: return Result.Error("User not found"),
-                followers = userDocument.get("followers") as List<String>?
-                    ?: return Result.Error("User not found"),
-                gender = userDocument.getString("gender") ?: return Result.Error("User not found"),
-                role = userDocument.getString("role") ?: return Result.Error("User not found"),
-                createdAt = userDocument.getString("createdAt")
-                    ?.let { LocalDateTime.parse(it) }
-                    ?: return Result.Error("User not found"),
-                updatedAt = userDocument.getString("updatedAt")
-                    ?.let { try { LocalDateTime.parse(it) } catch(_: Exception) { null } },
-                lastPasswordChange = userDocument.getString("lastPasswordChange")
-                    ?.let { try { LocalDateTime.parse(it) } catch(_: Exception) { null } },
-                lastLogin = userDocument.getString("lastLogin")
-                    ?.let { LocalDateTime.parse(it) }
-                    ?: return Result.Error("User not found"),
-                profilePictureUri = userDocument.getString("profilePictureUri")
-                    ?.let { Uri.parse(it) } ?: Uri.EMPTY
-            )
-
-
-
-            return Result.Success(user)
+            Result.Success(userDocumentRef.toUser())
         } catch (e: FirebaseFirestoreException) {
-            return Result.Error(e.message ?: "Unknown error")
+            return Result.Error(e.message ?: "Failed to fetch user: ${e.message}")
+        } catch (e: MissingFieldException) {
+            return Result.Error(e.message ?: "Failed to load user")
         }
     }
 
+    override suspend fun getCurrentUserPreview(): Result<UserPreview> {
+        return try {
+            val userDocumentRef = db.collection("users").document(firebaseAuth.currentUser!!.uid).get().await()
+
+            Result.Success(userDocumentRef.toUserPreview())
+        } catch (e: FirebaseFirestoreException) {
+            return Result.Error(e.message ?: "Failed to fetch user: ${e.message}")
+        } catch (e: MissingFieldException) {
+            return Result.Error(e.message ?: "Failed to load user")
+        }
+    }
+
+    override suspend fun getUser(id: String): Result<User> {
+        return try {
+            val userDocumentRef = db.collection("users").document(id).get().await()
+
+            Result.Success(userDocumentRef.toUser())
+        } catch (e: FirebaseFirestoreException) {
+            return Result.Error(e.message ?: "Failed to fetch user: ${e.message}")
+        } catch (e: MissingFieldException) {
+            return Result.Error(e.message ?: "Failed to load user")
+        }
+    }
+
+    override suspend fun getUserPreview(id: String): Result<UserPreview> {
+        return try {
+            val userDocumentRef = db.collection("users").document(id).get().await()
+
+            Result.Success(userDocumentRef.toUserPreview())
+        } catch (e: FirebaseFirestoreException) {
+            return Result.Error(e.message ?: "Failed to fetch user: ${e.message}")
+        } catch (e: MissingFieldException) {
+            return Result.Error(e.message ?: "Failed to load user")
+        }
+    }
+
+    override suspend fun getUsers(ids: List<String>): Result<List<User>> {
+        try {
+            if (ids.isEmpty()) return Result.Success(emptyList())
+            val userDocumentRefs = db.collection("users").whereIn("id", ids).get().await()
+            val users = userDocumentRefs.documents.mapNotNull { userDocument ->
+                try {
+                    userDocument.toUser()
+                } catch (e: MissingFieldException) {
+                    Log.e("FirebaseUserRepositoryImpl", "${e.message} for ${userDocument.id}")
+                    null
+                }
+            }
+            return Result.Success(users)
+
+        } catch (e: FirebaseFirestoreException) {
+            return Result.Error(e.message ?: "Failed to fetch users in batch: ${e.message}")
+        }
+    }
+
+    override suspend fun getUsersPreviews(ids: List<String>): Result<List<UserPreview>> {
+        try {
+            if (ids.isEmpty()) return Result.Success(emptyList())
+            val userDocumentRefs = db.collection("users").whereIn("id", ids).get().await()
+            val users = userDocumentRefs.documents.mapNotNull { userDocument ->
+                try {
+                    userDocument.toUserPreview()
+                } catch (e: MissingFieldException) {
+                    Log.e("FirebaseUserRepositoryImpl", "${e.message} for ${userDocument.id}")
+                    null
+                }
+            }
+            return Result.Success(users)
+
+        } catch (e: FirebaseFirestoreException) {
+            return Result.Error(e.message ?: "Failed to fetch users in batch: ${e.message}")
+        }
+    }
 
     override suspend fun signUp(
-        email: String,
-        password: String
+        email: String, password: String
     ): Result<Unit> {
         return try {
             val authResult: AuthResult =
                 firebaseAuth.createUserWithEmailAndPassword(email, password).await()
 
-            val currentMoment = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+            val currentMoment = Timestamp(Clock.System.now().toJavaInstant())
 
             db.collection("users").document(authResult.user!!.uid).set(
                 hashMapOf(
                     "email" to email,
-                    "createdAt" to currentMoment.toString(),
-                    "updatedAt" to "",
-                    "lastLogin" to currentMoment.toString(),
-                    "lastPasswordChange" to "",
+                    "createdAt" to currentMoment,
                     "following" to emptyList<String>(),
                     "followers" to emptyList<String>(),
-                    "role" to "User",
                     "gender" to "",
-                    "dateOfBirth" to "",
+                    "dateOfBirth" to currentMoment,
                     "bio" to "",
                     "username" to "",
                     "profilePictureUri" to ""
@@ -211,13 +159,7 @@ class FirebaseUserRepositoryImpl(
 
     override suspend fun signIn(email: String, password: String): Result<Unit> {
         return try {
-            val authResult = firebaseAuth.signInWithEmailAndPassword(email, password).await()
-            db.collection("users").document(authResult.user!!.uid).update(
-                "lastLogin", Clock.System.now().toLocalDateTime(
-                    TimeZone.UTC
-                ).toString()
-            )
-
+            firebaseAuth.signInWithEmailAndPassword(email, password).await()
             Result.Success(Unit)
         } catch (_: FirebaseAuthException) {
             Result.Error("Email address or password is incorrect")
@@ -230,25 +172,18 @@ class FirebaseUserRepositoryImpl(
             val credential = GoogleAuthProvider.getCredential(idToken, null)
             val authResult = firebaseAuth.signInWithCredential(credential).await()
 
-            val currentMoment = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+            val currentMoment = Timestamp(Clock.System.now().toJavaInstant())
 
             if (db.collection("users").document(authResult.user!!.uid).get().await().exists()) {
-                db.collection("users").document(authResult.user!!.uid).update(
-                    "lastLogin", currentMoment.toString()
-                )
                 return Result.Success(SignUpStatus.ExistingUser)
             }
 
             db.collection("users").document(authResult.user!!.uid).set(
                 hashMapOf(
                     "email" to authResult.user!!.email,
-                    "createdAt" to currentMoment.toString(),
-                    "updatedAt" to "",
-                    "lastLogin" to currentMoment.toString(),
-                    "lastPasswordChange" to "",
-                    "role" to "User",
+                    "createdAt" to currentMoment,
                     "gender" to "",
-                    "dateOfBirth" to "",
+                    "dateOfBirth" to currentMoment,
                     "following" to emptyList<String>(),
                     "followers" to emptyList<String>(),
                     "bio" to "",
@@ -278,13 +213,10 @@ class FirebaseUserRepositoryImpl(
         try {
             val userDocument = db.collection("users").document(firebaseAuth.currentUser!!.uid)
 
-            val currentMoment = Clock.System.now().toLocalDateTime(TimeZone.UTC)
-
             userDocument.set(
                 hashMapOf(
-                    "updatedAt" to currentMoment.toString(),
                     "gender" to user.gender,
-                    "dateOfBirth" to user.dateOfBirth.toString(),
+                    "dateOfBirth" to Timestamp(user.dateOfBirth.toInstant(TimeZone.UTC).toJavaInstant()),
                     "bio" to user.bio,
                     "username" to user.username,
                     "profilePictureUri" to user.profilePictureUri.toString(),
@@ -298,8 +230,7 @@ class FirebaseUserRepositoryImpl(
     }
 
     private suspend fun updateFriendship(
-        friendID: String,
-        action: FieldValue
+        friendID: String, action: FieldValue
     ): Result<Unit> {
         try {
             val currentUserId = firebaseAuth.currentUser!!.uid
@@ -370,17 +301,6 @@ class FirebaseUserRepositoryImpl(
         } catch (e: Exception) {
             return Result.Error(e.message ?: "Unknown error")
         }
-    }
-
-    override suspend fun markNotificationAsRead(notificationId: String) =
-        notificationService.markNotificationAsRead(notificationId)
-
-    override suspend fun getUserPreferences(): Result<Map<String, Any>> {
-        TODO("Not yet implemented")
-    }
-
-    override suspend fun updateUserPreferences(preferences: Map<String, Any>): Result<Unit> {
-        TODO("Not yet implemented")
     }
 
     override fun signOut() = firebaseAuth.signOut()

@@ -5,15 +5,18 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.BasicAlertDialog
@@ -22,7 +25,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SmallFloatingActionButton
@@ -37,25 +39,39 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.lifecycleScope
+import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import coil3.request.allowHardware
 import com.example.socialmeetingapp.domain.model.Result
 import com.example.socialmeetingapp.domain.model.Theme
 import com.example.socialmeetingapp.presentation.components.EventCard
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
+import com.google.android.gms.maps.CameraUpdate
+import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMapOptions
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.MapColorScheme
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapUiSettings
+import com.google.maps.android.compose.MapsComposeExperimentalApi
 import com.google.maps.android.compose.Marker
+import com.google.maps.android.compose.clustering.Clustering
 import com.google.maps.android.compose.rememberCameraPositionState
-import com.google.maps.android.compose.rememberMarkerState
+import com.google.maps.android.compose.rememberUpdatedMarkerState
+import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
+@OptIn(
+    ExperimentalMaterial3Api::class,
+    ExperimentalPermissionsApi::class,
+    MapsComposeExperimentalApi::class
+)
 @Composable
 fun HomeScreen(
     state: HomeState,
@@ -64,9 +80,12 @@ fun HomeScreen(
     onMapLongClick: (LatLng) -> Unit,
     onEventClick: (String) -> Unit,
 ) {
+    val lifecycleScope = LocalLifecycleOwner.current.lifecycleScope
+
     var isListView by rememberSaveable { mutableStateOf(false) }
     var isRequestPermissionDialogVisible by remember { mutableStateOf(false) }
     var selectedEventIndex by remember { mutableStateOf<Int?>(null) }
+    var eventCluster by remember { mutableStateOf<List<String>>(emptyList()) }
     var selectedCreateEventPosition by remember { mutableStateOf<LatLng?>(null) }
     var shouldShowEventDialog by rememberSaveable { mutableStateOf(true) }
 
@@ -88,45 +107,35 @@ fun HomeScreen(
         is HomeState.Content -> {
             val startPosition = locationCoordinates
                 ?: if (state.location is Result.Success) state.location.data else LatLng(
-                    52.237049,
-                    21.017532
+                    52.237049, 21.017532
                 )
 
             val cameraPositionState = rememberCameraPositionState {
                 position = CameraPosition.fromLatLngZoom(
-                    startPosition,
-                    if (locationCoordinates != null) 15f else 10f
+                    startPosition, if (locationCoordinates != null) 15f else 10f
                 )
             }
 
             Box(
-                Modifier
-                    .fillMaxSize()
+                Modifier.fillMaxSize()
             ) {
 
                 if (isListView) {
                     LazyColumn {
-                        items(state.events.size) { index ->
+                        items(state.eventDetails.size) { index ->
                             EventCard(
-                                state.events[index],
+                                state.eventDetails[index],
                                 onCardClick = onEventClick,
                                 modifier = Modifier.padding(top = 16.dp, start = 8.dp, end = 8.dp)
                             )
                         }
                     }
                 } else {
-
                     GoogleMap(
                         modifier = Modifier.fillMaxSize(),
                         cameraPositionState = cameraPositionState,
                         googleMapOptionsFactory = {
-                            GoogleMapOptions().mapToolbarEnabled(false).zoomControlsEnabled(false).mapColorScheme(
-                                when (theme) {
-                                    Theme.LIGHT -> MapColorScheme.LIGHT
-                                    Theme.DARK -> MapColorScheme.DARK
-                                    Theme.SYSTEM -> MapColorScheme.FOLLOW_SYSTEM
-                                }
-                            )
+                            GoogleMapOptions().mapToolbarEnabled(false).zoomControlsEnabled(false)
                         },
                         uiSettings = MapUiSettings(
                             compassEnabled = false,
@@ -139,28 +148,85 @@ fun HomeScreen(
                         onMapClick = {
                             selectedEventIndex = null
                             selectedCreateEventPosition = null
+                            eventCluster = emptyList()
                         },
                     ) {
                         if (state.location is Result.Success) {
                             Marker(
-                                state = rememberMarkerState(position = state.location.data),
-
-                                )
-                        }
-
-                        for (event in state.events) {
-                            Marker(
-                                state = rememberMarkerState(position = event.locationCoordinates),
-                                onClick = {
-                                    selectedEventIndex = state.events.indexOf(event)
-                                    true
-                                }
+                                rememberUpdatedMarkerState(state.location.data),
+                                title = "You are here",
                             )
                         }
 
-                        selectedCreateEventPosition?.let {
-                            Marker(
-                                state = rememberMarkerState(position = it)
+                        Clustering(
+                            items = state.eventDetails.map { event ->
+                                EventMarker(
+                                    event.locationCoordinates,
+                                    event.title,
+                                    event.description,
+                                    event.category.iconUrl
+                                )
+                            },
+                            onClusterItemClick = { event ->
+                                eventCluster = emptyList()
+                                selectedEventIndex =
+                                    state.eventDetails.indexOfFirst { it.title == event.title }
+                                true
+                            },
+                            onClusterClick = { events ->
+                                selectedEventIndex = null
+                                eventCluster = events.items.map { it.title.toString() }
+                                true
+                            },
+                            clusterContent = { cluster ->
+                                Box(
+                                    modifier = Modifier
+                                        .clip(MaterialTheme.shapes.large)
+                                        .background(MaterialTheme.colorScheme.primary)
+                                        .size(40.dp)
+                                ) {
+                                    Text(
+                                        text = cluster.size.toString(),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        modifier = Modifier.align(
+                                            Alignment.Center
+                                        )
+                                    )
+                                }
+
+                            }, clusterItemContent = { event ->
+                                AsyncImage(
+                                    model = ImageRequest.Builder(LocalContext.current)
+                                        .data(event.getEventIconUrl())
+                                        .allowHardware(false)
+                                        .build(),
+                                    contentDescription = event.title,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                            }
+                        )
+                    }
+                }
+
+                if (selectedEventIndex != null) {
+                    EventCard(
+                        state.eventDetails[selectedEventIndex!!],
+                        onCardClick = onEventClick,
+                        modifier = Modifier.padding(top = 16.dp, start = 8.dp, end = 8.dp)
+                    )
+                }
+
+                if (eventCluster.isNotEmpty()) {
+                    LazyRow {
+                        items(eventCluster.size) { index ->
+                            EventCard(
+                                state.eventDetails.first { it.title == eventCluster[index] },
+                                onCardClick = onEventClick,
+                                modifier = Modifier.padding(top = 16.dp, start = 8.dp, end = 8.dp).height(
+                                    IntrinsicSize.Min
+                                )
                             )
                         }
                     }
@@ -175,8 +241,7 @@ fun HomeScreen(
                             .clickable {
                                 onMapLongClick(selectedCreateEventPosition!!)
                                 selectedCreateEventPosition = null
-                            }
-                    ) {
+                            }) {
                         Row(modifier = Modifier.padding(16.dp)) {
 
                             Icon(
@@ -185,44 +250,12 @@ fun HomeScreen(
                                 modifier = Modifier.padding(end = 4.dp)
                             )
                             Text(
-                                text = "Create Event",
-                                style = MaterialTheme.typography.titleMedium
+                                text = "Create Event", style = MaterialTheme.typography.titleMedium
                             )
                         }
 
                     }
-                } else {
-
-                    if (shouldShowEventDialog) {
-                        Card(
-                            modifier = Modifier
-                                .align(Alignment.TopCenter)
-                                .padding(16.dp)
-                        ) {
-                            Row (modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = "Long press on the map to create an event",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.padding(end = 8.dp)
-                                )
-
-                                IconButton(
-                                    onClick = {
-                                        shouldShowEventDialog = false
-                                    }
-                                ) {
-                                    Icon(
-                                        Icons.Filled.Close,
-                                        contentDescription = "Close"
-                                    )
-                                }
-                            }
-
-                        }
-                    }
                 }
-
 
                 SmallFloatingActionButton(
                     onClick = { isListView = !isListView },
@@ -240,10 +273,16 @@ fun HomeScreen(
                     SmallFloatingActionButton(
                         onClick = {
                             if (state.location is Result.Success) {
-                                cameraPositionState.position = CameraPosition.fromLatLngZoom(
-                                    state.location.data,
-                                    15f
-                                )
+                                lifecycleScope.launch {
+                                    cameraPositionState.animate(
+                                        update = CameraUpdateFactory.newCameraPosition(
+                                            CameraPosition.fromLatLngZoom(
+                                                state.location.data, 15f
+                                            )
+                                        ),
+                                        durationMs = 1000
+                                    )
+                                }
                             } else {
                                 isRequestPermissionDialogVisible = true
                             }
@@ -254,14 +293,6 @@ fun HomeScreen(
                     ) {
                         Icon(Icons.Filled.LocationOn, "Move to current position")
                     }
-                }
-
-                if (selectedEventIndex != null) {
-                    EventCard(
-                        state.events[selectedEventIndex!!],
-                        onCardClick = onEventClick,
-                        modifier = Modifier.padding(top = 16.dp, start = 8.dp, end = 8.dp)
-                    )
                 }
 
                 if (isRequestPermissionDialogVisible) {
@@ -306,9 +337,8 @@ fun HomeScreen(
                                     )
                                 }
 
-                                Button(onClick = {locationPermissions.launchMultiplePermissionRequest()}) {
+                                Button(onClick = { locationPermissions.launchMultiplePermissionRequest() }) {
                                     Text(
-
                                         text = "Allow",
                                         color = MaterialTheme.colorScheme.onPrimary,
                                         style = MaterialTheme.typography.bodyMedium
@@ -331,8 +361,7 @@ fun HomeScreen(
 
         is HomeState.Loading -> {
             Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
+                modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator()
             }

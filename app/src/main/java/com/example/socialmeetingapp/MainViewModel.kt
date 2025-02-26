@@ -9,8 +9,10 @@ import androidx.lifecycle.viewModelScope
 import com.example.socialmeetingapp.domain.model.AppConfig
 import com.example.socialmeetingapp.domain.model.Result
 import com.example.socialmeetingapp.domain.model.User
+import com.example.socialmeetingapp.domain.model.UserPreview
 import com.example.socialmeetingapp.domain.repository.SettingsRepository
 import com.example.socialmeetingapp.domain.repository.UserRepository
+import com.example.socialmeetingapp.presentation.common.Routes
 import com.example.socialmeetingapp.presentation.common.SnackbarManager
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -20,22 +22,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-
-sealed class MainState {
-    data object Loading : MainState()
-    data object Welcome : MainState()
-    data object CreateProfile : MainState()
-    data object NotAuthenticated : MainState()
-
-    data class Content(
-        val user: User,
-        val isEmailVerified: Boolean = false,
-    ) : MainState()
-
-
-}
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
@@ -44,31 +33,45 @@ class MainViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository
 ) : ViewModel() {
 
-    val state = userRepository.currentUser.map { userResult ->
-        return@map when {
-            isFirstTimeLaunch() -> MainState.Welcome
-            userResult is Result.Success && userResult.data?.username?.isEmpty() ?: false -> MainState.CreateProfile
-            userResult is Result.Success && userResult.data != null -> MainState.Content(
-                user = userResult.data,
-                isEmailVerified = FirebaseAuth.getInstance().currentUser?.isEmailVerified == true
-            )
+    private val _startDestination = MutableStateFlow<Routes?>(null)
+    val startDestination = _startDestination.asStateFlow()
 
-            userResult is Result.Error -> MainState.NotAuthenticated
-            else -> MainState.Loading
-        }
-    }.stateIn(
-        viewModelScope,
-        SharingStarted.WhileSubscribed(5000),
-        MainState.Loading
-    )
+    private val _user = MutableStateFlow<UserPreview?>(null)
+    val user = _user.asStateFlow()
 
     private val _appConfig = MutableStateFlow(AppConfig.DEFAULT)
     val settings = _appConfig.asStateFlow()
 
     init {
+        checkAuthentication()
+
         viewModelScope.launch {
             settingsRepository.getSettings().collect {
                 _appConfig.value = it
+            }
+        }
+    }
+
+    fun checkAuthentication() {
+        viewModelScope.launch {
+            val isUserAuthenticated = userRepository.isUserAuthenticated()
+
+            if (isUserAuthenticated) {
+                val currentUserResult = userRepository.getCurrentUserPreview()
+
+                if (currentUserResult is Result.Success) {
+                    val user = currentUserResult.data
+
+                    if (user.username.isBlank()) {
+                        _startDestination.value = Routes.CreateProfile
+                    } else {
+                        _startDestination.value = Routes.Map()
+                    }
+
+                    _user.update { user }
+                }
+            } else {
+                _startDestination.value = Routes.Login
             }
         }
     }
@@ -94,19 +97,6 @@ class MainViewModel @Inject constructor(
                 }
 
                 else -> {}
-            }
-        }
-    }
-
-    fun markNotificationsAsRead() {
-        viewModelScope.launch {
-            if (state.value is MainState.Content) {
-                val unreadNotifications =
-                    (state.value as MainState.Content).user.notifications.filter { !it.isRead }
-
-                unreadNotifications.forEach { notification ->
-                    userRepository.markNotificationAsRead(notification.id)
-                }
             }
         }
     }

@@ -1,7 +1,9 @@
 package com.example.socialmeetingapp.presentation.event.createventflow
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.socialmeetingapp.domain.model.Category
 import com.example.socialmeetingapp.domain.model.Event
 import com.example.socialmeetingapp.domain.model.Result
 import com.example.socialmeetingapp.domain.repository.EventRepository
@@ -36,8 +38,23 @@ class CreateEventViewModel @Inject constructor(
     private val _isRulesAccepted = MutableStateFlow(false)
     val isRulesAccepted = _isRulesAccepted.asStateFlow()
 
-    private val _eventData = MutableStateFlow(Event.EMPTY)
+    private val _eventData = MutableStateFlow<Event>(Event.EMPTY)
     val eventData = _eventData.asStateFlow()
+
+    private val _categories = MutableStateFlow<List<Category>>(emptyList())
+    val categories = _categories.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            val result = eventRepository.getCategories()
+
+            if (result is Result.Success) {
+                _categories.update { result.data }
+            } else {
+                SnackbarManager.showMessage("Failed to load categories")
+            }
+        }
+    }
 
     fun nextStep() {
         if (uiState.value == CreateEventFlow.Rules) {
@@ -78,6 +95,11 @@ class CreateEventViewModel @Inject constructor(
         }
     }
 
+    fun updateCategory(category: Category) {
+        _eventData.value = eventData.value.copy(category = category)
+        Log.d("CreateEventViewModel", "Updated category: ${category.id}")
+        validateNextButton()
+    }
 
     fun updateTitle(title: String) {
         _eventData.value = eventData.value.copy(title = title)

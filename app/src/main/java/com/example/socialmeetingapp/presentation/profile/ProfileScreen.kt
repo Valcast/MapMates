@@ -58,7 +58,8 @@ fun ProfileScreen(
     onUnfollowUser: (String) -> Unit,
     onDeleteFollower: (String) -> Unit,
     onEditProfile: () -> Unit,
-    onGoToSettings: () -> Unit
+    onGoToSettings: () -> Unit,
+    onCardClick: (String) -> Unit
 ) {
     var isProfilePictureDialogVisible by remember { mutableStateOf(false) }
     var isFollowersDialogVisible by remember { mutableStateOf(false) }
@@ -492,7 +493,7 @@ fun ProfileScreen(
                         .align(Alignment.Start)
                 )
 
-                if (state.userEvents.isEmpty()) {
+                if (state.userEventDetails.isEmpty()) {
                     Text(
                         text = if (state.isMyProfile) "You don't have any activity in history" else "This user doesn't have any activity in history",
                         style = MaterialTheme.typography.bodyMedium,
@@ -503,10 +504,10 @@ fun ProfileScreen(
                             .align(Alignment.CenterHorizontally)
                     )
                 } else {
-                    state.userEvents.forEach { event ->
+                    state.userEventDetails.forEach { event ->
                         EventCard(
                             event = event,
-                            onCardClick = {},
+                            onCardClick = {onCardClick(event.id)},
                             modifier = Modifier.padding(top = 16.dp, start = 16.dp, end = 16.dp)
                         )
                     }

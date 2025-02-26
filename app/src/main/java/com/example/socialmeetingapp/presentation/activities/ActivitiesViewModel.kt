@@ -7,37 +7,49 @@ import com.example.socialmeetingapp.domain.model.Result
 import com.example.socialmeetingapp.domain.repository.EventRepository
 import com.example.socialmeetingapp.domain.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 sealed class ActivitiesState {
     data object Loading : ActivitiesState()
     data class Error(val message: String) : ActivitiesState()
-    data class Content(val createdEvents: List<Event>, val joinedEvents: List<Event>) : ActivitiesState()
+    data class Content(val createdEventDetails: List<Event>, val joinedEventDetails: List<Event>) :
+        ActivitiesState()
 }
 
 @HiltViewModel
 class ActivitiesViewModel @Inject constructor(
-    userRepository: UserRepository,
-    private val eventRepository: EventRepository
+    private val userRepository: UserRepository, private val eventRepository: EventRepository
 ) : ViewModel() {
-    val state = combine(userRepository.currentUser, eventRepository.eventsStateFlow) { userResult, events ->
-        if (userResult is Result.Success && userResult.data != null) {
-            val createdEvents = events.filter { it.author.id == userResult.data.id }
-            val joinedEvents = events.filter { it.participants.any { it.id == userResult.data.id } }
+    var _state = MutableStateFlow<ActivitiesState>(ActivitiesState.Loading)
+    val state = _state.asStateFlow()
 
-            ActivitiesState.Content(createdEvents, joinedEvents)
-        } else {
-            ActivitiesState.Loading
+    init {
+        getActivities()
+    }
+
+    fun getActivities() {
+        viewModelScope.launch {
+            val currentUser = userRepository.getCurrentUserPreview()
+
+            eventRepository.events.collect {
+                if (currentUser is Result.Success) {
+                    val createdEvents = it.filter { it.author.id == currentUser.data.id }
+                    val joinedEvents =
+                        it.filter { it.participants.any { it.id == currentUser.data.id } }
+
+                    _state.update { ActivitiesState.Content(createdEvents, joinedEvents) }
+                } else {
+                    _state.update {
+                        ActivitiesState.Error("You are not authenticated")
+                    }
+                }
+            }
         }
-    }.stateIn(
-        viewModelScope,
-        SharingStarted.WhileSubscribed(5000),
-        ActivitiesState.Loading
-    )
+    }
 
     fun acceptJoinRequest(eventID: String, userID: String) {
         viewModelScope.launch {

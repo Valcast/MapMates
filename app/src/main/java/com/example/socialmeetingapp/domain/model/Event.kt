@@ -2,10 +2,8 @@ package com.example.socialmeetingapp.domain.model
 
 import com.google.android.gms.maps.model.LatLng
 import kotlinx.datetime.Clock
-import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 
 data class Event(
@@ -13,15 +11,14 @@ data class Event(
     val title: String,
     val description: String,
     var locationCoordinates: LatLng,
-    var locationAddress: String? = null,
-    val author: User,
-    val participants: List<User> = emptyList(),
-    val joinRequests: List<User> = emptyList(),
+    var locationAddress: String,
+    val author: UserPreview,
+    val category: Category,
+    val participants: List<UserPreview> = emptyList(),
+    val joinRequests: List<UserPreview> = emptyList(),
     val maxParticipants: Int,
     val startTime: LocalDateTime,
     val endTime: LocalDateTime,
-    val createdAt: LocalDateTime? = null,
-    val updatedAt: LocalDateTime? = null,
     val isPrivate: Boolean,
     val isOnline: Boolean
 ) {
@@ -31,15 +28,12 @@ data class Event(
             title = "",
             description = "",
             locationCoordinates = LatLng(0.0, 0.0),
-            locationAddress = null,
-            author = User.EMPTY,
-            participants = emptyList(),
-            joinRequests = emptyList(),
-            maxParticipants = 3,
+            locationAddress = "",
+            author = UserPreview.EMPTY,
+            category = Category.EMPTY,
+            maxParticipants = 0,
             startTime = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()),
-            endTime = Clock.System.now().plus(2, DateTimeUnit.HOUR).toLocalDateTime(TimeZone.currentSystemDefault()),
-            createdAt = null,
-            updatedAt = null,
+            endTime = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()),
             isPrivate = false,
             isOnline = false
         )

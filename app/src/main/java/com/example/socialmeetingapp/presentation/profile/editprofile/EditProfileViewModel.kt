@@ -17,17 +17,17 @@ class EditProfileViewModel @Inject constructor(
 ) {
     fun updateBio(bio: String) {
         viewModelScope.launch {
-            when (val result = userRepository.currentUser.value) {
+            when (val result = userRepository.getCurrentUser()) {
                 is Result.Success -> {
                     val user = result.data
-                    if (user != null) {
-                        val updatedUser = user.copy(bio = bio)
-                        userRepository.updateUser(updatedUser)
-                    }
-                    }
+                    val updatedUser = user.copy(bio = bio)
+                    userRepository.updateUser(updatedUser)
+                }
+
                 is Result.Error -> {
                     // Handle error
                 }
+
                 else -> {}
             }
         }
@@ -41,17 +41,17 @@ class EditProfileViewModel @Inject constructor(
 
     fun updateUsernameAndDateOfBirth(username: String, dateOfBirth: LocalDateTime) {
         viewModelScope.launch {
-            when (val result = userRepository.currentUser.value) {
+            when (val result = userRepository.getCurrentUser()) {
                 is Result.Success -> {
                     val user = result.data
-                    if (user != null) {
-                        val updatedUser = user.copy(username = username, dateOfBirth = dateOfBirth)
-                        userRepository.updateUser(updatedUser)
-                    }
+                    val updatedUser = user.copy(username = username, dateOfBirth = dateOfBirth)
+                    userRepository.updateUser(updatedUser)
                 }
+
                 is Result.Error -> {
                     // Handle error
                 }
+
                 else -> {}
             }
         }

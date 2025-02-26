@@ -1,19 +1,23 @@
 package com.example.socialmeetingapp.data.repository
 
-import com.example.socialmeetingapp.data.remote.NotificationService
+import android.util.Log
+import androidx.core.net.toUri
+import com.example.socialmeetingapp.data.utils.getList
+import com.example.socialmeetingapp.data.utils.getRequiredString
+import com.example.socialmeetingapp.data.utils.toEvent
+import com.example.socialmeetingapp.domain.model.Category
 import com.example.socialmeetingapp.domain.model.Event
-import com.example.socialmeetingapp.domain.model.Notification
-import com.example.socialmeetingapp.domain.model.NotificationData
-import com.example.socialmeetingapp.domain.model.NotificationType
 import com.example.socialmeetingapp.domain.model.Result
 import com.example.socialmeetingapp.domain.model.Result.Error
 import com.example.socialmeetingapp.domain.model.Result.Success
+import com.example.socialmeetingapp.domain.model.User
+import com.example.socialmeetingapp.domain.model.UserPreview
 import com.example.socialmeetingapp.domain.repository.EventRepository
 import com.example.socialmeetingapp.domain.repository.UserRepository
 import com.google.android.gms.maps.model.LatLng
+import com.google.firebase.Timestamp
+import com.google.firebase.appcheck.internal.util.Logger.TAG
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.DocumentReference
-import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
@@ -28,34 +32,69 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.asDeferred
 import kotlinx.coroutines.tasks.await
 import kotlinx.datetime.Clock
-import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
+import kotlinx.datetime.toJavaInstant
 import kotlinx.datetime.toLocalDateTime
 
 class FirebaseEventRepositoryImpl(
     private val db: FirebaseFirestore,
     private val userRepository: UserRepository,
     private val firebaseAuth: FirebaseAuth,
-    private val notificationService: NotificationService
 ) : EventRepository {
-
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
 
-    override val eventsStateFlow: StateFlow<List<Event>> = callbackFlow {
+    override val events: StateFlow<List<Event>> = callbackFlow {
         val listenerRegistration = db.collection("events").addSnapshotListener { snapshot, error ->
             if (error != null) {
                 close(error)
-            } else if (snapshot != null) {
+                return@addSnapshotListener
+            }
+
+            if (snapshot != null && !snapshot.isEmpty) {
                 coroutineScope.launch {
                     val events = snapshot.documents.mapNotNull { eventDocument ->
-                        async { mapToEvent(eventDocument) }
-                    }
+                        val authorId = eventDocument.getRequiredString("author")
+                        val authorResult = userRepository.getUserPreview(authorId)
 
-                    send(events.awaitAll().filterNotNull())
+                        val categoryId = eventDocument.getRequiredString("category")
+                        val categoryResult = getCategory(categoryId)
+
+                        val participantsIds = eventDocument.getList("participants")
+                        val participantsResults = participantsIds.map { participantId ->
+                            async {
+                                userRepository.getUserPreview(participantId)
+                            }
+                        }.awaitAll()
+
+
+                        val joinRequestsIds = eventDocument.getList("joinRequests")
+                        val joinRequestsResults = joinRequestsIds.map { joinRequestId ->
+                            async {
+                                userRepository.getUserPreview(joinRequestId)
+                            }
+                        }.awaitAll()
+
+
+                        if (authorResult is Success
+                            && categoryResult is Success) {
+
+                            eventDocument.toEvent(
+                                author = authorResult.data,
+                                category = categoryResult.data,
+                                participants = participantsResults.filterIsInstance<Success<UserPreview>>().map { it.data },
+                                joinRequests = joinRequestsResults.filterIsInstance<Success<UserPreview>>().map { it.data }
+                            )
+                        } else {
+                            null
+                        }
+                    }
+                    send(events)
                 }
+            } else {
+                trySend(emptyList())
             }
         }
 
@@ -64,233 +103,210 @@ class FirebaseEventRepositoryImpl(
         coroutineScope, SharingStarted.WhileSubscribed(5000), emptyList()
     )
 
-    override suspend fun getEvent(id: String): Result<Event> {
-        return try {
-            val eventDocument = db.collection("events").document(id).get().asDeferred().await()
-            val event = mapToEvent(eventDocument)
-
-            Success(event ?: return Error("Event not found"))
-        } catch (e: FirebaseFirestoreException) {
-            return Error(e.message ?: "Unknown error")
-        }
-    }
-
     override suspend fun createEvent(event: Event): Result<String> {
         return try {
-            val currentTime = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+            val currentTime = Timestamp.now()
 
             val eventData = hashMapOf(
                 "title" to event.title,
                 "description" to event.description,
                 "locationCoordinates" to event.locationCoordinates.toGeoPoint(),
                 "locationAddress" to event.locationAddress,
-                "author" to firebaseAuth.currentUser!!.uid,
+                "author" to firebaseAuth.currentUser?.uid,
+                "participants" to emptyList<String>(),
+                "joinRequests" to emptyList<String>(),
+                "maxParticipants" to event.maxParticipants,
+                "startTime" to Timestamp(event.startTime.toInstant(TimeZone.currentSystemDefault()).toJavaInstant()),
+                "endTime" to Timestamp(event.endTime.toInstant(TimeZone.currentSystemDefault()).toJavaInstant()),
+                "createdAt" to currentTime,
+                "isPrivate" to event.isPrivate,
+                "isOnline" to event.isOnline,
+                "category" to event.category.id
+            )
+
+            val createdEventRef = db.collection("events").add(eventData).await()
+
+            Success(createdEventRef.id)
+        } catch (e: FirebaseFirestoreException) {
+            return Error(e.message ?: "Could not create event: ${e.message}")
+        }
+    }
+
+    override suspend fun updateEvent(event: Event): Result<Unit> {
+        return try {
+            val currentTime = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+
+            val eventDataToUpdate = hashMapOf<String, Any>(
+                "title" to event.title,
+                "description" to event.description,
                 "participants" to emptyList<String>(),
                 "joinRequests" to emptyList<String>(),
                 "maxParticipants" to event.maxParticipants,
                 "startTime" to event.startTime.toString(),
                 "endTime" to event.endTime.toString(),
-                "createdAt" to currentTime.toString(),
                 "updatedAt" to currentTime.toString(),
                 "isPrivate" to event.isPrivate,
                 "isOnline" to event.isOnline,
+                "category" to event.category.id
+            )
 
-                )
-
-            val createdEvent = db.collection("events").add(eventData).await()
-
-            (userRepository.currentUser.value as Success).data!!.followers.forEach { follower ->
-                notificationService.sendNotification(
-                    userId = follower, notification = Notification(
-                        senderId = firebaseAuth.currentUser!!.uid,
-                        type = NotificationType.FriendCreatedNewEvent,
-                        data = NotificationData.EventNotificationData(
-                            eventId = createdEvent.id, eventName = event.title
-                        )
-                    )
-
-                )
-            }
-
-            Success(createdEvent.id)
+            db.collection("events").document(event.id).update(eventDataToUpdate).await()
+            Success(Unit)
         } catch (e: FirebaseFirestoreException) {
-            return Error(e.message ?: "Unknown error")
+            return Error(e.message ?: "Failed to update event: ${e.message}")
         }
-    }
-
-    private fun LatLng.toGeoPoint(): GeoPoint {
-        return GeoPoint(latitude, longitude)
-    }
-
-    private fun GeoPoint.toLatLng(): LatLng {
-        return LatLng(latitude, longitude)
-    }
-
-    override suspend fun updateEvent(event: Event): Result<Unit> {
-        TODO("Not yet implemented")
     }
 
     override suspend fun deleteEvent(id: String): Result<Unit> {
         return try {
             db.collection("events").document(id).delete().await()
-
             Success(Unit)
         } catch (e: FirebaseFirestoreException) {
-            return Error(e.message ?: "Unknown error")
+            return Error(e.message ?: "Failed to delete event: ${e.message}")
         }
     }
 
     override suspend fun removeParticipant(eventID: String, userID: String): Result<Unit> {
-        return try {
-            val eventDocument = db.collection("events").document(eventID)
-
-            eventDocument.update("participants", FieldValue.arrayRemove(userID)).await()
-
-            Success(Unit)
-        } catch (e: FirebaseFirestoreException) {
-            Error(e.message ?: "Unknown error")
-        }
+        return updateArrayField(eventID, "participants", userID, FieldValue.arrayRemove(userID))
     }
 
     override suspend fun sendJoinRequest(eventID: String): Result<Unit> {
-        return try {
-            val eventDocument = db.collection("events").document(eventID)
-
-            eventDocument.update(
-                "joinRequests", FieldValue.arrayUnion(firebaseAuth.currentUser!!.uid)
-            ).await()
-            Success(Unit)
-        } catch (e: FirebaseFirestoreException) {
-            Error(e.message ?: "Unknown error")
-        }
+        return updateArrayField(
+            eventID, "joinRequests", firebaseAuth.currentUser?.uid, FieldValue.arrayUnion(
+                firebaseAuth.currentUser?.uid ?: return Error("User not authenticated")
+            )
+        )
     }
 
     override suspend fun acceptJoinRequest(eventID: String, userID: String): Result<Unit> {
         return try {
-            val eventDocument = db.collection("events").document(eventID)
+            val eventDocumentRef = db.collection("events").document(eventID)
+            db.runTransaction { transaction ->
+                val snapshot = transaction.get(eventDocumentRef)
 
-            eventDocument.update("participants", FieldValue.arrayUnion(userID)).await()
-            eventDocument.update("joinRequests", FieldValue.arrayRemove(userID)).await()
+                val currentParticipants =
+                    snapshot.get("participants") as? List<String> ?: emptyList()
+                val currentJoinRequests =
+                    snapshot.get("joinRequests") as? List<String> ?: emptyList()
 
+                if (!currentJoinRequests.contains(userID)) {
+                    throw FirebaseFirestoreException(
+                        "User is not in join requests", FirebaseFirestoreException.Code.ABORTED
+                    )
+                }
+                val updatedParticipants = ArrayList(currentParticipants)
+                updatedParticipants.add(userID)
+                transaction.update(eventDocumentRef, "participants", updatedParticipants)
+                transaction.update(
+                    eventDocumentRef, "joinRequests", FieldValue.arrayRemove(userID)
+                )
+                null
+            }.await()
             Success(Unit)
         } catch (e: FirebaseFirestoreException) {
-            Error(e.message ?: "Unknown error")
+            Error("Failed to accept join request: ${e.message}")
         }
     }
 
     override suspend fun declineJoinRequest(eventID: String, userID: String): Result<Unit> {
-        return try {
-            val eventDocument = db.collection("events").document(eventID)
-
-            eventDocument.update("joinRequests", FieldValue.arrayRemove(userID)).await()
-            Success(Unit)
-        } catch (e: FirebaseFirestoreException) {
-            Error(e.message ?: "Unknown error")
-        }
+        return updateArrayField(eventID, "joinRequests", userID, FieldValue.arrayRemove(userID))
     }
 
     override suspend fun joinEvent(id: String): Result<Unit> {
+        val currentUserId = firebaseAuth.currentUser?.uid ?: return Error("User not authenticated")
         return try {
             val eventDocument = db.collection("events").document(id)
             eventDocument.update(
-                "participants", FieldValue.arrayUnion(firebaseAuth.currentUser!!.uid)
+                "participants", FieldValue.arrayUnion(currentUserId)
             ).await()
 
-            notificationService.sendNotification(
-                userId = eventDocument.get().await().getString("author")!!,
-                notification = Notification(
-                    senderId = firebaseAuth.currentUser!!.uid,
-                    type = NotificationType.JoinEvent,
-                    data = NotificationData.EventNotificationData(
-                        eventId = id,
-                        eventName = db.collection("events").document(id).get().await()
-                            .getString("title")!!
-                    )
-                )
-            )
+            val authorId = try {
+                eventDocument.get().await().getString("author")
+            } catch (e: FirebaseFirestoreException) {
+                null // Author might be deleted or document might not exist
+            }
 
             Success(Unit)
         } catch (e: FirebaseFirestoreException) {
-            Error(e.message ?: "Unknown error")
+            Error("Failed to join event: ${e.message}")
         }
-
     }
 
     override suspend fun leaveEvent(id: String): Result<Unit> {
+        val currentUserId = firebaseAuth.currentUser?.uid ?: return Error("User not authenticated")
         return try {
             val eventDocument = db.collection("events").document(id)
-            eventDocument.update(
-                "participants", FieldValue.arrayRemove(firebaseAuth.currentUser!!.uid)
-            ).await()
-
+            eventDocument.update("participants", FieldValue.arrayRemove(currentUserId)).await()
             Success(Unit)
         } catch (e: FirebaseFirestoreException) {
-            Error(e.message ?: "Unknown error")
+            Error("Failed to leave event: ${e.message}")
         }
     }
 
-    override fun getCategoriesReferences(categories: List<String>): List<DocumentReference> {
-        return categories.map { category ->
-            db.collection("categories").document(category)
-        }
-    }
-
-    private suspend fun mapToEvent(eventDocument: DocumentSnapshot): Event? {
-        val participantsDocument = eventDocument.get("participants") as? List<String> ?: return null
-        val participants = participantsDocument.map { participant ->
-            coroutineScope.async {
-                val userResult = userRepository.getUser(participant)
-                if (userResult is Success) {
-                    userResult.data
-                } else {
-                    null
+    override suspend fun getCategories(): Result<List<Category>> {
+        return try {
+            val categories =
+                db.collection("categories").get().await().documents.mapNotNull { categoryDocument ->
+                    val iconUrlString = categoryDocument.getString("iconUrl")
+                    val iconUri = iconUrlString?.toUri()
+                    if (iconUri != null) {
+                        Category(
+                            id = categoryDocument.id, iconUrl = iconUri
+                        )
+                    } else {
+                        Log.w(
+                            TAG,
+                            "Category document ${categoryDocument.id} has invalid or missing iconUrl"
+                        )
+                        null
+                    }
                 }
-            }
+            Success(categories)
+        } catch (e: FirebaseFirestoreException) {
+            Error("Failed to fetch categories: ${e.message}")
         }
-
-        val joinRequestsDocument = eventDocument.get("joinRequests") as? List<String> ?: return null
-        val joinRequests = joinRequestsDocument.map { joinRequest ->
-            coroutineScope.async {
-                val userResult = userRepository.getUser(joinRequest)
-                if (userResult is Success) {
-                    userResult.data
-                } else {
-                    null
-                }
-            }
-        }
-
-        val authorDocument = eventDocument.getString("author") ?: return null
-        val author = coroutineScope.async {
-            val userResult = userRepository.getUser(authorDocument)
-            if (userResult is Success) {
-                userResult.data
-            } else {
-                null
-            }
-        }
-
-        return Event(
-            id = eventDocument.id,
-            title = eventDocument.getString("title") ?: return null,
-            description = eventDocument.getString("description") ?: return null,
-            locationCoordinates = eventDocument.getGeoPoint("locationCoordinates")?.toLatLng()
-                ?: return null,
-            locationAddress = eventDocument.getString("locationAddress") ?: return null,
-            author = author.await() ?: return null,
-            maxParticipants = eventDocument.getLong("maxParticipants")?.toInt() ?: return null,
-            participants = participants.awaitAll().filterNotNull(),
-            joinRequests = joinRequests.awaitAll().filterNotNull(),
-            startTime = eventDocument.getString("startTime")?.let { LocalDateTime.parse(it) }
-                ?: return null,
-            endTime = eventDocument.getString("endTime")?.let { LocalDateTime.parse(it) }
-                ?: return null,
-            createdAt = eventDocument.getString("createdAt")?.let { LocalDateTime.parse(it) }
-                ?: return null,
-            updatedAt = eventDocument.getString("updatedAt")?.let { LocalDateTime.parse(it) }
-                ?: return null,
-            isPrivate = eventDocument.getBoolean("isPrivate") == true,
-            isOnline = eventDocument.getBoolean("isOnline") == true,
-        )
     }
+
+    suspend fun getCategory(id: String): Result<Category> {
+        return try {
+            val categoryDocument = db.collection("categories").document(id).get().await()
+            if (!categoryDocument.exists()) {
+                return Error("Category not found")
+            }
+
+            val iconUrlString = categoryDocument.getString("iconUrl")
+            val iconUri = iconUrlString?.toUri()
+
+            if (iconUri == null) {
+                return Error("Category icon URL is invalid or missing")
+            }
+
+            Success(
+                Category(
+                    id = categoryDocument.id, iconUrl = iconUri
+                )
+            )
+        } catch (e: FirebaseFirestoreException) {
+            Error("Failed to get category: ${e.message}")
+        }
+    }
+
+
+    private suspend fun updateArrayField(
+        eventID: String, fieldName: String, userId: String?, updateType: FieldValue
+    ): Result<Unit> {
+        if (userId == null) {
+            return Error("User ID is null, cannot perform update")
+        }
+        return try {
+            val eventDocument = db.collection("events").document(eventID)
+            eventDocument.update(fieldName, updateType).await()
+            Success(Unit)
+        } catch (e: FirebaseFirestoreException) {
+            Error("Failed to update $fieldName: ${e.message}")
+        }
+    }
+
+    private fun LatLng.toGeoPoint(): GeoPoint = GeoPoint(latitude, longitude)
+    private fun GeoPoint.toLatLng(): LatLng = LatLng(latitude, longitude)
 }

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.socialmeetingapp.domain.model.Event
 import com.example.socialmeetingapp.domain.model.Result
 import com.example.socialmeetingapp.domain.model.User
+import com.example.socialmeetingapp.domain.model.UserPreview
 import com.example.socialmeetingapp.domain.repository.EventRepository
 import com.example.socialmeetingapp.domain.repository.UserRepository
 import com.example.socialmeetingapp.presentation.common.NavigationManager
@@ -13,15 +14,13 @@ import com.example.socialmeetingapp.presentation.common.SnackbarManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 sealed class EventState {
     data object Loading : EventState()
     data class Error(val message: String) : EventState()
-    data class Content(val event: Event, val currentUser: User) : EventState()
+    data class Content(val event: Event, val currentUser: UserPreview) : EventState()
 }
 
 @HiltViewModel
@@ -32,22 +31,22 @@ class EventViewModel @Inject constructor(
     private val _state = MutableStateFlow<EventState>(EventState.Loading)
     val state = _state.asStateFlow()
 
-
     fun getEvent(eventID: String) {
         viewModelScope.launch {
-            combine(eventRepository.eventsStateFlow, userRepository.currentUser) { events, userResult ->
-                if (events.isEmpty()) return@combine EventState.Loading
+            val currentUser = userRepository.getCurrentUserPreview()
 
-                val event = events.find { it.id == eventID } ?: return@combine EventState.Error("Event not found")
+            eventRepository.events.collect { events ->
+                val event = events.find { it.id == eventID }
 
-                if (userResult is Result.Success && userResult.data != null) {
-                    EventState.Content(event, userResult.data)
+                if (event != null && currentUser is Result.Success) {
+                    _state.value = EventState.Content(event, currentUser.data)
                 } else {
-                    EventState.Error("User not found")
+                    _state.value = EventState.Error("Event not found")
                 }
-            }.collectLatest { _state.value = it }
+            }
         }
     }
+
 
     fun joinEvent(eventID: String) {
         if (state.value is EventState.Content) {
@@ -69,7 +68,10 @@ class EventViewModel @Inject constructor(
                     SnackbarManager.showMessage("You have joined the event")
                     getEvent(eventID)
                 }
-                is Result.Error -> { SnackbarManager.showMessage(joinResult.message) }
+
+                is Result.Error -> {
+                    SnackbarManager.showMessage(joinResult.message)
+                }
 
                 else -> {}
             }
@@ -159,9 +161,11 @@ class EventViewModel @Inject constructor(
                     SnackbarManager.showMessage("Join request sent")
                     getEvent(eventID)
                 }
+
                 is Result.Error -> {
                     SnackbarManager.showMessage(result.message)
                 }
+
                 else -> {}
             }
         }

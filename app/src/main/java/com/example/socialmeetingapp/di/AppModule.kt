@@ -8,7 +8,6 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStoreFile
 import com.example.socialmeetingapp.data.api.GeocodingApi
-import com.example.socialmeetingapp.data.remote.NotificationService
 import com.example.socialmeetingapp.data.repository.FirebaseEventRepositoryImpl
 import com.example.socialmeetingapp.data.repository.FirebaseUserRepositoryImpl
 import com.example.socialmeetingapp.data.repository.LocationRepositoryImpl
@@ -24,7 +23,14 @@ import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreSettings
+import com.google.firebase.firestore.LocalCacheSettings
+import com.google.firebase.firestore.MemoryCacheSettings
+import com.google.firebase.firestore.PersistentCacheSettings
 import com.google.firebase.firestore.firestore
+import com.google.firebase.firestore.firestoreSettings
+import com.google.firebase.firestore.memoryCacheSettings
+import com.google.firebase.firestore.persistentCacheSettings
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.storage
 import dagger.Module
@@ -67,12 +73,6 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideNotificationService(firestoreDatabase: FirebaseFirestore): NotificationService {
-        return NotificationService(firestoreDatabase)
-    }
-
-    @Provides
-    @Singleton
     fun provideFusedLocationClient(@ApplicationContext context: Context): FusedLocationProviderClient {
         return LocationServices.getFusedLocationProviderClient(context)
     }
@@ -102,10 +102,9 @@ object AppModule {
     fun provideEventRepository(
         firestoreDatabase: FirebaseFirestore,
         userRepository: UserRepository,
-        firebaseAuth: FirebaseAuth,
-        notificationService: NotificationService
+        firebaseAuth: FirebaseAuth
     ): EventRepository {
-        return FirebaseEventRepositoryImpl(firestoreDatabase, userRepository, firebaseAuth, notificationService)
+        return FirebaseEventRepositoryImpl(firestoreDatabase, userRepository, firebaseAuth)
     }
 
     @Provides
@@ -123,15 +122,11 @@ object AppModule {
         firebaseAuth: FirebaseAuth,
         firestoreDatabase: FirebaseFirestore,
         firebaseStorage: FirebaseStorage,
-        dataStore: DataStore<Preferences>,
-        notificationService: NotificationService
     ): UserRepository {
         return FirebaseUserRepositoryImpl(
             firebaseAuth,
             firestoreDatabase,
             firebaseStorage,
-            dataStore,
-            notificationService
         )
     }
 

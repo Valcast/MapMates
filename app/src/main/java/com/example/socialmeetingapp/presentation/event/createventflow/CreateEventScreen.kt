@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.socialmeetingapp.domain.model.Category
 import com.example.socialmeetingapp.domain.model.Event
 import com.example.socialmeetingapp.presentation.components.DashedProgressIndicator
 import com.google.android.gms.maps.model.LatLng
@@ -30,11 +31,13 @@ import kotlinx.datetime.LocalDateTime
 @Composable
 fun CreateEventScreen(
     event: Event,
+    categories: List<Category>,
     uiState: CreateEventFlow,
     isNextButtonEnabled: Boolean,
     isRulesAccepted: Boolean,
     onNext: () -> Unit,
     onPrevious: () -> Unit,
+    onUpdateCategory: (Category) -> Unit,
     onUpdateTitle: (String) -> Unit,
     onUpdateDescription: (String) -> Unit,
     onUpdateIsPrivate: (Boolean) -> Unit,
@@ -83,12 +86,13 @@ fun CreateEventScreen(
             when (uiState) {
                 CreateEventFlow.Info -> EventInfoScreen(
                     event = event,
+                    categories = categories,
                     onUpdateTitle = onUpdateTitle,
                     onUpdateDescription = onUpdateDescription,
                     onUpdateIsPrivate = onUpdateIsPrivate,
                     onUpdateIsOnline = onUpdateIsOnline,
-                    onUpdateMaxParticipants = onUpdateMaxParticipants
-
+                    onUpdateMaxParticipants = onUpdateMaxParticipants,
+                    onUpdateCategory = onUpdateCategory
                 )
 
                 CreateEventFlow.Time -> EventDateScreen(

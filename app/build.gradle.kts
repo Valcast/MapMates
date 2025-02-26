@@ -103,10 +103,8 @@ dependencies {
     implementation(libs.coil.network.okhttp)
 
     implementation(libs.google.location)
-
-    implementation(libs.google.maps)
-    implementation(libs.google.maps.kotlin)
     implementation(libs.google.maps.compose)
+    implementation(libs.google.maps.compose.utils)
 
     implementation(libs.kotlinx.coroutines)
     implementation(libs.kotlinx.coroutines.play.services)

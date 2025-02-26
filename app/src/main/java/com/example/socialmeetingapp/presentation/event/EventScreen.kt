@@ -24,8 +24,8 @@ import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -85,12 +85,16 @@ fun EventScreen(
         }
 
         is EventState.Content -> {
+            val isEventEnded = state.event.endTime < Clock.System.now()
+                .toLocalDateTime(TimeZone.currentSystemDefault())
+            val isEventHappeningNow = state.event.startTime < Clock.System.now()
+                .toLocalDateTime(TimeZone.currentSystemDefault())
+
             Column(
                 modifier = Modifier
                     .padding(16.dp)
                     .fillMaxSize()
             ) {
-
                 Column(
                     modifier = Modifier
                         .verticalScroll(rememberScrollState())
@@ -134,6 +138,7 @@ fun EventScreen(
                                                 color = MaterialTheme.colorScheme.error
                                             )
                                         },
+                                        enabled = !(isEventEnded || isEventHappeningNow),
                                         onClick = onDeleteEvent,
                                     )
                                 } else {
@@ -150,12 +155,30 @@ fun EventScreen(
                                             eventActionsExpanded = false
                                         },
                                         enabled = state.event.participants.any { it.id == state.currentUser.id }
+                                                && !isEventEnded
+                                                && !isEventHappeningNow
                                     )
 
                                 }
                             }
 
                         }
+                    }
+
+                    if (isEventEnded) {
+                        Text(
+                            text = "Event has ended",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(vertical = 16.dp)
+                        )
+                    } else if (isEventHappeningNow) {
+                        Text(
+                            text = "This event is happening right now! You cannot join anymore.",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(vertical = 16.dp)
+                        )
                     }
 
                     Text(
@@ -234,7 +257,7 @@ fun EventScreen(
                                 .padding(10.dp)
                         )
                         Text(
-                            text = state.event.locationAddress!!,
+                            text = state.event.locationAddress,
                             color = MaterialTheme.colorScheme.onBackground,
                             style = MaterialTheme.typography.titleMedium,
                             minLines = 2,
@@ -366,7 +389,12 @@ fun EventScreen(
                                 CameraPosition.fromLatLngZoom(state.event.locationCoordinates, 15f)
                         },
                         onMapClick = {
-                            NavigationManager.navigateTo(Routes.Map(state.event.locationCoordinates.latitude, state.event.locationCoordinates.longitude))
+                            NavigationManager.navigateTo(
+                                Routes.Map(
+                                    state.event.locationCoordinates.latitude,
+                                    state.event.locationCoordinates.longitude
+                                )
+                            )
                         },
                         uiSettings = MapUiSettings(
                             zoomControlsEnabled = false,
@@ -398,7 +426,7 @@ fun EventScreen(
                 }
 
 
-                ExtendedFloatingActionButton(
+                ElevatedButton(
                     onClick = {
                         if (state.event.isPrivate) {
                             onSendJoinRequest()
@@ -406,25 +434,41 @@ fun EventScreen(
                             onJoinEvent()
                         }
                     },
+                    enabled = when {
+                        state.event.participants.any { it.id == state.currentUser.id } -> false
+                        state.event.joinRequests.any { it.id == state.currentUser.id } -> false
+                        state.event.participants.size >= state.event.maxParticipants -> false
+                        state.currentUser.id == state.event.author.id -> false
+                        isEventEnded -> false
+                        else -> true
+                    },
+                    shape = MaterialTheme.shapes.medium,
                     modifier = Modifier
                         .align(Alignment.End)
                         .fillMaxWidth(),
 
                     ) {
-                    Text(text = when {
-                        state.event.participants.any { it.id == state.currentUser.id } -> stringResource(
-                            R.string.event_joined
-                        )
-                        state.event.joinRequests.any { it.id == state.currentUser.id } -> stringResource(
-                            R.string.event_join_request_sent
-                        )
-                        state.event.participants.size >= state.event.maxParticipants -> stringResource(
-                            R.string.event_full
-                        )
-                        state.currentUser.id == state.event.author.id -> stringResource(R.string.event_host)
-                        state.event.isPrivate -> stringResource(R.string.event_join_request)
-                        else -> stringResource(R.string.event_join)
-                    })
+                    Text(
+                        text = when {
+                            isEventEnded -> "Event has ended"
+                            isEventHappeningNow -> "Event is happening right now"
+                            state.event.participants.any { it.id == state.currentUser.id } -> stringResource(
+                                R.string.event_joined
+                            )
+
+                            state.event.joinRequests.any { it.id == state.currentUser.id } -> stringResource(
+                                R.string.event_join_request_sent
+                            )
+
+                            state.event.participants.size >= state.event.maxParticipants -> stringResource(
+                                R.string.event_full
+                            )
+
+                            state.currentUser.id == state.event.author.id -> stringResource(R.string.event_host)
+                            state.event.isPrivate -> stringResource(R.string.event_join_request)
+
+                            else -> stringResource(R.string.event_join)
+                        }, modifier = Modifier.padding(vertical = 8.dp))
                 }
             }
 
@@ -445,11 +489,14 @@ fun EventScreen(
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.clip(MaterialTheme.shapes.small).clickable {
-                                    NavigationManager.navigateTo(
-                                        Routes.Profile(participant.id)
-                                    )
-                                }.padding(4.dp)
+                                modifier = Modifier
+                                    .clip(MaterialTheme.shapes.small)
+                                    .clickable {
+                                        NavigationManager.navigateTo(
+                                            Routes.Profile(participant.id)
+                                        )
+                                    }
+                                    .padding(4.dp)
                             ) {
                                 AsyncImage(
                                     model = participant.profilePictureUri,

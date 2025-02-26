@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.socialmeetingapp.domain.model.Event
 import com.example.socialmeetingapp.domain.model.Result
 import com.example.socialmeetingapp.domain.model.User
+import com.example.socialmeetingapp.domain.model.UserPreview
 import com.example.socialmeetingapp.domain.repository.EventRepository
 import com.example.socialmeetingapp.domain.repository.UserRepository
 import com.example.socialmeetingapp.presentation.common.SnackbarManager
@@ -20,11 +21,11 @@ sealed class ProfileState {
     data class Error(val message: String) : ProfileState()
     data class Content(
         val user: User,
-        val userEvents: List<Event> = emptyList(),
+        val userEventDetails: List<Event> = emptyList(),
         val isMyProfile: Boolean = false,
         val isObservedUser: Boolean = false,
-        val followers: List<User> = emptyList(),
-        val following: List<User> = emptyList()
+        val followers: List<UserPreview> = emptyList(),
+        val following: List<UserPreview> = emptyList()
     ) : ProfileState()
 }
 
@@ -36,41 +37,34 @@ class ProfileViewModel @Inject constructor(
     private val _userData = MutableStateFlow<ProfileState>(ProfileState.Loading)
     val userData = _userData.asStateFlow()
 
-    private val _newUser = MutableStateFlow(User.EMPTY)
-    val newUser = _newUser.asStateFlow()
-
     fun getUserByID(userID: String) {
-        val currentUser = userRepository.currentUser.value
-        val userEvents = eventRepository.eventsStateFlow.value.filter { it.author.id == userID }
-
         viewModelScope.launch {
-            val isMyProfile = currentUser is Result.Success && currentUser.data!!.id == userID
-            val userResult = if (isMyProfile) currentUser else userRepository.getUser(userID)
+            val currentUser = userRepository.getCurrentUser()
 
-            if (userResult is Result.Success) {
-                val user = userResult.data!!
-                val followers = user.followers.mapNotNull {
-                    (userRepository.getUser(it) as? Result.Success<User>)?.data
-                }
-                val following = user.following.mapNotNull {
-                    (userRepository.getUser(it) as? Result.Success<User>)?.data
-                }
-                val isObservedUser = !isMyProfile && currentUser is Result.Success && currentUser.data!!.following.contains(userID)
+            when (val userResult = userRepository.getUser(userID)) {
+                is Result.Success -> {
+                    val user = userResult.data
 
-                _userData.update {
-                    ProfileState.Content(
-                        user = user,
-                        followers = followers,
-                        following = following,
-                        userEvents = userEvents,
-                        isMyProfile = isMyProfile,
-                        isObservedUser = isObservedUser
-                    )
+                    val userEvents = eventRepository.events.value.filter { it.author.id == user.id }
+
+                    val isMyProfile = currentUser is Result.Success && currentUser.data.id == user.id
+                    val isObservedUser = currentUser is Result.Success && currentUser.data.following.any { it == user.id }
+
+                    val followersResult = userRepository.getUsersPreviews(user.followers)
+                    val followingResult = userRepository.getUsersPreviews(user.following)
+
+                    if (followersResult is Result.Success && followingResult is Result.Success) {
+                        _userData.value = ProfileState.Content(user, userEvents, isMyProfile, isObservedUser, followersResult.data, followingResult.data)
+                    } else {
+                        _userData.value = ProfileState.Error("Error loading followers or following")
+                    }
                 }
-            } else {
-                _userData.update {
-                    ProfileState.Error("Failed to load user")
+
+                is Result.Error -> {
+                    _userData.value = ProfileState.Error(userResult.message)
                 }
+
+                else -> {}
             }
         }
     }
