@@ -1,33 +1,26 @@
 package com.example.socialmeetingapp
 
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
@@ -36,6 +29,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.example.compose.SocialMeetingAppTheme
+import com.example.socialmeetingapp.domain.model.Theme
 import com.example.socialmeetingapp.presentation.activities.ActivitiesScreen
 import com.example.socialmeetingapp.presentation.activities.ActivitiesViewModel
 import com.example.socialmeetingapp.presentation.authentication.forgot.ForgotPasswordScreen
@@ -86,13 +80,19 @@ class MainActivity : ComponentActivity() {
         )
 
         enableEdgeToEdge()
-        setContent {
-            val viewModel by viewModels<MainViewModel>()
 
-            val startDestination = viewModel.startDestination.collectAsStateWithLifecycle().value
-            val user = viewModel.user.collectAsStateWithLifecycle().value
-            val theme = viewModel.settings.collectAsStateWithLifecycle().value.theme
+        setContent {
+            val mainViewModel by viewModels<MainViewModel>()
+
+            val startDestination = mainViewModel.startDestination.collectAsStateWithLifecycle().value
+            val user = mainViewModel.user.collectAsStateWithLifecycle().value
+            val theme = mainViewModel.settings.collectAsStateWithLifecycle().value.theme
             splashScreen.setKeepOnScreenCondition { startDestination == null }
+
+            when (theme) {
+                Theme.LIGHT -> WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = true
+                Theme.DARK, Theme.SYSTEM -> WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = false
+            }
 
             val navController = rememberNavController()
             val snackbarHostState = remember { SnackbarHostState() }
@@ -188,7 +188,7 @@ class MainActivity : ComponentActivity() {
                     ) {
                         composable<Routes.Introduction> {
                             IntroductionScreen(onFinish = {
-                                viewModel.onIntroductionFinished()
+                                mainViewModel.onIntroductionFinished()
                                 NavigationManager.navigateTo(Routes.Login)
                             })
                         }
@@ -209,7 +209,6 @@ class MainActivity : ComponentActivity() {
                                     args.latitude,
                                     args.longitude
                                 ) else null,
-                                theme = theme,
                                 onMapLongClick = {
                                     NavigationManager.navigateTo(
                                         Routes.CreateEvent(
@@ -219,6 +218,7 @@ class MainActivity : ComponentActivity() {
                                     )
                                 },
                                 onEventClick = { NavigationManager.navigateTo(Routes.Event(it)) },
+                                onFiltersApplied = viewModel::applyFilters
                             )
                         }
 
