@@ -3,19 +3,16 @@ package com.example.socialmeetingapp.data.repository
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
-import android.os.Looper
 import com.example.socialmeetingapp.BuildConfig
 import com.example.socialmeetingapp.data.api.GeocodingApi
 import com.example.socialmeetingapp.domain.model.Result
 import com.example.socialmeetingapp.domain.repository.LocationRepository
+import com.google.android.gms.location.CurrentLocationRequest
 import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationCallback
-import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.Granularity
 import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.model.LatLng
-import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.tasks.await
 import retrofit2.HttpException
 
 class LocationRepositoryImpl(
@@ -24,41 +21,21 @@ class LocationRepositoryImpl(
     private val geocodingApi: GeocodingApi
 ) : LocationRepository {
 
-    override val latestLocation: Flow<Result<LatLng>> = callbackFlow {
-        if (context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            val locationCallback = object : LocationCallback() {
-                override fun onLocationResult(locationResult: com.google.android.gms.location.LocationResult) {
-                    val lastLocation = locationResult.lastLocation
-                    if (lastLocation != null) {
-                        trySend(Result.Success(LatLng(lastLocation.latitude, lastLocation.longitude)))
-                    } else {
-                        trySend(Result.Error("No location available"))
-                    }
-                }
-            }
-
-            try {
-                fusedLocationProviderClient.requestLocationUpdates(
-                    locationRequest,
-                    locationCallback,
-                    Looper.getMainLooper()
-                )
-
-                awaitClose {
-                    fusedLocationProviderClient.removeLocationUpdates(locationCallback)
-                }
-            } catch (e: SecurityException) {
-                trySend(Result.Error("Location permission denied"))
-                close(e)
-            }
-        } else {
-            trySend(Result.Error("Location permission not granted"))
-            close()
+    override suspend fun getLocation(): Result<LatLng> {
+        if (!checkLocationPermission()) {
+            return Result.Error("Location permission not granted")
         }
+
+        val location = fusedLocationProviderClient.getCurrentLocation(locationRequest, null).await()
+                ?: return Result.Error("Cannot get location")
+
+        return Result.Success(LatLng(location.latitude, location.longitude))
     }
 
-    private val locationRequest =
-        LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5000L).build()
+    private val locationRequest = CurrentLocationRequest.Builder()
+        .setPriority(Priority.PRIORITY_LOW_POWER)
+        .setGranularity(Granularity.GRANULARITY_PERMISSION_LEVEL)
+        .build()
 
     override suspend fun getAddressFromLatLng(location: LatLng): Result<String> {
         return try {
@@ -83,5 +60,10 @@ class LocationRepositoryImpl(
         } catch (e: HttpException) {
             Result.Error(e.message())
         }
+    }
+
+    private fun checkLocationPermission(): Boolean {
+        return context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+                context.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
     }
 }

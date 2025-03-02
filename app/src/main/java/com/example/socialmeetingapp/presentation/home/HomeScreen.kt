@@ -8,9 +8,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -45,7 +43,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -56,8 +53,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -69,22 +64,22 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import com.example.socialmeetingapp.domain.model.Category
-import com.example.socialmeetingapp.domain.model.Result
 import com.example.socialmeetingapp.presentation.components.EventCard
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMapOptions
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.MapProperties
+import com.google.maps.android.compose.MapType
 import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.MapsComposeExperimentalApi
-import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.clustering.Clustering
 import com.google.maps.android.compose.rememberCameraPositionState
-import com.google.maps.android.compose.rememberUpdatedMarkerState
-import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDateTime
 import java.time.format.TextStyle
@@ -98,9 +93,11 @@ import java.util.Locale
 @Composable
 fun HomeScreen(
     state: HomeState,
+    currentLocation: LatLng?,
     locationCoordinates: LatLng? = null,
     onMapLongClick: (LatLng) -> Unit,
     onEventClick: (String) -> Unit,
+    onLocationRequested: suspend () -> Unit,
     onFiltersApplied: (LocalDateTime?, LocalDateTime?, Category?) -> Unit
 ) {
     val lifecycleScope = LocalLifecycleOwner.current.lifecycleScope
@@ -114,6 +111,8 @@ fun HomeScreen(
     var selectedStartDate by remember { mutableStateOf<LocalDateTime?>(null) }
     var selectedEndDate by remember { mutableStateOf<LocalDateTime?>(null) }
     var selectedCategory by remember { mutableStateOf<Category?>(null) }
+
+    var updateLocationJob by remember { mutableStateOf<Job?>(null) }
 
     val locationPermissions = rememberMultiplePermissionsState(
         permissions = listOf(
@@ -131,9 +130,9 @@ fun HomeScreen(
     when (state) {
         is HomeState.Content -> {
             val startPosition = locationCoordinates
-                ?: if (state.location is Result.Success) state.location.data else LatLng(
+                ?: (currentLocation ?: LatLng(
                     52.237049, 21.017532
-                )
+                ))
 
             val cameraPositionState = rememberCameraPositionState {
                 position = CameraPosition.fromLatLngZoom(
@@ -180,10 +179,16 @@ fun HomeScreen(
                                     GoogleMapOptions().mapToolbarEnabled(false)
                                         .zoomControlsEnabled(false)
                                 },
+                                properties = MapProperties(
+                                    isMyLocationEnabled = true,
+                                    isBuildingEnabled = true,
+                                    mapType = MapType.NORMAL
+                                ),
                                 uiSettings = MapUiSettings(
                                     compassEnabled = false,
                                     zoomControlsEnabled = false,
-                                    mapToolbarEnabled = false
+                                    mapToolbarEnabled = false,
+                                    myLocationButtonEnabled = false
                                 ),
                                 onMapLongClick = {
                                     selectedCreateEventPosition = it
@@ -194,13 +199,6 @@ fun HomeScreen(
                                     eventCluster = emptyList()
                                 },
                             ) {
-                                if (state.location is Result.Success) {
-                                    Marker(
-                                        rememberUpdatedMarkerState(state.location.data),
-                                        title = "You are here",
-                                    )
-                                }
-
                                 Clustering(
                                     items = state.eventDetails.map { event ->
                                         EventMarker(
@@ -522,28 +520,38 @@ fun HomeScreen(
                 if (!isListView) {
                     SmallFloatingActionButton(
                         onClick = {
-                            if (state.location is Result.Success) {
-                                lifecycleScope.launch {
+                            updateLocationJob?.cancel()
+
+                            if (locationPermissions.permissions.all { !it.status.isGranted }) {
+                                isRequestPermissionDialogVisible = true
+                                return@SmallFloatingActionButton
+                            }
+
+                            updateLocationJob = lifecycleScope.launch {
+                                onLocationRequested()
+
+                                currentLocation?.let {
                                     try {
                                         cameraPositionState.animate(
                                             update = CameraUpdateFactory.newCameraPosition(
                                                 CameraPosition.fromLatLngZoom(
-                                                    state.location.data, 15f
+                                                    it, 15f
                                                 )
                                             ),
                                             durationMs = 1000
                                         )
-                                    } catch (_: Exception) { }
+                                    } catch (_: Exception) {
+                                    }
                                 }
-                            } else {
-                                isRequestPermissionDialogVisible = true
+
+
                             }
                         },
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
                             .padding(16.dp),
                     ) {
-                        if (state.location is Result.Success) {
+                        if (currentLocation != null) {
                             Icon(
                                 imageVector = Icons.Filled.Place,
                                 contentDescription = "My Location",

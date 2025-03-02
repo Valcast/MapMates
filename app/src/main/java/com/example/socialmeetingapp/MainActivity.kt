@@ -2,7 +2,6 @@ package com.example.socialmeetingapp
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
@@ -199,12 +198,11 @@ class MainActivity : ComponentActivity() {
 
                         composable<Routes.Map> {
                             val viewModel = hiltViewModel<HomeViewModel>()
-
                             val args = it.toRoute<Routes.Map>()
-
 
                             HomeScreen(
                                 state = viewModel.state.collectAsStateWithLifecycle().value,
+                                currentLocation = viewModel.currentLocation.collectAsStateWithLifecycle().value,
                                 locationCoordinates = if (args.latitude != null && args.longitude != null) LatLng(
                                     args.latitude,
                                     args.longitude
@@ -218,7 +216,8 @@ class MainActivity : ComponentActivity() {
                                     )
                                 },
                                 onEventClick = { NavigationManager.navigateTo(Routes.Event(it)) },
-                                onFiltersApplied = viewModel::applyFilters
+                                onFiltersApplied = viewModel::applyFilters,
+                                onLocationRequested = viewModel::getLocation
                             )
                         }
 
