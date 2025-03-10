@@ -1,19 +1,33 @@
-/**
- * Import function triggers from their respective submodules:
- *
- * import {onCall} from "firebase-functions/v2/https";
- * import {onDocumentWritten} from "firebase-functions/v2/firestore";
- *
- * See a full list of supported triggers at https://firebase.google.com/docs/functions
- */
+/* eslint-disable max-len */
+import * as functions from "firebase-functions";
+import * as admin from "firebase-admin";
+import {Timestamp} from "firebase-admin/firestore";
 
-import {onRequest} from "firebase-functions/v2/https";
-import * as logger from "firebase-functions/logger";
+admin.initializeApp();
 
-// Start writing functions
-// https://firebase.google.com/docs/functions/typescript
+export const sendNotificationEventCreated = functions.firestore.onDocumentCreated({
+  document: "events/{eventId}",
+  region: "europe-central2",
+}, async (snap) => {
+  const authorId = snap.data?.get("author");
 
-// export const helloWorld = onRequest((request, response) => {
-//   logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
-// });
+  const authorDoc = await admin.firestore().collection("users").doc(authorId).get();
+
+  const authorFollowers = authorDoc.get("followers");
+
+  for (const follower of authorFollowers) {
+    await admin.firestore().collection(`users/${follower}/notifications`).add({
+      type: "EVENT_CREATED",
+      timestamp: Timestamp.now(),
+      read: false,
+      data: {
+        eventId: snap.data?.id,
+        authorId,
+      },
+    });
+  }
+
+  return null;
+});
+
+
