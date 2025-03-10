@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">SocialMeetingApp</string>
 
@@ -88,4 +89,26 @@
     <string name="event_join">Join Event</string>
     <string name="event_join_request">Send a request</string>
     <string name="event_join_request_sent">Join request sent</string>
+
+    <!-- Notifications -->
+    <string name="notification_title">Notifications</string>
+    <string name="notification_empty">No notifications</string>
+    <string name="notification_mark_all_as_read">Mark all as read</string>
+    <string name="notification_mark_as_read">Mark as read</string>
+    <string name="notification_mark_as_unread">Mark as unread</string>
+    <string name="notification_delete">Delete</string>
+    <string name="notification_delete_all">Delete all</string>
+
+    <string name="notification_event_created"><b>%1$s</b> created new event <b>%2$s</b></string>
+
+    <string name="just_now">Just now</string>
+    <string name="one_minute_ago_short">A minute ago</string>
+    <string name="minutes_ago_short">%d min</string>
+    <string name="one_hour_ago_short">An hour ago</string>
+    <string name="hours_ago_short">%d hours</string>
+    <string name="one_day_ago">Yesterday</string>
+    <string name="days_ago">%d days</string>
+    <string name="months_ago">%d months</string>
+
+
 </resources>

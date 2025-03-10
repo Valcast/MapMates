@@ -5,10 +5,11 @@ import com.example.socialmeetingapp.domain.model.Result
 import com.example.socialmeetingapp.domain.model.SignUpStatus
 import com.example.socialmeetingapp.domain.model.User
 import com.example.socialmeetingapp.domain.model.UserPreview
-import kotlinx.coroutines.flow.StateFlow
+import com.google.firebase.auth.FirebaseUser
+import kotlinx.coroutines.flow.Flow
 
 interface UserRepository {
-    fun isUserAuthenticated(): Boolean
+    val authenticationStatus: Flow<FirebaseUser?>
     suspend fun getCurrentUser(): Result<User>
     suspend fun getCurrentUserPreview(): Result<UserPreview>
 

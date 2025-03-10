@@ -35,7 +35,6 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -47,7 +46,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -185,7 +183,7 @@ fun HomeScreen(
                                 .zoomControlsEnabled(false)
                         },
                         properties = MapProperties(
-                            isMyLocationEnabled = true,
+                            isMyLocationEnabled = locationPermissions.permissions.any { it.status.isGranted },
                             isBuildingEnabled = true,
                             mapType = MapType.NORMAL
                         ),
@@ -544,7 +542,10 @@ fun HomeScreen(
                                 )
                             }
 
-                            Button(onClick = { locationPermissions.launchMultiplePermissionRequest() }) {
+                            Button(onClick = {
+                                locationPermissions.launchMultiplePermissionRequest()
+                                isRequestPermissionDialogVisible = false
+                            }) {
                                 Text(
                                     text = "Allow",
                                     color = MaterialTheme.colorScheme.onPrimary,
@@ -606,7 +607,7 @@ fun HomeScreen(
                     .align(Alignment.BottomEnd)
                     .padding(16.dp),
             ) {
-                if (currentLocation != null) {
+                if (locationPermissions.permissions.any { it.status.isGranted }) {
                     Icon(
                         imageVector = Icons.Filled.Place,
                         contentDescription = "My Location",

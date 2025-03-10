@@ -11,9 +11,11 @@ import com.example.socialmeetingapp.data.api.GeocodingApi
 import com.example.socialmeetingapp.data.repository.FirebaseEventRepositoryImpl
 import com.example.socialmeetingapp.data.repository.FirebaseUserRepositoryImpl
 import com.example.socialmeetingapp.data.repository.LocationRepositoryImpl
+import com.example.socialmeetingapp.data.repository.NotificationRepositoryImpl
 import com.example.socialmeetingapp.data.repository.SettingsRepositoryImpl
 import com.example.socialmeetingapp.domain.repository.EventRepository
 import com.example.socialmeetingapp.domain.repository.LocationRepository
+import com.example.socialmeetingapp.domain.repository.NotificationRepository
 import com.example.socialmeetingapp.domain.repository.SettingsRepository
 import com.example.socialmeetingapp.domain.repository.UserRepository
 import com.example.socialmeetingapp.presentation.common.CredentialManager
@@ -23,14 +25,7 @@ import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.FirebaseFirestoreSettings
-import com.google.firebase.firestore.LocalCacheSettings
-import com.google.firebase.firestore.MemoryCacheSettings
-import com.google.firebase.firestore.PersistentCacheSettings
 import com.google.firebase.firestore.firestore
-import com.google.firebase.firestore.firestoreSettings
-import com.google.firebase.firestore.memoryCacheSettings
-import com.google.firebase.firestore.persistentCacheSettings
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.storage
 import dagger.Module
@@ -128,6 +123,15 @@ object AppModule {
             firestoreDatabase,
             firebaseStorage,
         )
+    }
+
+    @Provides
+    @Singleton
+    fun provideNotificationRepository(
+        db: FirebaseFirestore,
+        auth: FirebaseAuth
+    ): NotificationRepository {
+        return NotificationRepositoryImpl(db, auth)
     }
 
     @Provides
