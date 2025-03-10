@@ -13,16 +13,20 @@ import com.example.socialmeetingapp.domain.repository.UserRepository
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuth.AuthStateListener
 import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.FirebaseAuthWeakPasswordException
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.storage.FirebaseStorage
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
@@ -35,11 +39,22 @@ class FirebaseUserRepositoryImpl(
     private val storage: FirebaseStorage,
 ) : UserRepository {
 
-    override fun isUserAuthenticated(): Boolean = firebaseAuth.currentUser != null
+    override val authenticationStatus = callbackFlow {
+        val authStateListener = AuthStateListener { authState ->
+            trySend(authState.currentUser)
+        }
+
+        firebaseAuth.addAuthStateListener(authStateListener)
+
+        awaitClose {
+            firebaseAuth.removeAuthStateListener(authStateListener)
+        }
+    }
 
     override suspend fun getCurrentUser(): Result<User> {
         return try {
-            val userDocumentRef = db.collection("users").document(firebaseAuth.currentUser!!.uid).get().await()
+            val userDocumentRef =
+                db.collection("users").document(firebaseAuth.currentUser!!.uid).get().await()
 
             Result.Success(userDocumentRef.toUser())
         } catch (e: FirebaseFirestoreException) {
@@ -51,7 +66,8 @@ class FirebaseUserRepositoryImpl(
 
     override suspend fun getCurrentUserPreview(): Result<UserPreview> {
         return try {
-            val userDocumentRef = db.collection("users").document(firebaseAuth.currentUser!!.uid).get().await()
+            val userDocumentRef =
+                db.collection("users").document(firebaseAuth.currentUser!!.uid).get().await()
 
             Result.Success(userDocumentRef.toUserPreview())
         } catch (e: FirebaseFirestoreException) {
@@ -107,7 +123,9 @@ class FirebaseUserRepositoryImpl(
     override suspend fun getUsersPreviews(ids: List<String>): Result<List<UserPreview>> {
         try {
             if (ids.isEmpty()) return Result.Success(emptyList())
-            val userDocumentRefs = db.collection("users").whereIn("id", ids).get().await()
+            val userDocumentRefs =
+                db.collection("users").whereIn(FieldPath.documentId(), ids).get().await()
+
             val users = userDocumentRefs.documents.mapNotNull { userDocument ->
                 try {
                     userDocument.toUserPreview()
@@ -216,7 +234,9 @@ class FirebaseUserRepositoryImpl(
             userDocument.set(
                 hashMapOf(
                     "gender" to user.gender,
-                    "dateOfBirth" to Timestamp(user.dateOfBirth.toInstant(TimeZone.UTC).toJavaInstant()),
+                    "dateOfBirth" to Timestamp(
+                        user.dateOfBirth.toInstant(TimeZone.UTC).toJavaInstant()
+                    ),
                     "bio" to user.bio,
                     "username" to user.username,
                     "profilePictureUri" to user.profilePictureUri.toString(),

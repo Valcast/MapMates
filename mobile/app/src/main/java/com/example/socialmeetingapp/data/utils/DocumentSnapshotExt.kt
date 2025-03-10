@@ -4,6 +4,8 @@ import android.net.Uri
 import androidx.core.net.toUri
 import com.example.socialmeetingapp.domain.model.Category
 import com.example.socialmeetingapp.domain.model.Event
+import com.example.socialmeetingapp.domain.model.Notification
+import com.example.socialmeetingapp.domain.model.NotificationType
 import com.example.socialmeetingapp.domain.model.User
 import com.example.socialmeetingapp.domain.model.UserPreview
 import com.google.android.gms.maps.model.LatLng
@@ -14,9 +16,14 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
-fun DocumentSnapshot.getRequiredString(field: String): String = this.getString(field) ?: throw MissingFieldException(field)
-fun DocumentSnapshot.getRequiredBoolean(field: String): Boolean = this.getBoolean(field) ?: throw MissingFieldException(field)
-fun DocumentSnapshot.getList(field: String): List<String> = this.get(field) as? List<String> ?: throw MissingFieldException(field)
+fun DocumentSnapshot.getRequiredString(field: String): String =
+    this.getString(field) ?: throw MissingFieldException(field)
+
+fun DocumentSnapshot.getRequiredBoolean(field: String): Boolean =
+    this.getBoolean(field) ?: throw MissingFieldException(field)
+
+fun DocumentSnapshot.getList(field: String): List<String> =
+    this.get(field) as? List<String> ?: throw MissingFieldException(field)
 
 
 fun DocumentSnapshot.getLocalDateTime(field: String): LocalDateTime {
@@ -39,10 +46,15 @@ fun DocumentSnapshot.getInt(field: String): Int {
     return number.toInt()
 }
 
+fun DocumentSnapshot.getMap(field: String): Map<String, String> {
+    return this.get(field) as? Map<String, String> ?: throw MissingFieldException(field)
+}
+
 fun LatLng.toGeoPoint(): GeoPoint = GeoPoint(latitude, longitude)
 fun GeoPoint.toLatLng(): LatLng = LatLng(latitude, longitude)
 
-fun DocumentSnapshot.getLatLng(field: String): LatLng = getGeoPoint(field)?.toLatLng() ?: throw MissingFieldException(field)
+fun DocumentSnapshot.getLatLng(field: String): LatLng =
+    getGeoPoint(field)?.toLatLng() ?: throw MissingFieldException(field)
 
 class MissingFieldException(field: String) : Exception("Required field '$field' is missing.")
 
@@ -80,7 +92,7 @@ fun DocumentSnapshot.toEvent(
     category: Category,
     participants: List<UserPreview>,
     joinRequests: List<UserPreview>
-): Event? {
+): Event {
 
     return Event(
         id = id,
@@ -98,5 +110,15 @@ fun DocumentSnapshot.toEvent(
         isPrivate = getRequiredBoolean("isPrivate"),
         isOnline = getRequiredBoolean("isOnline")
     )
-
 }
+
+fun DocumentSnapshot.toNotification(): Notification {
+    return Notification(
+        id = id,
+        type = NotificationType.valueOf(getRequiredString("type")),
+        timestamp = getLocalDateTime("timestamp"),
+        isRead = getRequiredBoolean("read"),
+        data = getMap("data")
+    )
+}
+

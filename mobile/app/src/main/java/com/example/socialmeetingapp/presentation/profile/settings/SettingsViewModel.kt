@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.socialmeetingapp.domain.model.AppConfig
 import com.example.socialmeetingapp.domain.repository.SettingsRepository
 import com.example.socialmeetingapp.domain.repository.UserRepository
+import com.example.socialmeetingapp.presentation.common.NavigationManager
+import com.example.socialmeetingapp.presentation.common.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -32,5 +34,8 @@ class SettingsViewModel @Inject constructor(
 
     fun restoreDefaultSettings() = settingsRepository.updateSettings(AppConfig.DEFAULT)
 
-    fun signOut() = userRepository.signOut()
+    fun signOut() {
+        userRepository.signOut()
+        NavigationManager.navigateTo(Routes.Login)
+    }
 }

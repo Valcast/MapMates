@@ -1,16 +1,15 @@
 package com.example.socialmeetingapp
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -48,6 +47,8 @@ import com.example.socialmeetingapp.presentation.home.HomeScreen
 import com.example.socialmeetingapp.presentation.home.HomeViewModel
 import com.example.socialmeetingapp.presentation.introduction.IntroductionScreen
 import com.example.socialmeetingapp.presentation.navigation.NavigationBar
+import com.example.socialmeetingapp.presentation.notifications.NotificationScreen
+import com.example.socialmeetingapp.presentation.notifications.NotificationsViewModel
 import com.example.socialmeetingapp.presentation.profile.ProfileScreen
 import com.example.socialmeetingapp.presentation.profile.ProfileViewModel
 import com.example.socialmeetingapp.presentation.profile.createprofileflow.CreateProfileScreen
@@ -83,14 +84,20 @@ class MainActivity : ComponentActivity() {
         setContent {
             val mainViewModel by viewModels<MainViewModel>()
 
-            val startDestination = mainViewModel.startDestination.collectAsStateWithLifecycle().value
+            val startDestination =
+                mainViewModel.startDestination.collectAsStateWithLifecycle().value
             val user = mainViewModel.user.collectAsStateWithLifecycle().value
             val theme = mainViewModel.settings.collectAsStateWithLifecycle().value.theme
             splashScreen.setKeepOnScreenCondition { startDestination == null }
 
             when (theme) {
-                Theme.LIGHT -> WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = true
-                Theme.DARK, Theme.SYSTEM -> WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = false
+                Theme.LIGHT -> WindowCompat.getInsetsController(
+                    window, window.decorView
+                ).isAppearanceLightStatusBars = true
+
+                Theme.DARK, Theme.SYSTEM -> WindowCompat.getInsetsController(
+                    window, window.decorView
+                ).isAppearanceLightStatusBars = false
             }
 
             val navController = rememberNavController()
@@ -152,27 +159,23 @@ class MainActivity : ComponentActivity() {
             }
 
             SocialMeetingAppTheme(theme) {
-                Scaffold(
-                    snackbarHost = { SnackbarHost(snackbarHostState) },
-                    bottomBar = {
-                        if (currentRoute is Routes.Map ||
-                                    currentRoute == Routes.Activities ||
-                                    currentRoute == Routes.Notifications ||
-                                    currentRoute == Routes.Profile(user?.id ?: return@Scaffold)
-                        ) {
-                            Column {
-                                HorizontalDivider()
-                                NavigationBar(
-                                    currentRoute = currentRoute,
-                                    onItemClicked = { NavigationManager.navigateTo(it) },
-                                    profileImageUrl = user?.profilePictureUri ?: return@Scaffold,
-                                    profileID = user.id
-                                )
-                            }
+                Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }, bottomBar = {
+                    if (currentRoute is Routes.Map || currentRoute == Routes.Activities || currentRoute == Routes.Notifications || currentRoute == Routes.Profile(
+                            user?.id ?: return@Scaffold
+                        )
+                    ) {
+                        Log.d("MainActivity", "Current route: $currentRoute")
 
-                        }
+                        NavigationBar(
+                            currentRoute = currentRoute,
+                            onItemClicked = { NavigationManager.navigateTo(it) },
+                            profileImageUrl = user?.profilePictureUri ?: return@Scaffold,
+                            profileID = user.id,
+                            notReadNotifications = mainViewModel.notReadNotificationsCount.collectAsStateWithLifecycle().value
+                        )
+                    }
 
-                    }) { innerPadding ->
+                }) { innerPadding ->
 
                     NavHost(
                         navController = navController,
@@ -205,14 +208,12 @@ class MainActivity : ComponentActivity() {
                                 categories = viewModel.categories.collectAsStateWithLifecycle().value,
                                 currentLocation = viewModel.currentLocation.collectAsStateWithLifecycle().value,
                                 locationCoordinates = if (args.latitude != null && args.longitude != null) LatLng(
-                                    args.latitude,
-                                    args.longitude
+                                    args.latitude, args.longitude
                                 ) else null,
                                 onMapLongClick = {
                                     NavigationManager.navigateTo(
                                         Routes.CreateEvent(
-                                            it.latitude,
-                                            it.longitude
+                                            it.latitude, it.longitude
                                         )
                                     )
                                 },
@@ -237,8 +238,7 @@ class MainActivity : ComponentActivity() {
                                 onDeleteFollower = { viewModel.deleteFollower(it) },
                                 onEditProfile = { NavigationManager.navigateTo(Routes.EditProfile) },
                                 onGoToSettings = { NavigationManager.navigateTo(Routes.Settings) },
-                                onCardClick = { NavigationManager.navigateTo(Routes.Event(it)) }
-                            )
+                                onCardClick = { NavigationManager.navigateTo(Routes.Event(it)) })
                         }
 
 
@@ -251,24 +251,32 @@ class MainActivity : ComponentActivity() {
                                 onCreateEventClick = {
                                     NavigationManager.navigateTo(
                                         Routes.CreateEvent(
-                                            0.0,
-                                            0.0
+                                            0.0, 0.0
                                         )
                                     )
                                 },
                                 onExploreEventClick = { NavigationManager.navigateTo(Routes.Map()) },
                                 onAcceptJoinRequest = { eventID, userID ->
                                     viewModel.acceptJoinRequest(
-                                        eventID,
-                                        userID
+                                        eventID, userID
                                     )
                                 },
                                 onDeclineJoinRequest = { eventID, userID ->
                                     viewModel.declineJoinRequest(
-                                        eventID,
-                                        userID
+                                        eventID, userID
                                     )
-                                }
+                                })
+                        }
+
+                        composable<Routes.Notifications> {
+                            val viewModel = hiltViewModel<NotificationsViewModel>()
+
+                            NotificationScreen(
+                                notifications = viewModel.notifications.collectAsStateWithLifecycle(
+                                    emptyList()
+                                ).value,
+                                onMarkAllAsRead = viewModel::markAllAsRead,
+                                onMarkAsRead = viewModel::markAsRead
                             )
                         }
 
@@ -282,8 +290,7 @@ class MainActivity : ComponentActivity() {
                                 state = viewModel.state.collectAsStateWithLifecycle().value,
                                 onSignIn = { email, password ->
                                     viewModel.signIn(
-                                        email,
-                                        password
+                                        email, password
                                     )
                                 },
                                 onSignInWithGoogle = viewModel::signInWithGoogle,
@@ -298,8 +305,7 @@ class MainActivity : ComponentActivity() {
                             ForgotPasswordScreen(
                                 state = viewModel.state.collectAsStateWithLifecycle().value,
                                 onResetPassword = { email -> viewModel.resetPassword(email) },
-                                onGoToLogin = { navController.popBackStack() }
-                            )
+                                onGoToLogin = { navController.popBackStack() })
                         }
 
                         composable<Routes.Register> {
@@ -331,8 +337,7 @@ class MainActivity : ComponentActivity() {
                                 onUpdateProfilePicture = { viewModel.updateProfilePicture(it) },
                                 onUpdateDateOfBirth = { viewModel.updateDateOfBirth(it) },
                                 onUpdateGender = { viewModel.updateGender(it) },
-                                onUpdateRules = { viewModel.updateRulesAccepted() }
-                            )
+                                onUpdateRules = { viewModel.updateRulesAccepted() })
                         }
 
                         composable<Routes.EditProfile> {
@@ -343,8 +348,7 @@ class MainActivity : ComponentActivity() {
                                 onUpdateBio = { viewModel.updateBio(it) },
                                 onUpdateUsernameAndDateOfBirth = { username, dateOfBirth ->
                                     viewModel.updateUsernameAndDateOfBirth(
-                                        username,
-                                        dateOfBirth
+                                        username, dateOfBirth
                                     )
                                 },
                             )
@@ -393,8 +397,7 @@ class MainActivity : ComponentActivity() {
                                 onSetEndTime = { viewModel.setEndTime(it) },
                                 onUpdateLocation = { viewModel.updateLocation(it) },
                                 onUpdateRules = { viewModel.updateRulesAccepted() },
-                                onCancel = { NavigationManager.navigateTo(Routes.Map()) }
-                            )
+                                onCancel = { NavigationManager.navigateTo(Routes.Map()) })
                         }
 
                         composable<Routes.Event> { it ->
@@ -411,8 +414,7 @@ class MainActivity : ComponentActivity() {
                                 onDeleteEvent = { viewModel.deleteEvent(args.id) },
                                 onRemoveParticipant = {
                                     viewModel.removeParticipant(
-                                        args.id,
-                                        it
+                                        args.id, it
                                     )
                                 },
                                 onSendJoinRequest = { viewModel.sendJoinRequest(args.id) },

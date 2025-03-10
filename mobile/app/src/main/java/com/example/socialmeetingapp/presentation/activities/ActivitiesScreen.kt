@@ -34,7 +34,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import coil3.compose.AsyncImage
 import com.example.socialmeetingapp.presentation.common.NavigationManager
@@ -78,11 +77,10 @@ fun ActivitiesScreen(
         is ActivitiesState.Content -> {
             Column {
                 Text(
-                    text = "Your Activities",
-                    style = MaterialTheme.typography.headlineLarge,
+                    text = "Activities",
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(16.dp),
-                    letterSpacing = 1.sp
+                    modifier = Modifier.padding(16.dp)
                 )
                 PrimaryTabRow(selectedTabIndex = tabState) {
                     titles.forEachIndexed { index, title ->
@@ -94,7 +92,7 @@ fun ActivitiesScreen(
                                     text = title,
                                     maxLines = 2,
                                     overflow = TextOverflow.Ellipsis,
-                                    style = MaterialTheme.typography.titleMedium,
+                                    style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onBackground,
                                 )
@@ -105,9 +103,16 @@ fun ActivitiesScreen(
 
                 when (tabState) {
                     0 -> {
-                        if (state.joinedEventDetails.isEmpty() || state.joinedEventDetails.all { it.endTime < Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()) }) {
+                        if (state.joinedEventDetails.isEmpty() || state.joinedEventDetails.all {
+                                it.endTime < Clock.System.now()
+                                    .toLocalDateTime(TimeZone.currentSystemDefault())
+                            }) {
 
-                            Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+                            Column(
+                                modifier = Modifier.fillMaxSize(),
+                                verticalArrangement = Arrangement.Center,
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
                                 Text(
                                     text = "You haven't joined any events yet. Discover exciting events and join the fun!",
                                     style = MaterialTheme.typography.bodyMedium,
@@ -129,7 +134,9 @@ fun ActivitiesScreen(
                             LazyColumn {
                                 items(state.joinedEventDetails.size) { event ->
 
-                                    if (state.joinedEventDetails[event].endTime < Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())) {
+                                    if (state.joinedEventDetails[event].endTime < Clock.System.now()
+                                            .toLocalDateTime(TimeZone.currentSystemDefault())
+                                    ) {
                                         return@items
                                     }
 
@@ -148,8 +155,15 @@ fun ActivitiesScreen(
                     }
 
                     1 -> {
-                        if (state.createdEventDetails.isEmpty() || state.createdEventDetails.all { it.endTime < Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()) }) {
-                            Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+                        if (state.createdEventDetails.isEmpty() || state.createdEventDetails.all {
+                                it.endTime < Clock.System.now()
+                                    .toLocalDateTime(TimeZone.currentSystemDefault())
+                            }) {
+                            Column(
+                                modifier = Modifier.fillMaxSize(),
+                                verticalArrangement = Arrangement.Center,
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
                                 Text(
                                     text = "You haven't created any events yet. Start creating events and invite your friends!",
                                     style = MaterialTheme.typography.bodyMedium,
@@ -169,7 +183,9 @@ fun ActivitiesScreen(
                         } else {
                             LazyColumn {
                                 items(state.createdEventDetails.size) { event ->
-                                    if (state.createdEventDetails[event].endTime < Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())) {
+                                    if (state.createdEventDetails[event].endTime < Clock.System.now()
+                                            .toLocalDateTime(TimeZone.currentSystemDefault())
+                                    ) {
                                         return@items
                                     }
 
@@ -196,9 +212,17 @@ fun ActivitiesScreen(
                                                         )
                                                 ) {
                                                     Column(modifier = Modifier.padding(16.dp)) {
-                                                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clip(MaterialTheme.shapes.small).clickable {
-                                                            NavigationManager.navigateTo(Routes.Profile(state.createdEventDetails[event].joinRequests[joinRequest].id))
-                                                        }.padding(4.dp)) {
+                                                        Row(
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                            modifier = Modifier
+                                                                .clip(MaterialTheme.shapes.small)
+                                                                .clickable {
+                                                                    NavigationManager.navigateTo(
+                                                                        Routes.Profile(state.createdEventDetails[event].joinRequests[joinRequest].id)
+                                                                    )
+                                                                }
+                                                                .padding(4.dp)
+                                                        ) {
                                                             AsyncImage(
                                                                 model = state.createdEventDetails[event].joinRequests[joinRequest].profilePictureUri,
                                                                 contentDescription = "Participant Profile Picture",
