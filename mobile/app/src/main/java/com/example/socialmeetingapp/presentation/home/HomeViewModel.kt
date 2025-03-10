@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.socialmeetingapp.domain.model.Category
 import com.example.socialmeetingapp.domain.model.Event
 import com.example.socialmeetingapp.domain.model.Result
+import com.example.socialmeetingapp.domain.model.Sort
 import com.example.socialmeetingapp.domain.repository.EventRepository
 import com.example.socialmeetingapp.domain.repository.LocationRepository
 import com.google.android.gms.maps.model.LatLng
@@ -15,7 +16,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -30,9 +30,6 @@ class HomeViewModel @Inject constructor(
     private val locationRepository: LocationRepository,
     eventRepository: EventRepository
 ) : ViewModel() {
-
-    private val _sortType = MutableStateFlow<SortType?>(null)
-
     private val _filters = MutableStateFlow(Filters())
 
     private var _currentLocation = MutableStateFlow<LatLng?>(null)
@@ -53,7 +50,7 @@ class HomeViewModel @Inject constructor(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val events = combine(eventRepository.events, _filters, _sortType) { events, filters, sortType ->
+    val events = combine(eventRepository.events, _filters) { events, filters ->
         val filteredEvents = events.filter { event ->
             val eventEndTimeMilis =
                 event.startTime.toInstant(TimeZone.currentSystemDefault()).toEpochMilliseconds()
@@ -65,8 +62,8 @@ class HomeViewModel @Inject constructor(
                     (filters.category == null || event.category == filters.category)
         }
 
-        if (sortType != null) {
-            sortEvents(filteredEvents, sortType)
+        if (filters.sortType != null) {
+            sortEvents(filteredEvents, filters.sortType)
         } else {
             filteredEvents
         }
@@ -76,8 +73,20 @@ class HomeViewModel @Inject constructor(
         emptyList()
     )
 
-    fun applyFilters(startDate: LocalDateTime?, endDate: LocalDateTime?, category: Category?) {
-        _filters.update { it.copy(startDate = startDate, endDate = endDate, category = category) }
+    fun applyFilters(
+        startDate: LocalDateTime?,
+        endDate: LocalDateTime?,
+        category: Category?,
+        sortType: Sort?
+    ) {
+        _filters.update {
+            it.copy(
+                startDate = startDate,
+                endDate = endDate,
+                category = category,
+                sortType = sortType
+            )
+        }
     }
 
     suspend fun getLocation() {
@@ -93,29 +102,25 @@ class HomeViewModel @Inject constructor(
 
     }
 
-    fun changeSortType(sortType: SortType?) {
-        _sortType.value = sortType
-    }
-
-    private fun sortEvents(events: List<Event>, sortType: SortType): List<Event> {
+    private fun sortEvents(events: List<Event>, sortType: Sort): List<Event> {
         return when (sortType) {
-            SortType.DATE -> events.sortedBy { it.startTime }
-            SortType.DISTANCE -> events.sortedBy { currentLocation.value?.let { it1 ->
-                it.locationCoordinates.sphericalDistance(
-                    it1
-                )
-            } }
+            Sort.NEXT_DATE -> events.sortedBy { it.startTime }
+            Sort.DISTANCE -> events.sortedBy {
+                currentLocation.value?.let { it1 ->
+                    it.locationCoordinates.sphericalDistance(
+                        it1
+                    )
+                }
+            }
+
+            Sort.POPULARITY -> events.sortedByDescending { it.participants.size }
         }
     }
 
     data class Filters(
         val startDate: LocalDateTime? = null,
         val endDate: LocalDateTime? = null,
-        val category: Category? = null
+        val category: Category? = null,
+        val sortType: Sort? = null
     )
-
-    sealed class SortType {
-        data object DATE : SortType()
-        data object DISTANCE : SortType()
-    }
 }

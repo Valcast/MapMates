@@ -55,6 +55,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -63,8 +64,10 @@ import androidx.lifecycle.lifecycleScope
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
+import com.example.socialmeetingapp.R
 import com.example.socialmeetingapp.domain.model.Category
 import com.example.socialmeetingapp.domain.model.Event
+import com.example.socialmeetingapp.domain.model.Sort
 import com.example.socialmeetingapp.presentation.components.EventCard
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
@@ -100,8 +103,7 @@ fun HomeScreen(
     onMapLongClick: (LatLng) -> Unit,
     onEventClick: (String) -> Unit,
     onLocationRequested: suspend () -> Unit,
-    onFiltersApplied: (LocalDateTime?, LocalDateTime?, Category?) -> Unit,
-    onSortTypeApplied: (HomeViewModel.SortType?) -> Unit
+    onFiltersApplied: (LocalDateTime?, LocalDateTime?, Category?, Sort?) -> Unit,
 ) {
     val lifecycleScope = LocalLifecycleOwner.current.lifecycleScope
     var isListView by rememberSaveable { mutableStateOf(false) }
@@ -114,7 +116,7 @@ fun HomeScreen(
     var selectedStartDate by remember { mutableStateOf<LocalDateTime?>(null) }
     var selectedEndDate by remember { mutableStateOf<LocalDateTime?>(null) }
     var selectedCategory by remember { mutableStateOf<Category?>(null) }
-    var selectedSortType by remember { mutableStateOf<HomeViewModel.SortType?>(null) }
+    var selectedSortType by remember { mutableStateOf<Sort?>(null) }
 
     var updateLocationJob by remember { mutableStateOf<Job?>(null) }
 
@@ -314,7 +316,8 @@ fun HomeScreen(
                                                     onFiltersApplied(
                                                         null,
                                                         null,
-                                                        selectedCategory
+                                                        selectedCategory,
+                                                        selectedSortType
                                                     )
                                                 })
                                         )
@@ -348,7 +351,23 @@ fun HomeScreen(
                                 },
                                 label = {
                                     Text(
-                                        text = selectedCategory?.id ?: "Category",
+                                        text = stringResource(
+                                            when (selectedCategory?.id) {
+                                                "conference" -> R.string.filter_category_conference
+                                                "meetup" -> R.string.filter_category_meetup
+                                                "cinema" -> R.string.filter_category_cinema
+                                                "concert" -> R.string.filter_category_concert
+                                                "festival" -> R.string.filter_category_festival
+                                                "houseparty" -> R.string.filter_category_houseparty
+                                                "picnic" -> R.string.filter_category_picnic
+                                                "theater" -> R.string.filter_category_theater
+                                                "webinar" -> R.string.filter_category_webinar
+                                                "workshop" -> R.string.filter_category_workshop
+                                                else -> {
+                                                    R.string.filter_category
+                                                }
+                                            }
+                                        ),
                                         style = MaterialTheme.typography.labelMedium,
                                     )
                                 },
@@ -368,7 +387,8 @@ fun HomeScreen(
                                                     onFiltersApplied(
                                                         selectedStartDate,
                                                         selectedEndDate,
-                                                        null
+                                                        null,
+                                                        selectedSortType
                                                     )
                                                 })
                                         )
@@ -399,7 +419,12 @@ fun HomeScreen(
                                 },
                                 label = {
                                     Text(
-                                        text = selectedSortType?.javaClass?.simpleName ?: "Sort",
+                                        text = when (selectedSortType) {
+                                            Sort.NEXT_DATE -> stringResource(R.string.filter_sort_nextdate)
+                                            Sort.DISTANCE -> stringResource(R.string.filter_sort_distance)
+                                            Sort.POPULARITY -> stringResource(R.string.filter_sort_popularity)
+                                            else -> stringResource(R.string.filter_sort)
+                                        },
                                         style = MaterialTheme.typography.labelMedium,
                                     )
                                 },
@@ -416,7 +441,12 @@ fun HomeScreen(
                                                 .padding(start = 4.dp)
                                                 .clickable(onClick = {
                                                     selectedSortType = null
-                                                    onSortTypeApplied(null)
+                                                    onFiltersApplied(
+                                                        selectedStartDate,
+                                                        selectedEndDate,
+                                                        selectedCategory,
+                                                        null
+                                                    )
                                                 })
                                         )
                                     }
@@ -639,12 +669,13 @@ fun HomeScreen(
                 initialEndDate = selectedEndDate,
                 initialSelectedCategory = selectedCategory,
                 onCloseFilters = { areFiltersShown = false },
-                onApplyFilters = { startDate, endDate, category ->
+                onApplyFilters = { startDate, endDate, category, sortType ->
                     selectedStartDate = startDate
                     selectedEndDate = endDate
                     selectedCategory = category
+                    selectedSortType = sortType
                     areFiltersShown = false
-                    onFiltersApplied(startDate, endDate, category)
+                    onFiltersApplied(startDate, endDate, category, sortType)
                 })
         }
     }

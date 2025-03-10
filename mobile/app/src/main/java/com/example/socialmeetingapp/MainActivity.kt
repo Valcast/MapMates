@@ -220,7 +220,6 @@ class MainActivity : ComponentActivity() {
                                 onEventClick = { NavigationManager.navigateTo(Routes.Event(it)) },
                                 onFiltersApplied = viewModel::applyFilters,
                                 onLocationRequested = viewModel::getLocation,
-                                onSortTypeApplied = viewModel::changeSortType
                             )
                         }
 
