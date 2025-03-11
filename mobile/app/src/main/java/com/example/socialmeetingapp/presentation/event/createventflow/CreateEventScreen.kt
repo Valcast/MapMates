@@ -31,7 +31,6 @@ import kotlinx.datetime.LocalDateTime
 @Composable
 fun CreateEventScreen(
     event: Event,
-    categories: List<Category>,
     uiState: CreateEventFlow,
     isNextButtonEnabled: Boolean,
     isRulesAccepted: Boolean,
@@ -86,7 +85,6 @@ fun CreateEventScreen(
             when (uiState) {
                 CreateEventFlow.Info -> EventInfoScreen(
                     event = event,
-                    categories = categories,
                     onUpdateTitle = onUpdateTitle,
                     onUpdateDescription = onUpdateDescription,
                     onUpdateIsPrivate = onUpdateIsPrivate,

@@ -1,6 +1,5 @@
 package com.example.socialmeetingapp.presentation.notifications
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.socialmeetingapp.domain.model.Event
@@ -27,31 +26,23 @@ class NotificationsViewModel @Inject constructor(
     val notifications: Flow<List<NotificationUI>> =
         notificationRepository.notifications.map { notifications ->
             val eventIds = mutableSetOf<String>()
-            val authorIds = mutableSetOf<String>()
+            val userIds = mutableSetOf<String>()
 
             notifications.forEach { notification ->
-                val authorId = notification.data["authorId"]
-                val eventId = notification.data["eventId"]
-
-                if (authorId != null) {
-                    authorIds.add(authorId)
-                }
-
-                if (eventId != null) {
-                    eventIds.add(eventId)
-                }
+                notification.data["authorId"]?.let { userIds.add(it) }
+                notification.data["joinRequestId"]?.let { userIds.add(it) }
+                notification.data["eventId"]?.let { eventIds.add(it) }
             }
 
             val events = eventRepository.events.value.filter {
                 eventIds.contains(it.id)
             }
 
-            val authors = userRepository.getUsersPreviews(authorIds.toList())
+            val usersPreviews = userRepository.getUsersPreviews(userIds.toList())
 
-            if (authors is Result.Success) {
+            if (usersPreviews is Result.Success) {
                 notifications.map { notification ->
-                    Log.d("NotificationsViewModel", "notifications: ${authors.data}")
-                    notification.toNotificationUI(events, authors.data)
+                    notification.toNotificationUI(events, usersPreviews.data)
                 }
             } else emptyList()
 
@@ -71,7 +62,7 @@ class NotificationsViewModel @Inject constructor(
 
     private fun Notification.toNotificationUI(
         events: List<Event>,
-        authors: List<UserPreview>
+        usersPreviews: List<UserPreview>
     ): NotificationUI {
         return NotificationUI(
             id = id,
@@ -81,13 +72,21 @@ class NotificationsViewModel @Inject constructor(
                     NotificationData.EventCreated(
                         eventId = data["eventId"].toString(),
                         authorId = data["authorId"].toString(),
-                        authorName = authors.first { it.id == data["authorId"] }.username,
-                        authorProfilePictureUrl = authors.first { it.id == data["authorId"] }.profilePictureUri,
+                        authorName = usersPreviews.first { it.id == data["authorId"] }.username,
+                        authorProfilePictureUrl = usersPreviews.first { it.id == data["authorId"] }.profilePictureUri,
                         eventTitle = events.first { it.id == data["eventId"] }.title,
                     )
                 }
 
-                else -> throw IllegalArgumentException("Unsupported notification type: $type")
+                NotificationType.JOIN_REQUEST -> {
+                    NotificationData.JoinRequest(
+                        eventId = data["eventId"].toString(),
+                        eventTitle = events.first { it.id == data["eventId"] }.title,
+                        userId = data["joinRequestId"].toString(),
+                        userName = usersPreviews.first { it.id == data["joinRequestId"] }.username,
+                        userPictureUrl = usersPreviews.first { it.id == data["joinRequestId"] }.profilePictureUri,
+                    )
+                }
             },
             isRead = isRead,
             timestamp = timestamp,

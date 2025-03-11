@@ -45,15 +45,6 @@ class HomeViewModel @Inject constructor(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    private var _categories = MutableStateFlow<List<Category>>(emptyList())
-    val categories = _categories.onStart {
-        val categoriesResult = eventRepository.getCategories()
-
-        if (categoriesResult is Result.Success) {
-            _categories.update { categoriesResult.data }
-        }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
     val events = combine(eventRepository.events, _filters) { events, filters ->
         events.filter { event ->
             val eventStartTime = event.startTime.toInstant(TimeZone.UTC)

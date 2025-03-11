@@ -12,5 +12,6 @@ data class Notification(
 
 enum class NotificationType {
     EVENT_CREATED,
+    JOIN_REQUEST,
 }
 

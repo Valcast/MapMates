@@ -1,6 +1,5 @@
 package com.example.socialmeetingapp.domain.repository
 
-import com.example.socialmeetingapp.domain.model.Category
 import com.example.socialmeetingapp.domain.model.Event
 import com.example.socialmeetingapp.domain.model.Result
 import kotlinx.coroutines.flow.StateFlow
@@ -15,7 +14,6 @@ interface EventRepository {
     suspend fun joinEvent(id: String): Result<Unit>
     suspend fun leaveEvent(id: String): Result<Unit>
 
-    suspend fun getCategories(): Result<List<Category>>
     suspend fun removeParticipant(eventID: String, userID: String): Result<Unit>
 
     suspend fun sendJoinRequest(eventID: String): Result<Unit>

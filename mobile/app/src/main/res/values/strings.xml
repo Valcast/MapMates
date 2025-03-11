@@ -129,6 +129,7 @@
     <string name="notification_delete_all">Delete all</string>
 
     <string name="notification_event_created"><b>%1$s</b> created new event <b>%2$s</b></string>
+    <string name="notification_join_request"><b>%1$s</b> wants to join your event <b>%2$s</b></string>
 
     <string name="just_now">Just now</string>
     <string name="one_minute_ago_short">A minute ago</string>
@@ -138,6 +139,8 @@
     <string name="one_day_ago">Yesterday</string>
     <string name="days_ago">%d days</string>
     <string name="months_ago">%d months</string>
+    <string name="accept">Accept</string>
+    <string name="decline">Decline</string>
 
 
 </resources>

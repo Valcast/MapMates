@@ -45,16 +45,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.lifecycleScope
-import coil3.compose.AsyncImage
-import coil3.request.ImageRequest
-import coil3.request.allowHardware
 import com.example.socialmeetingapp.domain.model.Category
 import com.example.socialmeetingapp.domain.model.DateRange
 import com.example.socialmeetingapp.domain.model.Event
@@ -87,7 +86,6 @@ import kotlinx.coroutines.launch
 @Composable
 fun HomeScreen(
     events: List<Event>,
-    categories: List<Category>,
     currentLocation: LatLng?,
     locationCoordinates: LatLng? = null,
     filters: Filters = Filters(),
@@ -140,7 +138,7 @@ fun HomeScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(MaterialTheme.colorScheme.surface)
-                    .padding(16.dp)
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 Text(
                     text = "MapMates",
@@ -164,7 +162,7 @@ fun HomeScreen(
             if (isListView) {
                 Row(
                     modifier = Modifier
-                        .padding(vertical = 8.dp)
+                        .padding(vertical = 4.dp)
                         .fillMaxWidth()
                         .horizontalScroll(rememberScrollState())
                 ) {
@@ -236,7 +234,7 @@ fun HomeScreen(
                                     event.locationCoordinates,
                                     event.title,
                                     event.description,
-                                    event.category.iconUrl
+                                    event.category
                                 )
                             },
                             onClusterItemClick = { event ->
@@ -247,7 +245,7 @@ fun HomeScreen(
                             },
                             onClusterClick = { events ->
                                 selectedEventIndex = null
-                                eventCluster = events.items.map { it.title.toString() }
+                                eventCluster = events.items.map { it.title }
                                 true
                             },
                             clusterContent = { cluster ->
@@ -269,15 +267,11 @@ fun HomeScreen(
                                 }
 
                             }, clusterItemContent = { event ->
-                                AsyncImage(
-                                    model = ImageRequest.Builder(LocalContext.current)
-                                        .data(event.getEventIconUrl())
-                                        .allowHardware(false)
-                                        .build(),
+                                Icon(
+                                    painter = painterResource(event.getCategoryIcon()),
                                     contentDescription = event.title,
-                                    modifier = Modifier
-                                        .size(32.dp)
-                                        .animateContentSize()
+                                    modifier = Modifier.size(24.dp),
+                                    tint = Color.Unspecified
                                 )
                             }
                         )
@@ -286,7 +280,7 @@ fun HomeScreen(
                     Column {
                         Row(
                             modifier = Modifier
-                                .padding(vertical = 8.dp)
+                                .padding(vertical = 4.dp)
                                 .fillMaxWidth()
                                 .horizontalScroll(rememberScrollState())
                         ) {
@@ -491,7 +485,6 @@ fun HomeScreen(
             exit = shrinkVertically()
         ) {
             FilterScreen(
-                categories = categories,
                 filters = filters,
                 onCloseFilters = { isFilterScreenVisible = false },
                 onApplyFilters = { dateRange, category, sortType ->

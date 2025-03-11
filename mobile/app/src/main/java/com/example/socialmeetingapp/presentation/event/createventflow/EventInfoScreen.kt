@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
@@ -26,10 +27,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
+import com.example.socialmeetingapp.R
 import com.example.socialmeetingapp.domain.model.Category
 import com.example.socialmeetingapp.domain.model.Event
 
@@ -37,7 +40,6 @@ import com.example.socialmeetingapp.domain.model.Event
 @Composable
 fun EventInfoScreen(
     event: Event,
-    categories: List<Category>,
     onUpdateTitle: (String) -> Unit,
     onUpdateDescription: (String) -> Unit,
     onUpdateIsPrivate: (Boolean) -> Unit,
@@ -47,8 +49,8 @@ fun EventInfoScreen(
 ) {
     var selectedIndex by remember { mutableIntStateOf(0) }
 
-    val topCategories = categories.take(categories.size / 2)
-    val bottomCategories = categories.drop(categories.size / 2)
+    val topCategories = Category.entries.take(Category.entries.size / 2)
+    val bottomCategories = Category.entries.drop(Category.entries.size / 2)
 
     val scrollState = rememberScrollState()
 
@@ -68,7 +70,7 @@ fun EventInfoScreen(
                 scrollState,
                 {
                     selectedIndex = it
-                    onUpdateCategory(categories[it])
+                    onUpdateCategory(Category.entries[it])
                 },
                 selectedIndex)
             Spacer(modifier = Modifier.height(8.dp))
@@ -78,7 +80,7 @@ fun EventInfoScreen(
                 scrollState,
                 {
                     selectedIndex = it
-                    onUpdateCategory(categories[it])
+                    onUpdateCategory(Category.entries[it])
                 },
                 selectedIndex
             )
@@ -190,14 +192,34 @@ fun CategorySegmentedRow(
                                 .width(110.dp)
                                 .padding(vertical = 4.dp)
                         ) {
-                            AsyncImage(
-                                model = label.iconUrl,
-                                contentDescription = label.id,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.size(24.dp)
+                            Icon(
+                                painter = painterResource(
+                                    id = when (label) {
+                                        Category.CINEMA -> R.drawable.cinema
+                                        Category.CONCERT -> R.drawable.concert
+                                        Category.CONFERENCE -> R.drawable.conference
+                                        Category.HOUSEPARTY -> R.drawable.houseparty
+                                        Category.MEETUP -> R.drawable.meetup
+                                        Category.THEATER -> R.drawable.theater
+                                        Category.WEBINAR -> R.drawable.webinar
+                                    }
+                                ),
+                                contentDescription = "Category Icon",
+                                modifier = Modifier.size(24.dp),
+                                tint = Color.Unspecified
                             )
                             Text(
-                                text = label.id,
+                                text = stringResource(
+                                    when (label) {
+                                        Category.CINEMA -> R.string.filter_category_cinema
+                                        Category.CONCERT -> R.string.filter_category_concert
+                                        Category.CONFERENCE -> R.string.filter_category_conference
+                                        Category.HOUSEPARTY -> R.string.filter_category_houseparty
+                                        Category.MEETUP -> R.string.filter_category_meetup
+                                        Category.THEATER -> R.string.filter_category_theater
+                                        Category.WEBINAR -> R.string.filter_category_webinar
+                                    }
+                                ),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onBackground,
                                 modifier = Modifier.padding(start = 8.dp)

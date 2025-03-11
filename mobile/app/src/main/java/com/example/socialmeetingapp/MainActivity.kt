@@ -205,7 +205,6 @@ class MainActivity : ComponentActivity() {
 
                             HomeScreen(
                                 events = viewModel.events.collectAsStateWithLifecycle().value,
-                                categories = viewModel.categories.collectAsStateWithLifecycle().value,
                                 currentLocation = viewModel.currentLocation.collectAsStateWithLifecycle().value,
                                 locationCoordinates = if (args.latitude != null && args.longitude != null) LatLng(
                                     args.latitude, args.longitude
@@ -375,7 +374,6 @@ class MainActivity : ComponentActivity() {
 
                             CreateEventScreen(
                                 event = viewModel.eventData.collectAsStateWithLifecycle().value,
-                                categories = viewModel.categories.collectAsStateWithLifecycle().value,
                                 uiState = viewModel.uiState.collectAsStateWithLifecycle().value,
                                 isNextButtonEnabled = viewModel.isNextButtonEnabled.collectAsStateWithLifecycle().value,
                                 isRulesAccepted = viewModel.isRulesAccepted.collectAsStateWithLifecycle().value,

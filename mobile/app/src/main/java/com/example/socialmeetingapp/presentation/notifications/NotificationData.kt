@@ -10,4 +10,12 @@ sealed class NotificationData {
         val authorProfilePictureUrl: Uri,
         val eventTitle: String,
     ) : NotificationData()
+
+    data class JoinRequest(
+        val eventId: String,
+        val eventTitle: String,
+        val userId: String,
+        val userName: String,
+        val userPictureUrl: Uri,
+    ) : NotificationData()
 }

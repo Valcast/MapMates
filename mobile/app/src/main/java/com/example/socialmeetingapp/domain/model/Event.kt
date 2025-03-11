@@ -30,7 +30,7 @@ data class Event(
             locationCoordinates = LatLng(0.0, 0.0),
             locationAddress = "",
             author = UserPreview.EMPTY,
-            category = Category.EMPTY,
+            category = Category.CINEMA,
             maxParticipants = 0,
             startTime = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()),
             endTime = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()),

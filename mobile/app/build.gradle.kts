@@ -117,6 +117,8 @@ dependencies {
 
     implementation(libs.accompanist.permissions)
 
+    implementation(libs.typesense.java)
+
     implementation(libs.hilt)
     kapt(libs.hilt.compiler)
 }

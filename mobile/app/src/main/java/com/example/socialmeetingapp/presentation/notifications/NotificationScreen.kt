@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -31,14 +32,22 @@ import com.example.socialmeetingapp.presentation.common.Routes
 
 @Composable
 fun NotificationScreen(notification: NotificationUI, onMarkAsRead: (String) -> Unit) {
-    val data = when (notification.type) {
-        NotificationType.EVENT_CREATED -> notification.data as NotificationData.EventCreated
-    }
-
     Card(
         onClick = {
             onMarkAsRead(notification.id)
-            NavigationManager.navigateTo(Routes.Event(data.eventId))
+            when (notification.type) {
+                NotificationType.EVENT_CREATED -> NavigationManager.navigateTo(
+                    Routes.Event(
+                        (notification.data as NotificationData.EventCreated).eventId
+                    )
+                )
+
+                NotificationType.JOIN_REQUEST -> NavigationManager.navigateTo(
+                    Routes.Profile(
+                        (notification.data as NotificationData.JoinRequest).userId
+                    )
+                )
+            }
         },
         colors = CardDefaults.cardColors()
             .copy(containerColor = if (notification.isRead) Color.Transparent else MaterialTheme.colorScheme.surfaceVariant),
@@ -51,38 +60,99 @@ fun NotificationScreen(notification: NotificationUI, onMarkAsRead: (String) -> U
             horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier.padding(8.dp)
         ) {
-            AsyncImage(
-                model = data.authorProfilePictureUrl,
-                contentDescription = "Profile picture",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(100f))
-            )
-
-            Column(modifier = Modifier.padding(start = 16.dp)) {
-                Text(
-                    text = when (notification.type) {
-                        NotificationType.EVENT_CREATED -> stringResource(
-                            R.string.notification_event_created,
-                            data.authorName,
-                            data.eventTitle
-                        )
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                )
-
-                Text(
-                    text = formatTimeAgo(notification.timestamp),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.8f)
-                )
+            when (val data = notification.data) {
+                is NotificationData.EventCreated -> EventCreatedContent(data, notification)
+                is NotificationData.JoinRequest -> JoinRequestContent(data, notification)
             }
 
             IconButton(onClick = {}, modifier = Modifier.padding(8.dp)) {
                 Icon(Icons.Default.Menu, contentDescription = "Close")
             }
         }
+
+        if (notification.data is NotificationData.JoinRequest) {
+            Row {
+                Button(
+                    onClick = {},
+                    modifier = Modifier.padding(8.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.decline),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                Button(
+                    onClick = {},
+                    modifier = Modifier.padding(8.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.accept),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+        }
     }
 
+}
+
+@Composable
+fun EventCreatedContent(data: NotificationData.EventCreated, notification: NotificationUI) {
+    AsyncImage(
+        model = data.authorProfilePictureUrl,
+        contentDescription = "Profile picture",
+        contentScale = ContentScale.Crop,
+        modifier = Modifier
+            .size(48.dp)
+            .clip(RoundedCornerShape(100f))
+    )
+
+    Column(modifier = Modifier.padding(start = 16.dp)) {
+        Text(
+            text = stringResource(
+                R.string.notification_event_created,
+                data.authorName,
+                data.eventTitle
+            ),
+            style = MaterialTheme.typography.bodySmall,
+        )
+
+        Text(
+            text = formatTimeAgo(notification.timestamp),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.8f)
+        )
+    }
+}
+
+@Composable
+fun JoinRequestContent(data: NotificationData.JoinRequest, notification: NotificationUI) {
+    AsyncImage(
+        model = data.userPictureUrl,
+        contentDescription = "Profile picture",
+        contentScale = ContentScale.Crop,
+        modifier = Modifier
+            .size(48.dp)
+            .clip(RoundedCornerShape(100f))
+    )
+
+    Column(modifier = Modifier.padding(start = 16.dp)) {
+        Text(
+            text = stringResource(
+                R.string.notification_join_request,
+                data.userName,
+                data.eventTitle
+            ),
+            style = MaterialTheme.typography.bodySmall,
+        )
+
+        Text(
+            text = formatTimeAgo(notification.timestamp),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.8f)
+        )
+    }
 }

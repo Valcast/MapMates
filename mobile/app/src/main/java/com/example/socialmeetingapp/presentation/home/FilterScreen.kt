@@ -50,13 +50,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
-import coil3.request.ImageRequest
-import coil3.request.allowHardware
 import com.example.socialmeetingapp.R
 import com.example.socialmeetingapp.domain.model.Category
 import com.example.socialmeetingapp.domain.model.DateRange
@@ -72,7 +70,6 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FilterScreen(
-    categories: List<Category>,
     filters: Filters = Filters(),
     onCloseFilters: () -> Unit,
     onApplyFilters: (DateRange?, Category?, SortOrder?) -> Unit
@@ -167,20 +164,14 @@ fun FilterScreen(
                     if (!showCategoryOptions) {
                         Text(
                             text = stringResource(
-                                when (category.id) {
-                                    "conference" -> R.string.filter_category_conference
-                                    "meetup" -> R.string.filter_category_meetup
-                                    "cinema" -> R.string.filter_category_cinema
-                                    "concert" -> R.string.filter_category_concert
-                                    "festival" -> R.string.filter_category_festival
-                                    "houseparty" -> R.string.filter_category_houseparty
-                                    "picnic" -> R.string.filter_category_picnic
-                                    "theater" -> R.string.filter_category_theater
-                                    "webinar" -> R.string.filter_category_webinar
-                                    "workshop" -> R.string.filter_category_workshop
-                                    else -> {
-                                        R.string.filter_category_meetup
-                                    }
+                                when (category) {
+                                    Category.CINEMA -> R.string.filter_category_cinema
+                                    Category.CONCERT -> R.string.filter_category_concert
+                                    Category.CONFERENCE -> R.string.filter_category_conference
+                                    Category.HOUSEPARTY -> R.string.filter_category_houseparty
+                                    Category.MEETUP -> R.string.filter_category_meetup
+                                    Category.THEATER -> R.string.filter_category_theater
+                                    Category.WEBINAR -> R.string.filter_category_webinar
                                 }
                             ),
                             style = MaterialTheme.typography.bodySmall,
@@ -208,7 +199,7 @@ fun FilterScreen(
                 Column(
                     modifier = Modifier.padding(horizontal = 16.dp)
                 ) {
-                    categories.chunked(2).forEach { rowCategories ->
+                    Category.entries.chunked(2).forEach { rowCategories ->
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -221,34 +212,36 @@ fun FilterScreen(
                                     label = {
                                         Text(
                                             text = stringResource(
-                                                when (category.id) {
-                                                    "conference" -> R.string.filter_category_conference
-                                                    "meetup" -> R.string.filter_category_meetup
-                                                    "cinema" -> R.string.filter_category_cinema
-                                                    "concert" -> R.string.filter_category_concert
-                                                    "festival" -> R.string.filter_category_festival
-                                                    "houseparty" -> R.string.filter_category_houseparty
-                                                    "picnic" -> R.string.filter_category_picnic
-                                                    "theater" -> R.string.filter_category_theater
-                                                    "webinar" -> R.string.filter_category_webinar
-                                                    "workshop" -> R.string.filter_category_workshop
-                                                    else -> {
-                                                        R.string.filter_category_meetup
-                                                    }
+                                                when (category) {
+                                                    Category.CINEMA -> R.string.filter_category_cinema
+                                                    Category.CONCERT -> R.string.filter_category_concert
+                                                    Category.CONFERENCE -> R.string.filter_category_conference
+                                                    Category.HOUSEPARTY -> R.string.filter_category_houseparty
+                                                    Category.MEETUP -> R.string.filter_category_meetup
+                                                    Category.THEATER -> R.string.filter_category_theater
+                                                    Category.WEBINAR -> R.string.filter_category_webinar
                                                 }
                                             ),
                                             modifier = Modifier.padding(8.dp)
                                         )
                                     },
-                                    selected = selectedCategory?.id == category.id,
+                                    selected = selectedCategory == category,
                                     leadingIcon = {
-                                        AsyncImage(
-                                            model = ImageRequest.Builder(LocalContext.current)
-                                                .data(category.iconUrl)
-                                                .allowHardware(false)
-                                                .build(),
-                                            contentDescription = category.id,
-                                            modifier = Modifier.size(24.dp)
+                                        Icon(
+                                            painter = painterResource(
+                                                when (category) {
+                                                    Category.CINEMA -> R.drawable.cinema
+                                                    Category.CONCERT -> R.drawable.concert
+                                                    Category.CONFERENCE -> R.drawable.conference
+                                                    Category.HOUSEPARTY -> R.drawable.houseparty
+                                                    Category.MEETUP -> R.drawable.meetup
+                                                    Category.THEATER -> R.drawable.theater
+                                                    Category.WEBINAR -> R.drawable.webinar
+                                                }
+                                            ),
+                                            contentDescription = "Category Icon",
+                                            modifier = Modifier.size(24.dp),
+                                            tint = Color.Unspecified
                                         )
                                     },
                                     modifier = Modifier.weight(1f)

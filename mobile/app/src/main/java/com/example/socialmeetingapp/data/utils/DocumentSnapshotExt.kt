@@ -15,6 +15,7 @@ import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import java.util.Locale
 
 fun DocumentSnapshot.getRequiredString(field: String): String =
     this.getString(field) ?: throw MissingFieldException(field)
@@ -89,7 +90,6 @@ fun DocumentSnapshot.toUserPreview(): UserPreview {
 
 fun DocumentSnapshot.toEvent(
     author: UserPreview,
-    category: Category,
     participants: List<UserPreview>,
     joinRequests: List<UserPreview>
 ): Event {
@@ -101,7 +101,7 @@ fun DocumentSnapshot.toEvent(
         locationCoordinates = getLatLng("locationCoordinates"),
         locationAddress = getRequiredString("locationAddress"),
         author = author,
-        category = category,
+        category = getRequiredString("category").let { Category.valueOf(it.uppercase(Locale.getDefault())) },
         participants = participants,
         joinRequests = joinRequests,
         maxParticipants = getInt("maxParticipants"),

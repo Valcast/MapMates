@@ -1,22 +1,17 @@
 package com.example.socialmeetingapp.data.repository
 
-import android.util.Log
-import androidx.core.net.toUri
 import com.example.socialmeetingapp.data.utils.getList
 import com.example.socialmeetingapp.data.utils.getRequiredString
 import com.example.socialmeetingapp.data.utils.toEvent
-import com.example.socialmeetingapp.domain.model.Category
 import com.example.socialmeetingapp.domain.model.Event
 import com.example.socialmeetingapp.domain.model.Result
 import com.example.socialmeetingapp.domain.model.Result.Error
 import com.example.socialmeetingapp.domain.model.Result.Success
-import com.example.socialmeetingapp.domain.model.User
 import com.example.socialmeetingapp.domain.model.UserPreview
 import com.example.socialmeetingapp.domain.repository.EventRepository
 import com.example.socialmeetingapp.domain.repository.UserRepository
 import com.google.android.gms.maps.model.LatLng
 import com.google.firebase.Timestamp
-import com.google.firebase.appcheck.internal.util.Logger.TAG
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -59,9 +54,6 @@ class FirebaseEventRepositoryImpl(
                         val authorId = eventDocument.getRequiredString("author")
                         val authorResult = userRepository.getUserPreview(authorId)
 
-                        val categoryId = eventDocument.getRequiredString("category")
-                        val categoryResult = getCategory(categoryId)
-
                         val participantsIds = eventDocument.getList("participants")
                         val participantsResults = participantsIds.map { participantId ->
                             async {
@@ -78,14 +70,13 @@ class FirebaseEventRepositoryImpl(
                         }.awaitAll()
 
 
-                        if (authorResult is Success
-                            && categoryResult is Success) {
-
+                        if (authorResult is Success) {
                             eventDocument.toEvent(
                                 author = authorResult.data,
-                                category = categoryResult.data,
-                                participants = participantsResults.filterIsInstance<Success<UserPreview>>().map { it.data },
-                                joinRequests = joinRequestsResults.filterIsInstance<Success<UserPreview>>().map { it.data }
+                                participants = participantsResults.filterIsInstance<Success<UserPreview>>()
+                                    .map { it.data },
+                                joinRequests = joinRequestsResults.filterIsInstance<Success<UserPreview>>()
+                                    .map { it.data }
                             )
                         } else {
                             null
@@ -116,12 +107,16 @@ class FirebaseEventRepositoryImpl(
                 "participants" to emptyList<String>(),
                 "joinRequests" to emptyList<String>(),
                 "maxParticipants" to event.maxParticipants,
-                "startTime" to Timestamp(event.startTime.toInstant(TimeZone.currentSystemDefault()).toJavaInstant()),
-                "endTime" to Timestamp(event.endTime.toInstant(TimeZone.currentSystemDefault()).toJavaInstant()),
+                "startTime" to Timestamp(
+                    event.startTime.toInstant(TimeZone.currentSystemDefault()).toJavaInstant()
+                ),
+                "endTime" to Timestamp(
+                    event.endTime.toInstant(TimeZone.currentSystemDefault()).toJavaInstant()
+                ),
                 "createdAt" to currentTime,
                 "isPrivate" to event.isPrivate,
                 "isOnline" to event.isOnline,
-                "category" to event.category.id
+                "category" to event.category
             )
 
             val createdEventRef = db.collection("events").add(eventData).await()
@@ -136,7 +131,7 @@ class FirebaseEventRepositoryImpl(
         return try {
             val currentTime = Clock.System.now().toLocalDateTime(TimeZone.UTC)
 
-            val eventDataToUpdate = hashMapOf<String, Any>(
+            val eventDataToUpdate = hashMapOf(
                 "title" to event.title,
                 "description" to event.description,
                 "participants" to emptyList<String>(),
@@ -147,7 +142,7 @@ class FirebaseEventRepositoryImpl(
                 "updatedAt" to currentTime.toString(),
                 "isPrivate" to event.isPrivate,
                 "isOnline" to event.isOnline,
-                "category" to event.category.id
+                "category" to event.category
             )
 
             db.collection("events").document(event.id).update(eventDataToUpdate).await()
@@ -242,55 +237,6 @@ class FirebaseEventRepositoryImpl(
             Error("Failed to leave event: ${e.message}")
         }
     }
-
-    override suspend fun getCategories(): Result<List<Category>> {
-        return try {
-            val categories =
-                db.collection("categories").get().await().documents.mapNotNull { categoryDocument ->
-                    val iconUrlString = categoryDocument.getString("iconUrl")
-                    val iconUri = iconUrlString?.toUri()
-                    if (iconUri != null) {
-                        Category(
-                            id = categoryDocument.id, iconUrl = iconUri
-                        )
-                    } else {
-                        Log.w(
-                            TAG,
-                            "Category document ${categoryDocument.id} has invalid or missing iconUrl"
-                        )
-                        null
-                    }
-                }
-            Success(categories)
-        } catch (e: FirebaseFirestoreException) {
-            Error("Failed to fetch categories: ${e.message}")
-        }
-    }
-
-    suspend fun getCategory(id: String): Result<Category> {
-        return try {
-            val categoryDocument = db.collection("categories").document(id).get().await()
-            if (!categoryDocument.exists()) {
-                return Error("Category not found")
-            }
-
-            val iconUrlString = categoryDocument.getString("iconUrl")
-            val iconUri = iconUrlString?.toUri()
-
-            if (iconUri == null) {
-                return Error("Category icon URL is invalid or missing")
-            }
-
-            Success(
-                Category(
-                    id = categoryDocument.id, iconUrl = iconUri
-                )
-            )
-        } catch (e: FirebaseFirestoreException) {
-            Error("Failed to get category: ${e.message}")
-        }
-    }
-
 
     private suspend fun updateArrayField(
         eventID: String, fieldName: String, userId: String?, updateType: FieldValue
