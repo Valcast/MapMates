@@ -211,13 +211,6 @@ class MainActivity : ComponentActivity() {
                                     args.latitude, args.longitude
                                 ) else null,
                                 filters = viewModel.filters.collectAsStateWithLifecycle().value,
-                                onMapLongClick = { coordinates ->
-                                    NavigationManager.navigateTo(
-                                        Routes.CreateEvent(
-                                            coordinates.latitude, coordinates.longitude
-                                        )
-                                    )
-                                },
                                 onEventClick = { NavigationManager.navigateTo(Routes.Event(it)) },
                                 onFiltersApplied = viewModel::applyFilters,
                                 onLocationRequested = viewModel::getLocation,

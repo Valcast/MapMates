@@ -1,15 +1,13 @@
 package com.example.socialmeetingapp.presentation.home
 
+import android.Manifest
 import android.graphics.BitmapFactory
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,24 +23,18 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Place
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -55,7 +47,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -64,11 +55,12 @@ import androidx.lifecycle.lifecycleScope
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
-import com.example.socialmeetingapp.R
 import com.example.socialmeetingapp.domain.model.Category
 import com.example.socialmeetingapp.domain.model.DateRange
 import com.example.socialmeetingapp.domain.model.Event
 import com.example.socialmeetingapp.domain.model.SortOrder
+import com.example.socialmeetingapp.presentation.common.NavigationManager
+import com.example.socialmeetingapp.presentation.common.Routes
 import com.example.socialmeetingapp.presentation.components.EventCard
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
@@ -86,8 +78,6 @@ import com.google.maps.android.compose.clustering.Clustering
 import com.google.maps.android.compose.rememberCameraPositionState
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import java.time.format.TextStyle
-import java.util.Locale
 
 @OptIn(
     ExperimentalMaterial3Api::class,
@@ -101,7 +91,6 @@ fun HomeScreen(
     currentLocation: LatLng?,
     locationCoordinates: LatLng? = null,
     filters: Filters = Filters(),
-    onMapLongClick: (LatLng) -> Unit,
     onEventClick: (String) -> Unit,
     onLocationRequested: suspend () -> Unit,
     onFiltersApplied: (DateRange?, Category?, SortOrder?) -> Unit,
@@ -111,15 +100,12 @@ fun HomeScreen(
     var isRequestPermissionDialogVisible by remember { mutableStateOf(false) }
     var selectedEventIndex by remember { mutableStateOf<Int?>(null) }
     var eventCluster by remember { mutableStateOf<List<String>>(emptyList()) }
-    var selectedCreateEventPosition by remember { mutableStateOf<LatLng?>(null) }
-    var shouldShowEventDialog by rememberSaveable { mutableStateOf(true) }
-
     var isFilterScreenVisible by remember { mutableStateOf(false) }
 
     val locationPermissions = rememberMultiplePermissionsState(
         permissions = listOf(
-            android.Manifest.permission.ACCESS_FINE_LOCATION,
-            android.Manifest.permission.ACCESS_COARSE_LOCATION
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
         )
     )
 
@@ -148,18 +134,64 @@ fun HomeScreen(
             Modifier.fillMaxSize()
         ) {
 
-            Text(
-                text = "MapMates",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier
-                    .padding(16.dp)
-                    .background(MaterialTheme.colorScheme.surface)
                     .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(16.dp)
+            ) {
+                Text(
+                    text = "MapMates",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                )
 
-            )
+                TextButton(
+                    onClick = { isListView = !isListView }
+                ) {
+                    Text(
+                        text = if (isListView) "Switch to map" else "Switch to list",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.animateContentSize()
+                    )
+                }
+            }
+
+
 
             if (isListView) {
+                Row(
+                    modifier = Modifier
+                        .padding(vertical = 8.dp)
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                ) {
+                    CategoryFilterChip(
+                        onClick = {
+                            isFilterScreenVisible = true
+                        },
+                        onFiltersApplied = onFiltersApplied,
+                        filters = filters
+                    )
+
+                    DateRangeFilterChip(
+                        onClick = {
+                            isFilterScreenVisible = true
+                        },
+                        onFiltersApplied = onFiltersApplied,
+                        filters = filters
+                    )
+
+                    SortOrderFilterChip(
+                        onClick = {
+                            isFilterScreenVisible = true
+                        },
+                        onFiltersApplied = onFiltersApplied,
+                        filters = filters
+                    )
+                }
                 LazyColumn {
                     items(events.size) { index ->
                         EventCard(
@@ -193,12 +225,8 @@ fun HomeScreen(
                             mapToolbarEnabled = false,
                             myLocationButtonEnabled = false
                         ),
-                        onMapLongClick = {
-                            selectedCreateEventPosition = it
-                        },
                         onMapClick = {
                             selectedEventIndex = null
-                            selectedCreateEventPosition = null
                             eventCluster = emptyList()
                         },
                     ) {
@@ -262,207 +290,31 @@ fun HomeScreen(
                                 .fillMaxWidth()
                                 .horizontalScroll(rememberScrollState())
                         ) {
-                            FilterChip(
-                                selected = filters.dateRange != null,
-                                leadingIcon = {
-                                    Icon(
-                                        Icons.Filled.DateRange,
-                                        contentDescription = "Date Range",
-                                        modifier = Modifier
-                                            .size(20.dp)
-                                    )
-                                },
-                                label = {
-                                    Text(
-                                        text = when (filters.dateRange) {
-                                            DateRange.Today -> stringResource(R.string.filter_date_today)
-                                            DateRange.Tomorrow -> stringResource(R.string.filter_date_tomorrow)
-                                            DateRange.ThisWeek -> stringResource(R.string.filter_date_this_week)
-                                            is DateRange.Custom -> {
-                                                val startDate = filters.dateRange.startTime
-                                                val endDate = filters.dateRange.endTime
-
-                                                String.format(
-                                                    Locale.getDefault(),
-                                                    "%s %d - %s %d",
-                                                    startDate.month.getDisplayName(
-                                                        TextStyle.SHORT_STANDALONE,
-                                                        Locale.getDefault()
-                                                    ),
-                                                    startDate.dayOfMonth,
-                                                    endDate.month.getDisplayName(
-                                                        TextStyle.SHORT_STANDALONE,
-                                                        Locale.getDefault()
-                                                    ),
-                                                    endDate.dayOfMonth,
-                                                )
-                                            }
-
-                                            null -> stringResource(R.string.filter_date)
-                                        },
-                                        style = MaterialTheme.typography.labelMedium,
-                                        modifier = Modifier.animateContentSize()
-                                    )
-                                },
-                                trailingIcon = {
-                                    AnimatedVisibility(
-                                        visible = filters.dateRange != null,
-                                        enter = expandHorizontally(),
-                                        exit = shrinkHorizontally()
-                                    ) {
-                                        Icon(
-                                            Icons.Filled.Clear,
-                                            contentDescription = "Date Range",
-                                            modifier = Modifier
-                                                .clickable(onClick = {
-                                                    onFiltersApplied(
-                                                        null,
-                                                        filters.category,
-                                                        filters.sortOrder
-                                                    )
-                                                })
-                                        )
-                                    }
-                                },
+                            CategoryFilterChip(
                                 onClick = {
                                     isFilterScreenVisible = true
                                 },
-                                colors = FilterChipDefaults.filterChipColors()
-                                    .copy(containerColor = MaterialTheme.colorScheme.surface),
-                                border = null,
-                                shape = MaterialTheme.shapes.extraLarge,
-                                elevation = FilterChipDefaults.filterChipElevation(
-                                    elevation = 4.dp
-                                ),
-                                modifier = Modifier
-                                    .padding(horizontal = 16.dp)
-                                    .animateContentSize()
+                                onFiltersApplied = onFiltersApplied,
+                                filters = filters
                             )
 
-                            FilterChip(
-                                selected = filters.category != null,
-                                leadingIcon = {
-                                    Icon(
-                                        Icons.Filled.Menu,
-                                        contentDescription = "Category",
-                                        modifier = Modifier
-                                            .padding(end = 4.dp)
-                                            .size(20.dp)
-                                    )
-                                },
-                                label = {
-                                    Text(
-                                        text = stringResource(
-                                            when (filters.category?.id) {
-                                                "conference" -> R.string.filter_category_conference
-                                                "meetup" -> R.string.filter_category_meetup
-                                                "cinema" -> R.string.filter_category_cinema
-                                                "concert" -> R.string.filter_category_concert
-                                                "festival" -> R.string.filter_category_festival
-                                                "houseparty" -> R.string.filter_category_houseparty
-                                                "picnic" -> R.string.filter_category_picnic
-                                                "theater" -> R.string.filter_category_theater
-                                                "webinar" -> R.string.filter_category_webinar
-                                                "workshop" -> R.string.filter_category_workshop
-                                                else -> {
-                                                    R.string.filter_category
-                                                }
-                                            }
-                                        ),
-                                        style = MaterialTheme.typography.labelMedium,
-                                    )
-                                },
-                                trailingIcon = {
-                                    AnimatedVisibility(
-                                        visible = filters.category != null,
-                                        enter = expandHorizontally(),
-                                        exit = shrinkHorizontally()
-                                    ) {
-                                        Icon(
-                                            Icons.Filled.Clear,
-                                            contentDescription = "Category",
-                                            modifier = Modifier
-                                                .padding(start = 4.dp)
-                                                .clickable(onClick = {
-                                                    onFiltersApplied(
-                                                        filters.dateRange,
-                                                        null,
-                                                        filters.sortOrder
-                                                    )
-                                                })
-                                        )
-                                    }
-                                },
+                            DateRangeFilterChip(
                                 onClick = {
                                     isFilterScreenVisible = true
                                 },
-                                colors = FilterChipDefaults.filterChipColors()
-                                    .copy(containerColor = MaterialTheme.colorScheme.surface),
-                                border = null,
-                                elevation = FilterChipDefaults.filterChipElevation(
-                                    elevation = 4.dp
-                                ),
-                                shape = MaterialTheme.shapes.extraLarge
+                                onFiltersApplied = onFiltersApplied,
+                                filters = filters
                             )
 
-                            FilterChip(
-                                selected = filters.sortOrder != null,
-                                leadingIcon = {
-                                    Icon(
-                                        Icons.Filled.Settings,
-                                        contentDescription = "SortType",
-                                        modifier = Modifier
-                                            .padding(end = 4.dp)
-                                            .size(20.dp)
-                                    )
-                                },
-                                label = {
-                                    Text(
-                                        text = when (filters.sortOrder) {
-                                            SortOrder.NEXT_DATE -> stringResource(R.string.filter_sort_nextdate)
-                                            SortOrder.DISTANCE -> stringResource(R.string.filter_sort_distance)
-                                            SortOrder.POPULARITY -> stringResource(R.string.filter_sort_popularity)
-                                            else -> stringResource(R.string.filter_sort)
-                                        },
-                                        style = MaterialTheme.typography.labelMedium,
-                                    )
-                                },
-                                trailingIcon = {
-                                    AnimatedVisibility(
-                                        visible = filters.sortOrder != null,
-                                        enter = expandHorizontally(),
-                                        exit = shrinkHorizontally()
-                                    ) {
-                                        Icon(
-                                            Icons.Filled.Clear,
-                                            contentDescription = "Reset Sort Type",
-                                            modifier = Modifier
-                                                .padding(start = 4.dp)
-                                                .clickable(onClick = {
-                                                    onFiltersApplied(
-                                                        filters.dateRange,
-                                                        filters.category,
-                                                        null
-                                                    )
-                                                })
-                                        )
-                                    }
-                                },
+                            SortOrderFilterChip(
                                 onClick = {
                                     isFilterScreenVisible = true
                                 },
-                                colors = FilterChipDefaults.filterChipColors()
-                                    .copy(containerColor = MaterialTheme.colorScheme.surface),
-                                border = null,
-                                elevation = FilterChipDefaults.filterChipElevation(
-                                    elevation = 4.dp
-                                ),
-                                shape = MaterialTheme.shapes.extraLarge,
-                                modifier = Modifier
-                                    .padding(start = 16.dp)
-                                    .animateContentSize()
+                                onFiltersApplied = onFiltersApplied,
+                                filters = filters
                             )
                         }
+
 
                         selectedEventIndex?.let {
                             EventCard(
@@ -494,32 +346,6 @@ fun HomeScreen(
                                     )
                                 }
                             }
-                        }
-                    }
-
-                    if (selectedCreateEventPosition != null) {
-                        shouldShowEventDialog = false
-                        Card(
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .padding(16.dp)
-                                .clickable {
-                                    onMapLongClick(selectedCreateEventPosition!!)
-                                    selectedCreateEventPosition = null
-                                }) {
-                            Row(modifier = Modifier.padding(16.dp)) {
-
-                                Icon(
-                                    Icons.Filled.Add,
-                                    contentDescription = "Create Event",
-                                    modifier = Modifier.padding(end = 4.dp)
-                                )
-                                Text(
-                                    text = "Create Event",
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-                            }
-
                         }
                     }
                 }
@@ -588,18 +414,6 @@ fun HomeScreen(
             }
         }
 
-        SmallFloatingActionButton(
-            onClick = { isListView = !isListView },
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(16.dp),
-        ) {
-            Icon(
-                if (isListView) Icons.Filled.Place else Icons.AutoMirrored.Filled.List,
-                "Map View"
-            )
-        }
-
         if (!isListView) {
             SmallFloatingActionButton(
                 onClick = {
@@ -631,7 +445,7 @@ fun HomeScreen(
                     }
                 },
                 modifier = Modifier
-                    .align(Alignment.BottomEnd)
+                    .align(Alignment.BottomStart)
                     .padding(16.dp),
             ) {
                 if (locationPermissions.permissions.any { it.status.isGranted }) {
@@ -654,6 +468,22 @@ fun HomeScreen(
                 }
             }
         }
+
+        FloatingActionButton(
+            onClick = {
+                NavigationManager.navigateTo(
+                    Routes.CreateEvent(
+                        currentLocation?.latitude ?: 52.237049,
+                        currentLocation?.longitude ?: 21.017532
+                    )
+                )
+            }, modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+        ) {
+            Icon(Icons.Filled.Add, contentDescription = "Add Event")
+        }
+
 
         AnimatedVisibility(
             visible = isFilterScreenVisible,
