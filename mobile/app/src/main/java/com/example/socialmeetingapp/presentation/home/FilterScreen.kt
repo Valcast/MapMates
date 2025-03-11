@@ -41,6 +41,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -58,15 +59,11 @@ import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import com.example.socialmeetingapp.R
 import com.example.socialmeetingapp.domain.model.Category
-import com.example.socialmeetingapp.domain.model.Date
-import com.example.socialmeetingapp.domain.model.Sort
+import com.example.socialmeetingapp.domain.model.DateRange
+import com.example.socialmeetingapp.domain.model.SortOrder
 import kotlinx.datetime.Clock
-import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.Instant
-import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.atStartOfDayIn
-import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import java.time.format.TextStyle
@@ -76,17 +73,13 @@ import java.util.Locale
 @Composable
 fun FilterScreen(
     categories: List<Category>,
-    initialStartDate: LocalDateTime? = null,
-    initialEndDate: LocalDateTime? = null,
-    initialSelectedCategory: Category? = null,
-    initialSelectedSort: Sort? = null,
-    initialSelectedDate: Date? = null,
+    filters: Filters = Filters(),
     onCloseFilters: () -> Unit,
-    onApplyFilters: (LocalDateTime?, LocalDateTime?, Category?, Sort?) -> Unit
+    onApplyFilters: (DateRange?, Category?, SortOrder?) -> Unit
 ) {
-    var isCategoriesExpanded by remember { mutableStateOf(false) }
-    var isDateRangePickerExpanded by remember { mutableStateOf(false) }
-    var isSortExpanded by remember { mutableStateOf(false) }
+    var showCategoryOptions by remember { mutableStateOf(false) }
+    var showDateOptions by remember { mutableStateOf(false) }
+    var showSortOptions by remember { mutableStateOf(false) }
 
     val dateRangePickerState = rememberDateRangePickerState(
         selectableDates = object : SelectableDates {
@@ -94,24 +87,34 @@ fun FilterScreen(
                 return utcTimeMillis >= Clock.System.now().toEpochMilliseconds() - 86400000
             }
         },
-        initialSelectedStartDateMillis = initialStartDate?.toInstant(TimeZone.currentSystemDefault())
-            ?.toEpochMilliseconds(),
-        initialSelectedEndDateMillis = initialEndDate?.toInstant(TimeZone.currentSystemDefault())
-            ?.toEpochMilliseconds()
+        initialSelectedStartDateMillis = if (filters.dateRange is DateRange.Custom) {
+            filters.dateRange.startTime.toInstant(TimeZone.currentSystemDefault())
+                .toEpochMilliseconds()
+        } else null,
+        initialSelectedEndDateMillis = if (filters.dateRange is DateRange.Custom) {
+            filters.dateRange.endTime.toInstant(TimeZone.currentSystemDefault())
+                .toEpochMilliseconds()
+        } else null
     )
 
-    val selectedStartDate = dateRangePickerState.selectedStartDateMillis?.let {
-        Instant.fromEpochMilliseconds(it).toLocalDateTime(TimeZone.currentSystemDefault())
+    var selectedCategory by remember { mutableStateOf(filters.category) }
+    var selectedSortOrder by remember { mutableStateOf(filters.sortOrder) }
+    var selectedDateRange by remember { mutableStateOf(filters.dateRange) }
+
+    LaunchedEffect(
+        dateRangePickerState.selectedStartDateMillis,
+        dateRangePickerState.selectedEndDateMillis
+    ) {
+        if (dateRangePickerState.selectedStartDateMillis != null && dateRangePickerState.selectedEndDateMillis != null) {
+            val startTime =
+                Instant.fromEpochMilliseconds(dateRangePickerState.selectedStartDateMillis!!)
+                    .toLocalDateTime(TimeZone.currentSystemDefault())
+            val endTime =
+                Instant.fromEpochMilliseconds(dateRangePickerState.selectedEndDateMillis!!)
+                    .toLocalDateTime(TimeZone.currentSystemDefault())
+            selectedDateRange = DateRange.Custom(startTime, endTime)
+        }
     }
-
-    val selectedEndDate = dateRangePickerState.selectedEndDateMillis?.let {
-        Instant.fromEpochMilliseconds(it).toLocalDateTime(TimeZone.currentSystemDefault())
-    }
-
-    var selectedDate by remember { mutableStateOf(initialSelectedDate) }
-
-    var selectedCategory by remember { mutableStateOf(initialSelectedCategory) }
-    var selectedSort by remember { mutableStateOf(initialSelectedSort) }
 
     Column(
         modifier = Modifier
@@ -148,9 +151,9 @@ fun FilterScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .clickable(onClick = {
-                        isCategoriesExpanded = !isCategoriesExpanded
-                        isDateRangePickerExpanded = false
-                        isSortExpanded = false
+                        showCategoryOptions = !showCategoryOptions
+                        showDateOptions = false
+                        showSortOptions = false
                     })
                     .padding(16.dp)
                     .fillMaxWidth()
@@ -161,7 +164,7 @@ fun FilterScreen(
                 )
 
                 selectedCategory?.let { category ->
-                    if (!isCategoriesExpanded) {
+                    if (!showCategoryOptions) {
                         Text(
                             text = stringResource(
                                 when (category.id) {
@@ -191,14 +194,14 @@ fun FilterScreen(
                 }
 
                 Icon(
-                    if (isCategoriesExpanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                    if (showCategoryOptions) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
                     contentDescription = "Expand Categories"
                 )
 
             }
 
             AnimatedVisibility(
-                visible = isCategoriesExpanded,
+                visible = showCategoryOptions,
                 enter = expandVertically(),
                 exit = shrinkVertically()
             ) {
@@ -268,9 +271,9 @@ fun FilterScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .clickable(onClick = {
-                        isDateRangePickerExpanded = !isDateRangePickerExpanded
-                        isCategoriesExpanded = false
-                        isSortExpanded = false
+                        showDateOptions = !showDateOptions
+                        showCategoryOptions = false
+                        showSortOptions = false
                     })
                     .padding(16.dp)
                     .fillMaxWidth()
@@ -280,26 +283,35 @@ fun FilterScreen(
                     style = MaterialTheme.typography.titleMedium
                 )
 
-                if (selectedStartDate != null && selectedEndDate != null && !isDateRangePickerExpanded) {
-                    val dateText = when (selectedDate) {
-                        Date.TODAY -> stringResource(R.string.filter_date_today)
-                        Date.TOMORROW -> stringResource(R.string.filter_date_tomorrow)
-                        Date.THIS_WEEK -> stringResource(R.string.filter_date_this_week)
-                        else -> "${
-                            selectedStartDate.month.getDisplayName(
-                                TextStyle.SHORT_STANDALONE,
-                                Locale.getDefault()
+                if (selectedDateRange != null && !showDateOptions) {
+                    val dateRangeText = when (selectedDateRange!!) {
+                        DateRange.Today -> stringResource(R.string.filter_date_today)
+                        DateRange.Tomorrow -> stringResource(R.string.filter_date_tomorrow)
+                        DateRange.ThisWeek -> stringResource(R.string.filter_date_this_week)
+                        is DateRange.Custom -> {
+                            val dateRange = selectedDateRange as DateRange.Custom
+
+                            val startDate = dateRange.startTime
+                            val endDate = dateRange.endTime
+
+                            String.format(
+                                Locale.getDefault(),
+                                "%s %d - %s %d",
+                                startDate.month.getDisplayName(
+                                    TextStyle.SHORT_STANDALONE,
+                                    Locale.getDefault()
+                                ),
+                                startDate.dayOfMonth,
+                                endDate.month.getDisplayName(
+                                    TextStyle.SHORT_STANDALONE,
+                                    Locale.getDefault()
+                                ),
+                                endDate.dayOfMonth,
                             )
-                        } ${selectedStartDate.dayOfMonth} ${selectedStartDate.year} - " +
-                                "${
-                                    selectedEndDate.month.getDisplayName(
-                                        TextStyle.SHORT_STANDALONE,
-                                        Locale.getDefault()
-                                    )
-                                } ${selectedEndDate.dayOfMonth} ${selectedEndDate.year}"
+                        }
                     }
                     Text(
-                        text = dateText,
+                        text = dateRangeText,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.background,
                         modifier = Modifier
@@ -310,7 +322,7 @@ fun FilterScreen(
                 }
 
                 Icon(
-                    if (isDateRangePickerExpanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                    if (showDateOptions) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
                     contentDescription = "Expand Dates"
                 )
             }
@@ -318,59 +330,42 @@ fun FilterScreen(
 
 
             AnimatedVisibility(
-                visible = isDateRangePickerExpanded,
+                visible = showDateOptions,
                 enter = expandVertically(),
                 exit = shrinkVertically()
             ) {
                 Column {
                     Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
-                        Date.entries.forEach { date ->
-                            FilterChip(
-                                selected = selectedDate == date,
-                                label = {
-                                    Text(
-                                        stringResource(
-                                            when (date) {
-                                                Date.TODAY -> R.string.filter_date_today
-                                                Date.TOMORROW -> R.string.filter_date_tomorrow
-                                                Date.THIS_WEEK -> R.string.filter_date_this_week
-                                            }
-                                        )
-                                    )
-                                },
-                                onClick = {
-                                    val timeZone = TimeZone.currentSystemDefault()
-                                    val today = Clock.System.now().toLocalDateTime(timeZone).date
-                                    when (date) {
-                                        Date.TODAY -> {
-                                            val start =
-                                                today.atStartOfDayIn(timeZone).toEpochMilliseconds()
-                                            dateRangePickerState.setSelection(start, start)
-                                            selectedDate = Date.TODAY
-                                        }
+                        FilterChip(
+                            selected = selectedDateRange is DateRange.Today,
+                            label = { Text(stringResource(R.string.filter_date_today)) },
+                            onClick = {
+                                selectedDateRange = DateRange.Today
+                                dateRangePickerState.setSelection(null, null)
+                            },
+                            modifier = Modifier.padding(start = 16.dp)
+                        )
 
-                                        Date.TOMORROW -> {
-                                            val tomorrow = today.plus(1, DateTimeUnit.DAY)
-                                            val start = tomorrow.atStartOfDayIn(timeZone)
-                                                .toEpochMilliseconds()
-                                            dateRangePickerState.setSelection(start, start)
-                                            selectedDate = Date.TOMORROW
-                                        }
+                        FilterChip(
+                            selected = selectedDateRange is DateRange.Tomorrow,
+                            label = { Text(stringResource(R.string.filter_date_tomorrow)) },
+                            onClick = {
+                                selectedDateRange = DateRange.Tomorrow
+                                dateRangePickerState.setSelection(null, null)
+                            },
+                            modifier = Modifier.padding(start = 16.dp)
+                        )
 
-                                        Date.THIS_WEEK -> {
-                                            val endOfWeek = today.plus(7, DateTimeUnit.DAY)
-                                            val start =
-                                                today.atStartOfDayIn(timeZone).toEpochMilliseconds()
-                                            val end = endOfWeek.atStartOfDayIn(timeZone)
-                                                .toEpochMilliseconds()
-                                            dateRangePickerState.setSelection(start, end)
-                                            selectedDate = Date.THIS_WEEK
-                                        }
-                                    }
-                                },
-                                modifier = Modifier.padding(start = 16.dp)
-                            )
-                        }
+                        FilterChip(
+                            selected = selectedDateRange is DateRange.ThisWeek,
+                            label = { Text(stringResource(R.string.filter_date_this_week)) },
+                            onClick = {
+                                selectedDateRange = DateRange.ThisWeek
+                                dateRangePickerState.setSelection(null, null)
+                            },
+                            modifier = Modifier.padding(start = 16.dp)
+                        )
+
                     }
 
                     BoxWithConstraints {
@@ -403,9 +398,9 @@ fun FilterScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .clickable(onClick = {
-                        isSortExpanded = !isSortExpanded
-                        isDateRangePickerExpanded = false
-                        isCategoriesExpanded = false
+                        showSortOptions = !showSortOptions
+                        showDateOptions = false
+                        showCategoryOptions = false
                     })
                     .padding(16.dp)
                     .fillMaxWidth()
@@ -415,14 +410,14 @@ fun FilterScreen(
                     style = MaterialTheme.typography.titleMedium
                 )
 
-                selectedSort?.let { sort ->
-                    if (!isSortExpanded) {
+                selectedSortOrder?.let { sort ->
+                    if (!showSortOptions) {
                         Text(
                             text = stringResource(
                                 when (sort) {
-                                    Sort.NEXT_DATE -> R.string.filter_sort_nextdate
-                                    Sort.DISTANCE -> R.string.filter_sort_distance
-                                    Sort.POPULARITY -> R.string.filter_sort_popularity
+                                    SortOrder.NEXT_DATE -> R.string.filter_sort_nextdate
+                                    SortOrder.DISTANCE -> R.string.filter_sort_distance
+                                    SortOrder.POPULARITY -> R.string.filter_sort_popularity
                                 }
                             ),
                             style = MaterialTheme.typography.bodySmall,
@@ -437,39 +432,39 @@ fun FilterScreen(
                 }
 
                 Icon(
-                    if (isSortExpanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                    if (showSortOptions) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
                     contentDescription = "Expand Sort"
                 )
 
             }
 
             AnimatedVisibility(
-                visible = isSortExpanded,
+                visible = showSortOptions,
                 enter = expandVertically(),
                 exit = shrinkVertically()
             ) {
                 Column {
-                    Sort.entries.forEach { sort ->
+                    SortOrder.entries.forEach { sort ->
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    selectedSort = sort
+                                    selectedSortOrder = sort
                                 }
                                 .padding(16.dp)
                         ) {
                             Text(
                                 text = stringResource(
                                     when (sort) {
-                                        Sort.NEXT_DATE -> R.string.filter_sort_nextdate
-                                        Sort.DISTANCE -> R.string.filter_sort_distance
-                                        Sort.POPULARITY -> R.string.filter_sort_popularity
+                                        SortOrder.NEXT_DATE -> R.string.filter_sort_nextdate
+                                        SortOrder.DISTANCE -> R.string.filter_sort_distance
+                                        SortOrder.POPULARITY -> R.string.filter_sort_popularity
                                     }
                                 ),
                             )
-                            if (selectedSort == sort) {
+                            if (selectedSortOrder == sort) {
                                 Icon(Icons.Filled.CheckCircle, contentDescription = "Selected Sort")
                             }
                         }
@@ -478,7 +473,7 @@ fun FilterScreen(
             }
 
             AnimatedVisibility(
-                visible = !isSortExpanded,
+                visible = !showSortOptions,
                 enter = fadeIn(),
                 exit = fadeOut()
             ) {
@@ -487,11 +482,12 @@ fun FilterScreen(
         }
 
         Row(verticalAlignment = Alignment.CenterVertically) {
-            AnimatedVisibility(visible = (selectedStartDate != null && selectedEndDate != null) || selectedCategory != null || selectedSort != null) {
+            AnimatedVisibility(visible = selectedDateRange != null || selectedCategory != null || selectedSortOrder != null) {
                 TextButton(onClick = {
                     dateRangePickerState.setSelection(null, null)
                     selectedCategory = null
-                    selectedSort = null
+                    selectedSortOrder = null
+                    selectedDateRange = null
                 }, modifier = Modifier.fillMaxWidth(0.5f)) {
                     Text(text = stringResource(R.string.filter_reset))
                 }
@@ -499,10 +495,9 @@ fun FilterScreen(
             Button(
                 onClick = {
                     onApplyFilters(
-                        selectedStartDate,
-                        selectedEndDate,
+                        selectedDateRange,
                         selectedCategory,
-                        selectedSort
+                        selectedSortOrder
                     )
                 },
                 shape = MaterialTheme.shapes.large,

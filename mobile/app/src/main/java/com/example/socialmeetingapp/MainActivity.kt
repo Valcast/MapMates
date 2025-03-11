@@ -210,10 +210,11 @@ class MainActivity : ComponentActivity() {
                                 locationCoordinates = if (args.latitude != null && args.longitude != null) LatLng(
                                     args.latitude, args.longitude
                                 ) else null,
-                                onMapLongClick = {
+                                filters = viewModel.filters.collectAsStateWithLifecycle().value,
+                                onMapLongClick = { coordinates ->
                                     NavigationManager.navigateTo(
                                         Routes.CreateEvent(
-                                            it.latitude, it.longitude
+                                            coordinates.latitude, coordinates.longitude
                                         )
                                     )
                                 },
@@ -221,6 +222,7 @@ class MainActivity : ComponentActivity() {
                                 onFiltersApplied = viewModel::applyFilters,
                                 onLocationRequested = viewModel::getLocation,
                             )
+
                         }
 
                         composable<Routes.Profile> {

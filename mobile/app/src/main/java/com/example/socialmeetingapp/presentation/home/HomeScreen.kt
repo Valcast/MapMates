@@ -66,8 +66,9 @@ import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import com.example.socialmeetingapp.R
 import com.example.socialmeetingapp.domain.model.Category
+import com.example.socialmeetingapp.domain.model.DateRange
 import com.example.socialmeetingapp.domain.model.Event
-import com.example.socialmeetingapp.domain.model.Sort
+import com.example.socialmeetingapp.domain.model.SortOrder
 import com.example.socialmeetingapp.presentation.components.EventCard
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
@@ -85,7 +86,6 @@ import com.google.maps.android.compose.clustering.Clustering
 import com.google.maps.android.compose.rememberCameraPositionState
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import kotlinx.datetime.LocalDateTime
 import java.time.format.TextStyle
 import java.util.Locale
 
@@ -100,10 +100,11 @@ fun HomeScreen(
     categories: List<Category>,
     currentLocation: LatLng?,
     locationCoordinates: LatLng? = null,
+    filters: Filters = Filters(),
     onMapLongClick: (LatLng) -> Unit,
     onEventClick: (String) -> Unit,
     onLocationRequested: suspend () -> Unit,
-    onFiltersApplied: (LocalDateTime?, LocalDateTime?, Category?, Sort?) -> Unit,
+    onFiltersApplied: (DateRange?, Category?, SortOrder?) -> Unit,
 ) {
     val lifecycleScope = LocalLifecycleOwner.current.lifecycleScope
     var isListView by rememberSaveable { mutableStateOf(false) }
@@ -112,13 +113,8 @@ fun HomeScreen(
     var eventCluster by remember { mutableStateOf<List<String>>(emptyList()) }
     var selectedCreateEventPosition by remember { mutableStateOf<LatLng?>(null) }
     var shouldShowEventDialog by rememberSaveable { mutableStateOf(true) }
-    var areFiltersShown by remember { mutableStateOf(false) }
-    var selectedStartDate by remember { mutableStateOf<LocalDateTime?>(null) }
-    var selectedEndDate by remember { mutableStateOf<LocalDateTime?>(null) }
-    var selectedCategory by remember { mutableStateOf<Category?>(null) }
-    var selectedSortType by remember { mutableStateOf<Sort?>(null) }
 
-    var updateLocationJob by remember { mutableStateOf<Job?>(null) }
+    var isFilterScreenVisible by remember { mutableStateOf(false) }
 
     val locationPermissions = rememberMultiplePermissionsState(
         permissions = listOf(
@@ -132,6 +128,8 @@ fun HomeScreen(
             isRequestPermissionDialogVisible = false
         }
     }
+
+    var updateLocationJob by remember { mutableStateOf<Job?>(null) }
 
 
     val startPosition = locationCoordinates
@@ -265,7 +263,7 @@ fun HomeScreen(
                                 .horizontalScroll(rememberScrollState())
                         ) {
                             FilterChip(
-                                selected = selectedStartDate != null && selectedEndDate != null,
+                                selected = filters.dateRange != null,
                                 leadingIcon = {
                                     Icon(
                                         Icons.Filled.DateRange,
@@ -276,25 +274,31 @@ fun HomeScreen(
                                 },
                                 label = {
                                     Text(
-                                        text = if (selectedStartDate != null && selectedEndDate != null) {
-                                            String.format(
-                                                Locale.getDefault(),
-                                                "%s %d %d - %s %d %d",
-                                                selectedStartDate!!.month.getDisplayName(
-                                                    TextStyle.SHORT_STANDALONE,
-                                                    Locale.getDefault()
-                                                ),
-                                                selectedStartDate!!.dayOfMonth,
-                                                selectedStartDate!!.year,
-                                                selectedEndDate!!.month.getDisplayName(
-                                                    TextStyle.SHORT_STANDALONE,
-                                                    Locale.getDefault()
-                                                ),
-                                                selectedEndDate!!.dayOfMonth,
-                                                selectedEndDate!!.year
-                                            )
-                                        } else {
-                                            "Date"
+                                        text = when (filters.dateRange) {
+                                            DateRange.Today -> stringResource(R.string.filter_date_today)
+                                            DateRange.Tomorrow -> stringResource(R.string.filter_date_tomorrow)
+                                            DateRange.ThisWeek -> stringResource(R.string.filter_date_this_week)
+                                            is DateRange.Custom -> {
+                                                val startDate = filters.dateRange.startTime
+                                                val endDate = filters.dateRange.endTime
+
+                                                String.format(
+                                                    Locale.getDefault(),
+                                                    "%s %d - %s %d",
+                                                    startDate.month.getDisplayName(
+                                                        TextStyle.SHORT_STANDALONE,
+                                                        Locale.getDefault()
+                                                    ),
+                                                    startDate.dayOfMonth,
+                                                    endDate.month.getDisplayName(
+                                                        TextStyle.SHORT_STANDALONE,
+                                                        Locale.getDefault()
+                                                    ),
+                                                    endDate.dayOfMonth,
+                                                )
+                                            }
+
+                                            null -> stringResource(R.string.filter_date)
                                         },
                                         style = MaterialTheme.typography.labelMedium,
                                         modifier = Modifier.animateContentSize()
@@ -302,7 +306,7 @@ fun HomeScreen(
                                 },
                                 trailingIcon = {
                                     AnimatedVisibility(
-                                        visible = selectedStartDate != null && selectedEndDate != null,
+                                        visible = filters.dateRange != null,
                                         enter = expandHorizontally(),
                                         exit = shrinkHorizontally()
                                     ) {
@@ -311,20 +315,17 @@ fun HomeScreen(
                                             contentDescription = "Date Range",
                                             modifier = Modifier
                                                 .clickable(onClick = {
-                                                    selectedStartDate = null
-                                                    selectedEndDate = null
                                                     onFiltersApplied(
                                                         null,
-                                                        null,
-                                                        selectedCategory,
-                                                        selectedSortType
+                                                        filters.category,
+                                                        filters.sortOrder
                                                     )
                                                 })
                                         )
                                     }
                                 },
                                 onClick = {
-                                    areFiltersShown = true
+                                    isFilterScreenVisible = true
                                 },
                                 colors = FilterChipDefaults.filterChipColors()
                                     .copy(containerColor = MaterialTheme.colorScheme.surface),
@@ -339,7 +340,7 @@ fun HomeScreen(
                             )
 
                             FilterChip(
-                                selected = selectedCategory != null,
+                                selected = filters.category != null,
                                 leadingIcon = {
                                     Icon(
                                         Icons.Filled.Menu,
@@ -352,7 +353,7 @@ fun HomeScreen(
                                 label = {
                                     Text(
                                         text = stringResource(
-                                            when (selectedCategory?.id) {
+                                            when (filters.category?.id) {
                                                 "conference" -> R.string.filter_category_conference
                                                 "meetup" -> R.string.filter_category_meetup
                                                 "cinema" -> R.string.filter_category_cinema
@@ -373,7 +374,7 @@ fun HomeScreen(
                                 },
                                 trailingIcon = {
                                     AnimatedVisibility(
-                                        visible = selectedCategory != null,
+                                        visible = filters.category != null,
                                         enter = expandHorizontally(),
                                         exit = shrinkHorizontally()
                                     ) {
@@ -383,19 +384,17 @@ fun HomeScreen(
                                             modifier = Modifier
                                                 .padding(start = 4.dp)
                                                 .clickable(onClick = {
-                                                    selectedCategory = null
                                                     onFiltersApplied(
-                                                        selectedStartDate,
-                                                        selectedEndDate,
+                                                        filters.dateRange,
                                                         null,
-                                                        selectedSortType
+                                                        filters.sortOrder
                                                     )
                                                 })
                                         )
                                     }
                                 },
                                 onClick = {
-                                    areFiltersShown = true
+                                    isFilterScreenVisible = true
                                 },
                                 colors = FilterChipDefaults.filterChipColors()
                                     .copy(containerColor = MaterialTheme.colorScheme.surface),
@@ -407,7 +406,7 @@ fun HomeScreen(
                             )
 
                             FilterChip(
-                                selected = selectedSortType != null,
+                                selected = filters.sortOrder != null,
                                 leadingIcon = {
                                     Icon(
                                         Icons.Filled.Settings,
@@ -419,10 +418,10 @@ fun HomeScreen(
                                 },
                                 label = {
                                     Text(
-                                        text = when (selectedSortType) {
-                                            Sort.NEXT_DATE -> stringResource(R.string.filter_sort_nextdate)
-                                            Sort.DISTANCE -> stringResource(R.string.filter_sort_distance)
-                                            Sort.POPULARITY -> stringResource(R.string.filter_sort_popularity)
+                                        text = when (filters.sortOrder) {
+                                            SortOrder.NEXT_DATE -> stringResource(R.string.filter_sort_nextdate)
+                                            SortOrder.DISTANCE -> stringResource(R.string.filter_sort_distance)
+                                            SortOrder.POPULARITY -> stringResource(R.string.filter_sort_popularity)
                                             else -> stringResource(R.string.filter_sort)
                                         },
                                         style = MaterialTheme.typography.labelMedium,
@@ -430,7 +429,7 @@ fun HomeScreen(
                                 },
                                 trailingIcon = {
                                     AnimatedVisibility(
-                                        visible = selectedSortType != null,
+                                        visible = filters.sortOrder != null,
                                         enter = expandHorizontally(),
                                         exit = shrinkHorizontally()
                                     ) {
@@ -440,11 +439,9 @@ fun HomeScreen(
                                             modifier = Modifier
                                                 .padding(start = 4.dp)
                                                 .clickable(onClick = {
-                                                    selectedSortType = null
                                                     onFiltersApplied(
-                                                        selectedStartDate,
-                                                        selectedEndDate,
-                                                        selectedCategory,
+                                                        filters.dateRange,
+                                                        filters.category,
                                                         null
                                                     )
                                                 })
@@ -452,7 +449,7 @@ fun HomeScreen(
                                     }
                                 },
                                 onClick = {
-                                    areFiltersShown = true
+                                    isFilterScreenVisible = true
                                 },
                                 colors = FilterChipDefaults.filterChipColors()
                                     .copy(containerColor = MaterialTheme.colorScheme.surface),
@@ -659,23 +656,17 @@ fun HomeScreen(
         }
 
         AnimatedVisibility(
-            visible = areFiltersShown,
+            visible = isFilterScreenVisible,
             enter = expandVertically(),
             exit = shrinkVertically()
         ) {
             FilterScreen(
                 categories = categories,
-                initialStartDate = selectedStartDate,
-                initialEndDate = selectedEndDate,
-                initialSelectedCategory = selectedCategory,
-                onCloseFilters = { areFiltersShown = false },
-                onApplyFilters = { startDate, endDate, category, sortType ->
-                    selectedStartDate = startDate
-                    selectedEndDate = endDate
-                    selectedCategory = category
-                    selectedSortType = sortType
-                    areFiltersShown = false
-                    onFiltersApplied(startDate, endDate, category, sortType)
+                filters = filters,
+                onCloseFilters = { isFilterScreenVisible = false },
+                onApplyFilters = { dateRange, category, sortType ->
+                    isFilterScreenVisible = false
+                    onFiltersApplied(dateRange, category, sortType)
                 })
         }
     }
