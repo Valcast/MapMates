@@ -1,10 +1,10 @@
 package com.example.socialmeetingapp.presentation.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.unit.dp
 
@@ -14,6 +14,8 @@ fun DashedProgressIndicator(
     progress: Int = 3,
     totalNumberOfBars: Int = 4
 ) {
+    val primaryColor = MaterialTheme.colorScheme.primary
+
     Canvas(modifier = modifier) {
         val barArea = size.width / totalNumberOfBars
         val barLength = barArea - 15.dp.toPx()
@@ -28,7 +30,7 @@ fun DashedProgressIndicator(
 
             drawLine(
                 cap = StrokeCap.Round,
-                color = if (i < progress) Color(0xFF8F4C38) else Color(0xFF8F4C38).copy(alpha = .5F),
+                color = if (i < progress) primaryColor else primaryColor.copy(alpha = .5F),
                 start = start,
                 end = end,
                 strokeWidth = 13F

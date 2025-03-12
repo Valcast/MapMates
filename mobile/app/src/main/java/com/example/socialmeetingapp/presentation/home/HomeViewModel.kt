@@ -10,6 +10,7 @@ import com.example.socialmeetingapp.domain.model.Result
 import com.example.socialmeetingapp.domain.model.SortOrder
 import com.example.socialmeetingapp.domain.repository.EventRepository
 import com.example.socialmeetingapp.domain.repository.LocationRepository
+import com.example.socialmeetingapp.presentation.common.SnackbarManager
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.ktx.utils.sphericalDistance
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -63,6 +64,7 @@ class HomeViewModel @Inject constructor(
                 val filters = _filters.value
 
                 if (fetchedEventsResult is Result.Success) {
+                    Log.i("HomeViewModel", "Fetched events: ${fetchedEventsResult.data}")
                     val fetchedEvents = fetchedEventsResult.data
                     val filteredEvents = fetchedEvents.filter { event ->
                         val eventStartTime = event.startTime.toInstant(TimeZone.UTC)
@@ -106,6 +108,10 @@ class HomeViewModel @Inject constructor(
                     }
                     _isLoadingEvents.value = false
                     _events.value = filteredEvents
+                } else {
+                    _isLoadingEvents.value = false
+                    _events.value = emptyList()
+                    SnackbarManager.showMessage("Failed to fetch events")
                 }
 
             } catch (e: Exception) {

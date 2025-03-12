@@ -13,6 +13,8 @@ interface UserRepository {
     suspend fun getCurrentUser(): Result<User>
     suspend fun getCurrentUserPreview(): Result<UserPreview>
 
+    suspend fun getCurrentUserFollowersAndFollowing(): Result<Pair<List<UserPreview>, List<UserPreview>>>
+
     suspend fun getUser(id: String): Result<User>
     suspend fun getUsers(ids: List<String>): Result<List<User>>
     suspend fun getUserPreview(id: String): Result<UserPreview>

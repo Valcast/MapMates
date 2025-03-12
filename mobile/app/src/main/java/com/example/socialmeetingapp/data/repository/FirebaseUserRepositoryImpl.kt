@@ -3,6 +3,7 @@ package com.example.socialmeetingapp.data.repository
 import android.net.Uri
 import android.util.Log
 import com.example.socialmeetingapp.data.utils.MissingFieldException
+import com.example.socialmeetingapp.data.utils.getList
 import com.example.socialmeetingapp.data.utils.toUser
 import com.example.socialmeetingapp.data.utils.toUserPreview
 import com.example.socialmeetingapp.domain.model.Result
@@ -74,6 +75,28 @@ class FirebaseUserRepositoryImpl(
             return Result.Error(e.message ?: "Failed to fetch user: ${e.message}")
         } catch (e: MissingFieldException) {
             return Result.Error(e.message ?: "Failed to load user")
+        }
+    }
+
+    override suspend fun getCurrentUserFollowersAndFollowing(): Result<Pair<List<UserPreview>, List<UserPreview>>> {
+        return try {
+            val currentUserDocumentRef =
+                db.collection("users").document(firebaseAuth.currentUser!!.uid).get().await()
+
+            val followers = getUsersPreviews(currentUserDocumentRef.getList("followers"))
+            val following = getUsersPreviews(currentUserDocumentRef.getList("following"))
+
+            if (followers is Result.Success && following is Result.Success) {
+                Result.Success(Pair(followers.data, following.data))
+            } else {
+                Result.Error("Failed to fetch followers and following")
+            }
+        } catch (e: FirebaseFirestoreException) {
+            return Result.Error(
+                e.message ?: "Failed to fetch followers and following: ${e.message}"
+            )
+        } catch (e: MissingFieldException) {
+            return Result.Error(e.message ?: "Failed to load followers and following")
         }
     }
 

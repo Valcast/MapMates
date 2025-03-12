@@ -8,11 +8,13 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStoreFile
 import com.example.socialmeetingapp.data.api.GeocodingApi
+import com.example.socialmeetingapp.data.repository.ChatRepositoryImpl
 import com.example.socialmeetingapp.data.repository.FirebaseEventRepositoryImpl
 import com.example.socialmeetingapp.data.repository.FirebaseUserRepositoryImpl
 import com.example.socialmeetingapp.data.repository.LocationRepositoryImpl
 import com.example.socialmeetingapp.data.repository.NotificationRepositoryImpl
 import com.example.socialmeetingapp.data.repository.SettingsRepositoryImpl
+import com.example.socialmeetingapp.domain.repository.ChatRepository
 import com.example.socialmeetingapp.domain.repository.EventRepository
 import com.example.socialmeetingapp.domain.repository.LocationRepository
 import com.example.socialmeetingapp.domain.repository.NotificationRepository
@@ -150,6 +152,14 @@ object AppModule {
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(GeocodingApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideChatRepository(
+        db: FirebaseFirestore,
+    ): ChatRepository {
+        return ChatRepositoryImpl(db)
     }
 
 }

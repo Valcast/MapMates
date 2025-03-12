@@ -43,4 +43,11 @@ sealed class Routes {
 
     @Serializable
     data class Event(val id: String) : Routes()
+
+    @Serializable
+    data object Chat : Routes()
+
+    @Serializable
+    data class ChatRoom(val chatRoomID: String) : Routes()
+
 }

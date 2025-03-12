@@ -3,7 +3,9 @@ package com.example.socialmeetingapp.data.utils
 import android.net.Uri
 import androidx.core.net.toUri
 import com.example.socialmeetingapp.domain.model.Category
+import com.example.socialmeetingapp.domain.model.ChatRoom
 import com.example.socialmeetingapp.domain.model.Event
+import com.example.socialmeetingapp.domain.model.Message
 import com.example.socialmeetingapp.domain.model.Notification
 import com.example.socialmeetingapp.domain.model.NotificationType
 import com.example.socialmeetingapp.domain.model.User
@@ -57,6 +59,8 @@ fun GeoPoint.toLatLng(): LatLng = LatLng(latitude, longitude)
 fun DocumentSnapshot.getLatLng(field: String): LatLng =
     getGeoPoint(field)?.toLatLng() ?: throw MissingFieldException(field)
 
+fun DocumentSnapshot.getStringOrNull(field: String): String? = this.getString(field)
+
 class MissingFieldException(field: String) : Exception("Required field '$field' is missing.")
 
 /**
@@ -108,7 +112,9 @@ fun DocumentSnapshot.toEvent(
         startTime = getLocalDateTime("startTime"),
         endTime = getLocalDateTime("endTime"),
         isPrivate = getRequiredBoolean("isPrivate"),
-        isOnline = getRequiredBoolean("isOnline")
+        isOnline = getRequiredBoolean("isOnline"),
+        chatRoomId = getStringOrNull("chatRoomId"),
+        meetingLink = getStringOrNull("meetingLink")
     )
 }
 
@@ -119,6 +125,24 @@ fun DocumentSnapshot.toNotification(): Notification {
         timestamp = getLocalDateTime("timestamp"),
         isRead = getRequiredBoolean("read"),
         data = getMap("data")
+    )
+}
+
+fun DocumentSnapshot.toChatRoom(lastMessage: Message? = null): ChatRoom {
+    return ChatRoom(
+        id = id,
+        authorId = getRequiredString("authorId"),
+        name = getRequiredString("name"),
+        members = getList("members"),
+        lastMessage = lastMessage
+    )
+}
+
+fun DocumentSnapshot.toMessage(): Message {
+    return Message(
+        senderId = getRequiredString("senderId"),
+        text = getRequiredString("text"),
+        timestamp = getLocalDateTime("timestamp")
     )
 }
 

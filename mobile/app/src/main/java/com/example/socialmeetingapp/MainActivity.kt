@@ -36,13 +36,17 @@ import com.example.socialmeetingapp.presentation.authentication.login.LoginScree
 import com.example.socialmeetingapp.presentation.authentication.login.LoginViewModel
 import com.example.socialmeetingapp.presentation.authentication.register.RegisterScreen
 import com.example.socialmeetingapp.presentation.authentication.register.RegisterViewModel
+import com.example.socialmeetingapp.presentation.chat.ChatRoomListScreen
+import com.example.socialmeetingapp.presentation.chat.ChatRoomListViewModel
+import com.example.socialmeetingapp.presentation.chat.ChatRoomScreen
+import com.example.socialmeetingapp.presentation.chat.ChatRoomViewModel
 import com.example.socialmeetingapp.presentation.common.NavigationManager
 import com.example.socialmeetingapp.presentation.common.Routes
 import com.example.socialmeetingapp.presentation.common.SnackbarManager
 import com.example.socialmeetingapp.presentation.event.EventScreen
 import com.example.socialmeetingapp.presentation.event.EventViewModel
-import com.example.socialmeetingapp.presentation.event.createventflow.CreateEventScreen
-import com.example.socialmeetingapp.presentation.event.createventflow.CreateEventViewModel
+import com.example.socialmeetingapp.presentation.event.createevent.CreateEventScreen
+import com.example.socialmeetingapp.presentation.event.createevent.CreateEventViewModel
 import com.example.socialmeetingapp.presentation.home.HomeScreen
 import com.example.socialmeetingapp.presentation.home.HomeViewModel
 import com.example.socialmeetingapp.presentation.introduction.IntroductionScreen
@@ -153,6 +157,8 @@ class MainActivity : ComponentActivity() {
                     route.contains("CreateEvent") -> toRoute<Routes.CreateEvent>()
                     route.contains("Event") -> toRoute<Routes.Event>()
                     route.contains("Notifications") -> toRoute<Routes.Notifications>()
+                    route.contains("Chat") -> toRoute<Routes.Chat>()
+                    route.contains("ChatRoom") -> toRoute<Routes.ChatRoom>()
                     else -> null
                 }
 
@@ -162,7 +168,7 @@ class MainActivity : ComponentActivity() {
                 Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }, bottomBar = {
                     if (currentRoute is Routes.Map || currentRoute == Routes.Activities || currentRoute == Routes.Notifications || currentRoute == Routes.Profile(
                             user?.id ?: return@Scaffold
-                        )
+                        ) || currentRoute == Routes.Chat
                     ) {
                         Log.d("MainActivity", "Current route: $currentRoute")
 
@@ -260,6 +266,28 @@ class MainActivity : ComponentActivity() {
                                         eventID, userID
                                     )
                                 })
+                        }
+
+                        composable<Routes.Chat> {
+                            val viewModel = hiltViewModel<ChatRoomListViewModel>()
+
+                            ChatRoomListScreen(
+                                chatRooms = viewModel.chatRooms.collectAsStateWithLifecycle().value,
+                                onChatRoomClick = { NavigationManager.navigateTo(Routes.ChatRoom(it)) }
+                            )
+                        }
+
+                        composable<Routes.ChatRoom> {
+                            val args = it.toRoute<Routes.ChatRoom>()
+                            val viewModel = hiltViewModel<ChatRoomViewModel>()
+
+                            viewModel.fetchMessages(args.chatRoomID)
+                            viewModel.fetchChatRoom(args.chatRoomID)
+
+                            ChatRoomScreen(
+                                chatRoom = viewModel.chatRoom.collectAsStateWithLifecycle().value,
+                                messages = viewModel.messages.collectAsStateWithLifecycle().value
+                            )
                         }
 
                         composable<Routes.Notifications> {
@@ -374,10 +402,7 @@ class MainActivity : ComponentActivity() {
 
 
                             CreateEventScreen(
-                                event = viewModel.eventData.collectAsStateWithLifecycle().value,
-                                uiState = viewModel.uiState.collectAsStateWithLifecycle().value,
-                                isNextButtonEnabled = viewModel.isNextButtonEnabled.collectAsStateWithLifecycle().value,
-                                isRulesAccepted = viewModel.isRulesAccepted.collectAsStateWithLifecycle().value,
+                                uiState = viewModel.createEventUiState.collectAsStateWithLifecycle().value,
                                 onNext = viewModel::nextStep,
                                 onPrevious = viewModel::previousStep,
                                 onUpdateCategory = viewModel::updateCategory,
@@ -389,6 +414,11 @@ class MainActivity : ComponentActivity() {
                                 onSetStartTime = viewModel::setStartTime,
                                 onSetEndTime = viewModel::setEndTime,
                                 onUpdateLocation = viewModel::updateLocation,
+                                onUpdateMeetingLink = viewModel::updateMeetingLink,
+                                onChatRoomShouldCreate = viewModel::updateChatRoomShouldCreate,
+                                onChatRoomNameChange = viewModel::updateChatRoomName,
+                                onChatRoomAuthorOnlyWriteChange = viewModel::updateChatRoomAuthorOnlyWrite,
+                                onUserSelected = {},
                                 onUpdateRules = viewModel::updateRulesAccepted,
                                 onCancel = { NavigationManager.navigateTo(Routes.Map()) })
                         }

@@ -20,7 +20,9 @@ data class Event(
     val startTime: LocalDateTime,
     val endTime: LocalDateTime,
     val isPrivate: Boolean,
-    val isOnline: Boolean
+    val isOnline: Boolean,
+    val meetingLink: String? = null,
+    val chatRoomId: String? = null
 ) {
     companion object {
         val EMPTY = Event(
@@ -30,8 +32,8 @@ data class Event(
             locationCoordinates = LatLng(0.0, 0.0),
             locationAddress = "",
             author = UserPreview.EMPTY,
-            category = Category.CINEMA,
-            maxParticipants = 0,
+            category = Category.entries.first(),
+            maxParticipants = 2,
             startTime = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()),
             endTime = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()),
             isPrivate = false,

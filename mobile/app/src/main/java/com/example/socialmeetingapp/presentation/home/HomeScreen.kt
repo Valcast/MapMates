@@ -335,7 +335,7 @@ fun HomeScreen(
 
                         AnimatedVisibility(
                             visible = selectedEventIndex != null,
-                            enter = slideInHorizontally(),
+                            enter = slideInHorizontally() + fadeIn(),
                             exit = fadeOut()
                         ) {
                             selectedEventIndex?.let {

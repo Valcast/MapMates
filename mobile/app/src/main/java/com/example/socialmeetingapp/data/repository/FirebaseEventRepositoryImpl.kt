@@ -1,5 +1,6 @@
 package com.example.socialmeetingapp.data.repository
 
+import android.util.Log
 import com.example.socialmeetingapp.data.utils.getList
 import com.example.socialmeetingapp.data.utils.getRequiredString
 import com.example.socialmeetingapp.data.utils.toEvent
@@ -17,11 +18,9 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.GeoPoint
 import kotlinx.coroutines.tasks.await
-import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toJavaInstant
-import kotlinx.datetime.toLocalDateTime
 
 class FirebaseEventRepositoryImpl(
     private val db: FirebaseFirestore,
@@ -47,6 +46,7 @@ class FirebaseEventRepositoryImpl(
                     }
             } else {
                 db.collection("events").get().await().documents.mapNotNull { document ->
+                    Log.i("FirebaseEventRepositoryImpl", "getEvents: document = $document")
                     val author = userRepository.getUserPreview(document.getRequiredString("author"))
                     val participants =
                         userRepository.getUsersPreviews(document.getList("participants"))
@@ -59,8 +59,11 @@ class FirebaseEventRepositoryImpl(
                 }
             }
 
+            Log.i("FirebaseEventRepositoryImpl", "getEvents: events = $events")
+
             Success(events)
         } catch (e: FirebaseFirestoreException) {
+            Log.e("FirebaseEventRepositoryImpl", "getEvents: error = ${e.message}")
             Error("Failed to get events: ${e.message}")
         }
     }
@@ -166,7 +169,9 @@ class FirebaseEventRepositoryImpl(
                 "createdAt" to currentTime,
                 "isPrivate" to event.isPrivate,
                 "isOnline" to event.isOnline,
-                "category" to event.category
+                "category" to event.category,
+                "chatRoomId" to event.chatRoomId,
+                "meetingLink" to event.meetingLink
             )
 
             val createdEventRef = db.collection("events").add(eventData).await()
@@ -179,23 +184,30 @@ class FirebaseEventRepositoryImpl(
 
     override suspend fun updateEvent(event: Event): Result<Unit> {
         return try {
-            val currentTime = Clock.System.now().toLocalDateTime(TimeZone.UTC)
 
-            val eventDataToUpdate = hashMapOf(
+            val eventData = hashMapOf(
                 "title" to event.title,
                 "description" to event.description,
+                "locationCoordinates" to event.locationCoordinates.toGeoPoint(),
+                "locationAddress" to event.locationAddress,
+                "author" to firebaseAuth.currentUser?.uid,
                 "participants" to emptyList<String>(),
                 "joinRequests" to emptyList<String>(),
                 "maxParticipants" to event.maxParticipants,
-                "startTime" to event.startTime.toString(),
-                "endTime" to event.endTime.toString(),
-                "updatedAt" to currentTime.toString(),
+                "startTime" to Timestamp(
+                    event.startTime.toInstant(TimeZone.currentSystemDefault()).toJavaInstant()
+                ),
+                "endTime" to Timestamp(
+                    event.endTime.toInstant(TimeZone.currentSystemDefault()).toJavaInstant()
+                ),
                 "isPrivate" to event.isPrivate,
                 "isOnline" to event.isOnline,
-                "category" to event.category
+                "category" to event.category,
+                "chatRoomId" to event.chatRoomId,
+                "meetingLink" to event.meetingLink
             )
 
-            db.collection("events").document(event.id).update(eventDataToUpdate).await()
+            db.collection("events").document(event.id).update(eventData).await()
             Success(Unit)
         } catch (e: FirebaseFirestoreException) {
             return Error(e.message ?: "Failed to update event: ${e.message}")

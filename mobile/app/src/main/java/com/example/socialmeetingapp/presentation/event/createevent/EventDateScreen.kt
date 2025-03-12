@@ -1,4 +1,4 @@
-package com.example.socialmeetingapp.presentation.event.createventflow
+package com.example.socialmeetingapp.presentation.event.createevent
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement

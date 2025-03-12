@@ -167,13 +167,27 @@ fun EventCard(event: Event, onCardClick: (String) -> Unit, modifier: Modifier = 
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .size(32.dp)
+                            .let {
+                                if (index < 3) {
+                                    it.offset(
+                                        if (index == 0) 0.dp else (-8).dp * index,
+                                        0.dp
+                                    )
+                                } else it
+                            }
                             .clip(RoundedCornerShape(16.dp))
-                            .offset(if (index == 0) 0.dp else (-8).dp, 0.dp)
                     )
                 }
                 Box(
                     modifier = Modifier
-                        .offset((-8).dp, 0.dp)
+                        .offset(
+                            when {
+                                event.participants.isEmpty() -> (-8).dp
+                                event.participants.size == 1 -> (-16).dp
+                                event.participants.size > 1 -> (-24).dp
+                                else -> 0.dp
+                            }, 0.dp
+                        )
                         .size(32.dp)
                         .clip(RoundedCornerShape(16.dp))
                         .background(MaterialTheme.colorScheme.primary)
@@ -195,7 +209,16 @@ fun EventCard(event: Event, onCardClick: (String) -> Unit, modifier: Modifier = 
                     text = event.author.username,
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.padding(start = 4.dp)
+                    modifier = Modifier
+                        .padding(start = 8.dp)
+                        .offset(
+                            when {
+                                event.participants.isEmpty() -> (-8).dp
+                                event.participants.size == 1 -> (-16).dp
+                                event.participants.size > 1 -> (-24).dp
+                                else -> 0.dp
+                            }, 0.dp
+                        )
                 )
             }
 
