@@ -8,6 +8,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -332,17 +333,22 @@ fun HomeScreen(
                             )
                         }
 
-
-                        selectedEventIndex?.let {
-                            EventCard(
-                                events[it],
-                                onCardClick = onEventClick,
-                                modifier = Modifier.padding(
-                                    top = 16.dp,
-                                    start = 8.dp,
-                                    end = 8.dp
+                        AnimatedVisibility(
+                            visible = selectedEventIndex != null,
+                            enter = slideInHorizontally(),
+                            exit = fadeOut()
+                        ) {
+                            selectedEventIndex?.let {
+                                EventCard(
+                                    events[it],
+                                    onCardClick = onEventClick,
+                                    modifier = Modifier.padding(
+                                        top = 16.dp,
+                                        start = 8.dp,
+                                        end = 8.dp
+                                    )
                                 )
-                            )
+                            }
                         }
 
                         AnimatedVisibility(
