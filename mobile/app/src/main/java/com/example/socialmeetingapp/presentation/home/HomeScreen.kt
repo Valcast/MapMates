@@ -5,6 +5,7 @@ import android.graphics.BitmapFactory
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
@@ -22,11 +23,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -45,6 +48,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
@@ -86,6 +90,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun HomeScreen(
     events: List<Event>,
+    isLoading: Boolean,
     currentLocation: LatLng?,
     locationCoordinates: LatLng? = null,
     filters: Filters = Filters(),
@@ -306,6 +311,24 @@ fun HomeScreen(
                                 },
                                 onFiltersApplied = onFiltersApplied,
                                 filters = filters
+                            )
+                        }
+
+                        AnimatedVisibility(
+                            visible = isLoading,
+                            enter = fadeIn(),
+                            exit = fadeOut(),
+                            modifier = Modifier
+                                .padding(top = 16.dp)
+                                .align(Alignment.CenterHorizontally)
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .shadow(1.dp, shape = RoundedCornerShape(100))
+                                    .clip(RoundedCornerShape(100))
+                                    .background(MaterialTheme.colorScheme.surface)
+                                    .padding(8.dp)
                             )
                         }
 

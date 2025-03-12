@@ -7,7 +7,6 @@ import com.example.socialmeetingapp.domain.model.Event
 import com.example.socialmeetingapp.domain.model.Result
 import com.example.socialmeetingapp.domain.model.Result.Error
 import com.example.socialmeetingapp.domain.model.Result.Success
-import com.example.socialmeetingapp.domain.model.UserPreview
 import com.example.socialmeetingapp.domain.repository.EventRepository
 import com.example.socialmeetingapp.domain.repository.UserRepository
 import com.google.android.gms.maps.model.LatLng
@@ -17,16 +16,6 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.GeoPoint
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
@@ -39,60 +28,121 @@ class FirebaseEventRepositoryImpl(
     private val userRepository: UserRepository,
     private val firebaseAuth: FirebaseAuth,
 ) : EventRepository {
-    private val coroutineScope = CoroutineScope(Dispatchers.IO)
 
-    override val events: StateFlow<List<Event>> = callbackFlow {
-        val listenerRegistration = db.collection("events").addSnapshotListener { snapshot, error ->
-            if (error != null) {
-                close(error)
-                return@addSnapshotListener
-            }
+    override suspend fun getEvents(ids: List<String>?): Result<List<Event>> {
+        return try {
+            val events = if (ids != null) {
+                db.collection("events").whereIn("id", ids).get()
+                    .await().documents.mapNotNull { document ->
+                        val author =
+                            userRepository.getUserPreview(document.getRequiredString("author"))
+                        val participants =
+                            userRepository.getUsersPreviews(document.getList("participants"))
 
-            if (snapshot != null && !snapshot.isEmpty) {
-                coroutineScope.launch {
-                    val events = snapshot.documents.mapNotNull { eventDocument ->
-                        val authorId = eventDocument.getRequiredString("author")
-                        val authorResult = userRepository.getUserPreview(authorId)
-
-                        val participantsIds = eventDocument.getList("participants")
-                        val participantsResults = participantsIds.map { participantId ->
-                            async {
-                                userRepository.getUserPreview(participantId)
-                            }
-                        }.awaitAll()
-
-
-                        val joinRequestsIds = eventDocument.getList("joinRequests")
-                        val joinRequestsResults = joinRequestsIds.map { joinRequestId ->
-                            async {
-                                userRepository.getUserPreview(joinRequestId)
-                            }
-                        }.awaitAll()
-
-
-                        if (authorResult is Success) {
-                            eventDocument.toEvent(
-                                author = authorResult.data,
-                                participants = participantsResults.filterIsInstance<Success<UserPreview>>()
-                                    .map { it.data },
-                                joinRequests = joinRequestsResults.filterIsInstance<Success<UserPreview>>()
-                                    .map { it.data }
-                            )
+                        if (author is Success && participants is Success) {
+                            document.toEvent(author.data, participants.data)
                         } else {
                             null
                         }
                     }
-                    send(events)
-                }
             } else {
-                trySend(emptyList())
-            }
-        }
+                db.collection("events").get().await().documents.mapNotNull { document ->
+                    val author = userRepository.getUserPreview(document.getRequiredString("author"))
+                    val participants =
+                        userRepository.getUsersPreviews(document.getList("participants"))
 
-        awaitClose { listenerRegistration.remove() }
-    }.stateIn(
-        coroutineScope, SharingStarted.WhileSubscribed(5000), emptyList()
-    )
+                    if (author is Success && participants is Success) {
+                        document.toEvent(author.data, participants.data)
+                    } else {
+                        null
+                    }
+                }
+            }
+
+            Success(events)
+        } catch (e: FirebaseFirestoreException) {
+            Error("Failed to get events: ${e.message}")
+        }
+    }
+
+    override suspend fun getEventsByAuthor(authorID: String): Result<List<Event>> {
+        return try {
+            val events = db.collection("events").whereEqualTo("author", authorID).get()
+                .await().documents.mapNotNull { document ->
+                    val author = userRepository.getUserPreview(document.getRequiredString("author"))
+                    val participants =
+                        userRepository.getUsersPreviews(document.getList("participants"))
+
+                    if (author is Success && participants is Success) {
+                        document.toEvent(author.data, participants.data)
+                    } else {
+                        null
+                    }
+                }
+
+            Success(events)
+        } catch (e: FirebaseFirestoreException) {
+            Error("Failed to get events: ${e.message}")
+        }
+    }
+
+    override suspend fun getEventsByParticipant(participantID: String): Result<List<Event>> {
+        return try {
+            val events =
+                db.collection("events").whereArrayContains("participants", participantID).get()
+                    .await().documents.mapNotNull { document ->
+                        val author =
+                            userRepository.getUserPreview(document.getRequiredString("author"))
+                        val participants =
+                            userRepository.getUsersPreviews(document.getList("participants"))
+
+                        if (author is Success && participants is Success) {
+                            document.toEvent(author.data, participants.data)
+                        } else {
+                            null
+                        }
+                    }
+
+            Success(events)
+        } catch (e: FirebaseFirestoreException) {
+            Error("Failed to get events: ${e.message}")
+        }
+    }
+
+    override suspend fun getEvent(id: String): Result<Event> {
+        return try {
+            val eventDocument = db.collection("events").document(id).get().await()
+
+            val author = userRepository.getUserPreview(eventDocument.getRequiredString("author"))
+            val participants =
+                userRepository.getUsersPreviews(eventDocument.getList("participants"))
+
+            if (author is Success && participants is Success) {
+
+                if (author.data.id == firebaseAuth.currentUser!!.uid) {
+                    val joinRequests =
+                        userRepository.getUsersPreviews(eventDocument.getList("joinRequests"))
+                    if (joinRequests is Success) {
+                        return Success(
+                            eventDocument.toEvent(
+                                author.data,
+                                participants.data,
+                                joinRequests.data
+                            )
+                        )
+                    }
+                }
+
+                val event = eventDocument.toEvent(author.data, participants.data)
+                Success(event)
+            } else {
+                Error("Failed to get event data")
+            }
+        } catch (e: FirebaseFirestoreException) {
+            Error("Failed to get event: ${e.message}")
+        }
+    }
+
 
     override suspend fun createEvent(event: Event): Result<String> {
         return try {

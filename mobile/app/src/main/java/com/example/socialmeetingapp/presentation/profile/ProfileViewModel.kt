@@ -12,7 +12,6 @@ import com.example.socialmeetingapp.presentation.common.SnackbarManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -45,7 +44,7 @@ class ProfileViewModel @Inject constructor(
                 is Result.Success -> {
                     val user = userResult.data
 
-                    val userEvents = eventRepository.events.value.filter { it.author.id == user.id }
+                    val userEvents = eventRepository.getEventsByAuthor(user.id)
 
                     val isMyProfile = currentUser is Result.Success && currentUser.data.id == user.id
                     val isObservedUser = currentUser is Result.Success && currentUser.data.following.any { it == user.id }
@@ -53,8 +52,15 @@ class ProfileViewModel @Inject constructor(
                     val followersResult = userRepository.getUsersPreviews(user.followers)
                     val followingResult = userRepository.getUsersPreviews(user.following)
 
-                    if (followersResult is Result.Success && followingResult is Result.Success) {
-                        _userData.value = ProfileState.Content(user, userEvents, isMyProfile, isObservedUser, followersResult.data, followingResult.data)
+                    if (followersResult is Result.Success && followingResult is Result.Success && userEvents is Result.Success) {
+                        _userData.value = ProfileState.Content(
+                            user,
+                            userEvents.data,
+                            isMyProfile,
+                            isObservedUser,
+                            followersResult.data,
+                            followingResult.data
+                        )
                     } else {
                         _userData.value = ProfileState.Error("Error loading followers or following")
                     }

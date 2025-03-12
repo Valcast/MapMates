@@ -91,7 +91,7 @@ fun DocumentSnapshot.toUserPreview(): UserPreview {
 fun DocumentSnapshot.toEvent(
     author: UserPreview,
     participants: List<UserPreview>,
-    joinRequests: List<UserPreview>
+    joinRequests: List<UserPreview> = emptyList()
 ): Event {
 
     return Event(

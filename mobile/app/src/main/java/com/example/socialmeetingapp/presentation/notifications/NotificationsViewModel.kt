@@ -34,15 +34,13 @@ class NotificationsViewModel @Inject constructor(
                 notification.data["eventId"]?.let { eventIds.add(it) }
             }
 
-            val events = eventRepository.events.value.filter {
-                eventIds.contains(it.id)
-            }
+            val eventsResult = eventRepository.getEvents(eventIds.toList())
 
             val usersPreviews = userRepository.getUsersPreviews(userIds.toList())
 
-            if (usersPreviews is Result.Success) {
+            if (usersPreviews is Result.Success && eventsResult is Result.Success) {
                 notifications.map { notification ->
-                    notification.toNotificationUI(events, usersPreviews.data)
+                    notification.toNotificationUI(eventsResult.data, usersPreviews.data)
                 }
             } else emptyList()
 

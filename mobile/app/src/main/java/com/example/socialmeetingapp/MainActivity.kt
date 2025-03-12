@@ -205,6 +205,7 @@ class MainActivity : ComponentActivity() {
 
                             HomeScreen(
                                 events = viewModel.events.collectAsStateWithLifecycle().value,
+                                isLoading = viewModel.isLoadingEvents.collectAsStateWithLifecycle().value,
                                 currentLocation = viewModel.currentLocation.collectAsStateWithLifecycle().value,
                                 locationCoordinates = if (args.latitude != null && args.longitude != null) LatLng(
                                     args.latitude, args.longitude
@@ -377,18 +378,18 @@ class MainActivity : ComponentActivity() {
                                 uiState = viewModel.uiState.collectAsStateWithLifecycle().value,
                                 isNextButtonEnabled = viewModel.isNextButtonEnabled.collectAsStateWithLifecycle().value,
                                 isRulesAccepted = viewModel.isRulesAccepted.collectAsStateWithLifecycle().value,
-                                onNext = { viewModel.nextStep() },
-                                onPrevious = { viewModel.previousStep() },
-                                onUpdateCategory = { viewModel.updateCategory(it) },
-                                onUpdateTitle = { viewModel.updateTitle(it) },
-                                onUpdateDescription = { viewModel.updateDescription(it) },
-                                onUpdateIsPrivate = { viewModel.updateIsPrivate(it) },
-                                onUpdateIsOnline = { viewModel.updateIsOnline(it) },
-                                onUpdateMaxParticipants = { viewModel.updateMaxParticipants(it) },
-                                onSetStartTime = { viewModel.setStartTime(it) },
-                                onSetEndTime = { viewModel.setEndTime(it) },
-                                onUpdateLocation = { viewModel.updateLocation(it) },
-                                onUpdateRules = { viewModel.updateRulesAccepted() },
+                                onNext = viewModel::nextStep,
+                                onPrevious = viewModel::previousStep,
+                                onUpdateCategory = viewModel::updateCategory,
+                                onUpdateTitle = viewModel::updateTitle,
+                                onUpdateDescription = viewModel::updateDescription,
+                                onUpdateIsPrivate = viewModel::updateIsPrivate,
+                                onUpdateIsOnline = viewModel::updateIsOnline,
+                                onUpdateMaxParticipants = viewModel::updateMaxParticipants,
+                                onSetStartTime = viewModel::setStartTime,
+                                onSetEndTime = viewModel::setEndTime,
+                                onUpdateLocation = viewModel::updateLocation,
+                                onUpdateRules = viewModel::updateRulesAccepted,
                                 onCancel = { NavigationManager.navigateTo(Routes.Map()) })
                         }
 

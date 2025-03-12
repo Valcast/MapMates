@@ -24,28 +24,41 @@ sealed class ActivitiesState {
 class ActivitiesViewModel @Inject constructor(
     private val userRepository: UserRepository, private val eventRepository: EventRepository
 ) : ViewModel() {
-    var _state = MutableStateFlow<ActivitiesState>(ActivitiesState.Loading)
+    private var _state = MutableStateFlow<ActivitiesState>(ActivitiesState.Loading)
     val state = _state.asStateFlow()
 
     init {
         getActivities()
     }
 
-    fun getActivities() {
+    private fun getActivities() {
         viewModelScope.launch {
-            val currentUser = userRepository.getCurrentUserPreview()
+            when (val currentUserResult = userRepository.getCurrentUserPreview()) {
+                is Result.Error -> {
+                    _state.update { ActivitiesState.Error(currentUserResult.message) }
+                }
 
-            eventRepository.events.collect {
-                if (currentUser is Result.Success) {
-                    val createdEvents = it.filter { it.author.id == currentUser.data.id }
-                    val joinedEvents =
-                        it.filter { it.participants.any { it.id == currentUser.data.id } }
+                is Result.Success -> {
+                    val currentUser = currentUserResult.data
+                    val createdEventsResult = eventRepository.getEventsByAuthor(currentUser.id)
+                    val joinedEventsResult = eventRepository.getEventsByParticipant(currentUser.id)
 
-                    _state.update { ActivitiesState.Content(createdEvents, joinedEvents) }
-                } else {
-                    _state.update {
-                        ActivitiesState.Error("You are not authenticated")
+                    if (createdEventsResult is Result.Error || joinedEventsResult is Result.Error) {
+                        _state.update { ActivitiesState.Error("Error occurred while loading activities") }
+                    } else if (createdEventsResult is Result.Success && joinedEventsResult is Result.Success) {
+                        _state.update {
+                            ActivitiesState.Content(
+                                createdEventsResult.data,
+                                joinedEventsResult.data
+                            )
+                        }
+                    } else {
+                        _state.update { ActivitiesState.Loading }
                     }
+                }
+
+                else -> {
+                    _state.update { ActivitiesState.Loading }
                 }
             }
         }

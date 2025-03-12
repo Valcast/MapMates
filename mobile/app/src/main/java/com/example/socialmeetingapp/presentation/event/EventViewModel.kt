@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.socialmeetingapp.domain.model.Event
 import com.example.socialmeetingapp.domain.model.Result
-import com.example.socialmeetingapp.domain.model.User
 import com.example.socialmeetingapp.domain.model.UserPreview
 import com.example.socialmeetingapp.domain.repository.EventRepository
 import com.example.socialmeetingapp.domain.repository.UserRepository
@@ -33,16 +32,21 @@ class EventViewModel @Inject constructor(
 
     fun getEvent(eventID: String) {
         viewModelScope.launch {
-            val currentUser = userRepository.getCurrentUserPreview()
-
-            eventRepository.events.collect { events ->
-                val event = events.find { it.id == eventID }
-
-                if (event != null && currentUser is Result.Success) {
-                    _state.value = EventState.Content(event, currentUser.data)
-                } else {
-                    _state.value = EventState.Error("Event not found")
+            when (val eventResult = eventRepository.getEvent(eventID)) {
+                is Result.Success -> {
+                    val currentUser = userRepository.getCurrentUserPreview()
+                    if (currentUser is Result.Success) {
+                        _state.value = EventState.Content(eventResult.data, currentUser.data)
+                    } else {
+                        _state.value = EventState.Error("Failed to get current user")
+                    }
                 }
+
+                is Result.Error -> {
+                    _state.value = EventState.Error(eventResult.message)
+                }
+
+                else -> {}
             }
         }
     }
@@ -148,9 +152,6 @@ class EventViewModel @Inject constructor(
                 return
             } else if ((state.value as EventState.Content).event.participants.size >= (state.value as EventState.Content).event.maxParticipants) {
                 SnackbarManager.showMessage("Event is full")
-                return
-            } else if ((state.value as EventState.Content).event.joinRequests.any { it.id == (state.value as EventState.Content).currentUser.id }) {
-                SnackbarManager.showMessage("You have already sent a join request")
                 return
             }
         }

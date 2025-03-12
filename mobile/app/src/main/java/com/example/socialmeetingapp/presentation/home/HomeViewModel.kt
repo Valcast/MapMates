@@ -17,10 +17,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.TimeZone
@@ -31,10 +31,14 @@ import javax.inject.Inject
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val locationRepository: LocationRepository, eventRepository: EventRepository
+    private val locationRepository: LocationRepository,
+    private val eventRepository: EventRepository
 ) : ViewModel() {
     private var _filters = MutableStateFlow(Filters())
     val filters = _filters.asStateFlow()
+
+    private var _isLoadingEvents = MutableStateFlow(false)
+    val isLoadingEvents = _isLoadingEvents.asStateFlow()
 
     private var _currentLocation = MutableStateFlow<LatLng?>(null)
     val currentLocation: StateFlow<LatLng?> = _currentLocation.onStart {
@@ -45,48 +49,71 @@ class HomeViewModel @Inject constructor(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    val events = combine(eventRepository.events, _filters) { events, filters ->
-        events.filter { event ->
-            val eventStartTime = event.startTime.toInstant(TimeZone.UTC)
-                .toLocalDateTime(TimeZone.currentSystemDefault())
-            val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+    private var _events = MutableStateFlow<List<Event>>(emptyList())
+    val events = _events.onStart {
+        fetchEvents()
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-            when (filters.dateRange) {
-                DateRange.Today -> {
-                    eventStartTime.date == today
+    private fun fetchEvents() {
+        _isLoadingEvents.value = true
+        _events.value = emptyList()
+        viewModelScope.launch {
+            try {
+                val fetchedEventsResult = eventRepository.getEvents()
+                val filters = _filters.value
+
+                if (fetchedEventsResult is Result.Success) {
+                    val fetchedEvents = fetchedEventsResult.data
+                    val filteredEvents = fetchedEvents.filter { event ->
+                        val eventStartTime = event.startTime.toInstant(TimeZone.UTC)
+                            .toLocalDateTime(TimeZone.currentSystemDefault())
+                        val today =
+                            Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+
+                        when (filters.dateRange) {
+                            DateRange.Today -> {
+                                eventStartTime.date == today
+                            }
+
+                            DateRange.Tomorrow -> {
+                                eventStartTime.date == today.plus(DatePeriod(days = 1))
+                            }
+
+                            DateRange.ThisWeek -> {
+                                val endOfWeek = today.plus(DatePeriod(days = 7))
+                                eventStartTime.date in today..endOfWeek
+                            }
+
+                            is DateRange.Custom -> {
+                                val customStart =
+                                    filters.dateRange.startTime.toInstant(TimeZone.UTC)
+                                        .toLocalDateTime(TimeZone.currentSystemDefault()).date
+                                val customEnd = filters.dateRange.endTime.toInstant(TimeZone.UTC)
+                                    .toLocalDateTime(TimeZone.currentSystemDefault()).date
+
+                                eventStartTime.date in customStart..customEnd
+                            }
+
+                            null -> eventStartTime >= Clock.System.now()
+                                .toLocalDateTime(TimeZone.currentSystemDefault())
+                        } && (filters.category == null || event.category == filters.category)
+                    }.let { filteredEvents ->
+                        if (filters.sortOrder != null) {
+                            sortEvents(filteredEvents, filters.sortOrder)
+                        } else {
+                            filteredEvents
+                        }
+                    }
+                    _isLoadingEvents.value = false
+                    _events.value = filteredEvents
                 }
 
-                DateRange.Tomorrow -> {
-                    eventStartTime.date == today.plus(DatePeriod(days = 1))
-                }
-
-                DateRange.ThisWeek -> {
-                    val endOfWeek = today.plus(DatePeriod(days = 7))
-                    eventStartTime.date in today..endOfWeek
-                }
-
-                is DateRange.Custom -> {
-                    val customStart = filters.dateRange.startTime.toInstant(TimeZone.UTC)
-                        .toLocalDateTime(TimeZone.currentSystemDefault()).date
-                    val customEnd = filters.dateRange.endTime.toInstant(TimeZone.UTC)
-                        .toLocalDateTime(TimeZone.currentSystemDefault()).date
-
-                    eventStartTime.date in customStart..customEnd
-                }
-
-                null -> eventStartTime >= Clock.System.now()
-                    .toLocalDateTime(TimeZone.currentSystemDefault())
-            } && (filters.category == null || event.category == filters.category)
-        }.let { filteredEvents ->
-            if (filters.sortOrder != null) {
-                sortEvents(filteredEvents, filters.sortOrder)
-            } else {
-                filteredEvents
+            } catch (e: Exception) {
+                _events.value = emptyList()
             }
         }
-    }.stateIn(
-        viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList()
-    )
+    }
+
 
     fun applyFilters(
         dateRange: DateRange?, category: Category?, sortOrderType: SortOrder?
@@ -96,6 +123,7 @@ class HomeViewModel @Inject constructor(
                 dateRange = dateRange, category = category, sortOrder = sortOrderType
             )
         }
+        fetchEvents()
     }
 
     suspend fun getLocation() {

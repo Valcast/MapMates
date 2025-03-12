@@ -2,11 +2,14 @@ package com.example.socialmeetingapp.domain.repository
 
 import com.example.socialmeetingapp.domain.model.Event
 import com.example.socialmeetingapp.domain.model.Result
-import kotlinx.coroutines.flow.StateFlow
 
 interface EventRepository {
 
-    val events: StateFlow<List<Event>>
+    suspend fun getEvents(ids: List<String>? = null): Result<List<Event>>
+    suspend fun getEvent(id: String): Result<Event>
+
+    suspend fun getEventsByAuthor(authorID: String): Result<List<Event>>
+    suspend fun getEventsByParticipant(participantID: String): Result<List<Event>>
 
     suspend fun createEvent(event: Event): Result<String>
     suspend fun updateEvent(event: Event): Result<Unit>
