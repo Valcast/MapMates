@@ -66,7 +66,7 @@ fun EventLocationScreen(
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
                 Text(
-                    text = event.locationAddress,
+                    text = event.locationAddress ?: "No location selected",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.padding(bottom = 8.dp)
@@ -173,7 +173,9 @@ fun EventLocationScreen(
                         onUpdateLocation(it)
                         isLocationPickerVisible = false
                     }, cameraPositionState = rememberCameraPositionState {
-                        position = CameraPosition.fromLatLngZoom(event.locationCoordinates, 10f)
+                        position = CameraPosition.fromLatLngZoom(
+                            LatLng(52.237049, 21.017532), 10f
+                        )
                     })
                 }
 

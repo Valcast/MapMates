@@ -150,9 +150,9 @@ class HomeViewModel @Inject constructor(
             SortOrder.NEXT_DATE -> events.sortedBy { it.startTime }
             SortOrder.DISTANCE -> events.sortedBy {
                 currentLocation.value?.let { it1 ->
-                    it.locationCoordinates.sphericalDistance(
+                    it.locationCoordinates?.sphericalDistance(
                         it1
-                    )
+                    ) ?: Double.MAX_VALUE
                 }
             }
 

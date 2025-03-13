@@ -235,13 +235,15 @@ fun HomeScreen(
                         },
                     ) {
                         Clustering(
-                            items = events.map { event ->
-                                EventMarker(
-                                    event.locationCoordinates,
-                                    event.title,
-                                    event.description,
-                                    event.category
-                                )
+                            items = events.mapNotNull { event ->
+                                event.locationCoordinates?.let {
+                                    EventMarker(
+                                        it,
+                                        event.title,
+                                        event.description,
+                                        event.category
+                                    )
+                                }
                             },
                             onClusterItemClick = { event ->
                                 eventCluster = emptyList()

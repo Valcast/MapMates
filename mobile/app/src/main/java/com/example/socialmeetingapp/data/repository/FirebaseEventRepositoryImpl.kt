@@ -154,7 +154,7 @@ class FirebaseEventRepositoryImpl(
             val eventData = hashMapOf(
                 "title" to event.title,
                 "description" to event.description,
-                "locationCoordinates" to event.locationCoordinates.toGeoPoint(),
+                "locationCoordinates" to event.locationCoordinates?.toGeoPoint(),
                 "locationAddress" to event.locationAddress,
                 "author" to firebaseAuth.currentUser?.uid,
                 "participants" to emptyList<String>(),
@@ -188,7 +188,7 @@ class FirebaseEventRepositoryImpl(
             val eventData = hashMapOf(
                 "title" to event.title,
                 "description" to event.description,
-                "locationCoordinates" to event.locationCoordinates.toGeoPoint(),
+                "locationCoordinates" to event.locationCoordinates?.toGeoPoint(),
                 "locationAddress" to event.locationAddress,
                 "author" to firebaseAuth.currentUser?.uid,
                 "participants" to emptyList<String>(),

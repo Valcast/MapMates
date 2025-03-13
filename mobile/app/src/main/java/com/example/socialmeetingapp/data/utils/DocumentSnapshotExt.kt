@@ -56,8 +56,8 @@ fun DocumentSnapshot.getMap(field: String): Map<String, String> {
 fun LatLng.toGeoPoint(): GeoPoint = GeoPoint(latitude, longitude)
 fun GeoPoint.toLatLng(): LatLng = LatLng(latitude, longitude)
 
-fun DocumentSnapshot.getLatLng(field: String): LatLng =
-    getGeoPoint(field)?.toLatLng() ?: throw MissingFieldException(field)
+fun DocumentSnapshot.getLatLngOrNull(field: String): LatLng? =
+    getGeoPoint(field)?.toLatLng()
 
 fun DocumentSnapshot.getStringOrNull(field: String): String? = this.getString(field)
 
@@ -102,8 +102,8 @@ fun DocumentSnapshot.toEvent(
         id = id,
         title = getRequiredString("title"),
         description = getRequiredString("description"),
-        locationCoordinates = getLatLng("locationCoordinates"),
-        locationAddress = getRequiredString("locationAddress"),
+        locationCoordinates = getLatLngOrNull("locationCoordinates"),
+        locationAddress = getStringOrNull("locationAddress"),
         author = author,
         category = getRequiredString("category").let { Category.valueOf(it.uppercase(Locale.getDefault())) },
         participants = participants,

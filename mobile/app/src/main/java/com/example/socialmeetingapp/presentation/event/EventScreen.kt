@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -154,10 +155,7 @@ fun EventScreen(
                                             onLeaveEvent()
                                             eventActionsExpanded = false
                                         },
-                                        enabled = state.event.participants.any { it.id == state.currentUser.id }
-                                                && !isEventEnded
-                                                && !isEventHappeningNow
-                                    )
+                                        enabled = state.event.participants.any { it.id == state.currentUser.id } && !isEventEnded && !isEventHappeningNow)
 
                                 }
                             }
@@ -190,14 +188,12 @@ fun EventScreen(
 
                     Text(
                         text = "${state.event.startTime.dayOfMonth} ${
-                            state.event.startTime.month.name
-                                .lowercase(Locale.ROOT)
+                            state.event.startTime.month.name.lowercase(Locale.ROOT)
                                 .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() }
                         } ${state.event.startTime.year}",
                         color = MaterialTheme.colorScheme.onBackground.copy(0.5f),
                         style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding(vertical = 4.dp)
-                    )
+                        modifier = Modifier.padding(vertical = 4.dp))
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -240,31 +236,40 @@ fun EventScreen(
                         }
                     }
 
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(vertical = 16.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.LocationOn,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier
-                                .padding(end = 8.dp)
-                                .background(
-                                    MaterialTheme.colorScheme.secondaryContainer,
-                                    RoundedCornerShape(10.dp)
-                                )
-                                .padding(10.dp)
-                        )
+                    if (state.event.isOnline) {
                         Text(
-                            text = state.event.locationAddress,
-                            color = MaterialTheme.colorScheme.onBackground,
+                            text = "Online Event",
+                            color = MaterialTheme.colorScheme.primary,
                             style = MaterialTheme.typography.titleMedium,
-                            minLines = 2,
-                            maxLines = 2,
-                            modifier = Modifier.fillMaxWidth(0.9f)
+                            modifier = Modifier.padding(vertical = 16.dp)
                         )
+                    } else {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(vertical = 16.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.LocationOn,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onBackground,
+                                modifier = Modifier
+                                    .padding(end = 8.dp)
+                                    .background(
+                                        MaterialTheme.colorScheme.secondaryContainer,
+                                        RoundedCornerShape(10.dp)
+                                    )
+                                    .padding(10.dp)
+                            )
+                            Text(
+                                text = state.event.locationAddress!!,
+                                color = MaterialTheme.colorScheme.onBackground,
+                                style = MaterialTheme.typography.titleMedium,
+                                minLines = 2,
+                                maxLines = 2,
+                                modifier = Modifier.fillMaxWidth(0.9f)
+                            )
 
+                        }
                     }
 
                     if (state.event.isPrivate) {
@@ -331,7 +336,7 @@ fun EventScreen(
                                 color = MaterialTheme.colorScheme.onBackground
                             )
                             Text(
-                                text = "(${state.event.participants.size} / ${state.event.maxParticipants})",
+                                text = if (state.event.maxParticipants == Int.MAX_VALUE) "" else "(${state.event.participants.size}/${state.event.maxParticipants})",
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
                                 modifier = Modifier.padding(start = 4.dp)
@@ -363,6 +368,9 @@ fun EventScreen(
                                             contentScale = ContentScale.Crop,
                                             modifier = Modifier
                                                 .size(32.dp)
+                                                .offset(
+                                                    if (index == 0) 0.dp else (-8).dp * index, 0.dp
+                                                )
                                                 .clip(RoundedCornerShape(16.dp))
                                         )
                                     }
@@ -374,7 +382,8 @@ fun EventScreen(
                     Text(
                         text = "About Event",
                         style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onBackground
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.padding(top = 16.dp, bottom = 4.dp)
                     )
                     Text(
                         text = state.event.description,
@@ -382,46 +391,59 @@ fun EventScreen(
                         color = MaterialTheme.colorScheme.onBackground,
                     )
 
-
-                    GoogleMap(
-                        cameraPositionState = rememberCameraPositionState {
-                            position =
-                                CameraPosition.fromLatLngZoom(state.event.locationCoordinates, 15f)
-                        },
-                        onMapClick = {
-                            NavigationManager.navigateTo(
-                                Routes.Map(
-                                    state.event.locationCoordinates.latitude,
-                                    state.event.locationCoordinates.longitude
-                                )
-                            )
-                        },
-                        uiSettings = MapUiSettings(
-                            zoomControlsEnabled = false,
-                            zoomGesturesEnabled = false,
-                            scrollGesturesEnabled = false,
-                            scrollGesturesEnabledDuringRotateOrZoom = false,
-                            mapToolbarEnabled = false,
-                            rotationGesturesEnabled = false,
-                            tiltGesturesEnabled = false,
-                            compassEnabled = false,
-                            indoorLevelPickerEnabled = false,
-                            myLocationButtonEnabled = false,
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 32.dp)
-                            .height(200.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                    ) {
-                        Marker(
-                            state = rememberMarkerState(
-                                position = state.event.locationCoordinates
-                            ),
-                            onClick = {
-                                true
-                            }
+                    if (state.event.isOnline) {
+                        Text(
+                            text = "Meeting Link",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.padding(bottom = 4.dp, top = 32.dp)
                         )
+                        Text(
+                            text = state.event.meetingLink!!,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+
+                    } else {
+                        GoogleMap(
+                            cameraPositionState = rememberCameraPositionState {
+                                position = CameraPosition.fromLatLngZoom(
+                                    state.event.locationCoordinates!!, 15f
+                                )
+                            },
+                            onMapClick = {
+                                NavigationManager.navigateTo(
+                                    Routes.Map(
+                                        state.event.locationCoordinates!!.latitude,
+                                        state.event.locationCoordinates!!.longitude
+                                    )
+                                )
+                            },
+                            uiSettings = MapUiSettings(
+                                zoomControlsEnabled = false,
+                                zoomGesturesEnabled = false,
+                                scrollGesturesEnabled = false,
+                                scrollGesturesEnabledDuringRotateOrZoom = false,
+                                mapToolbarEnabled = false,
+                                rotationGesturesEnabled = false,
+                                tiltGesturesEnabled = false,
+                                compassEnabled = false,
+                                indoorLevelPickerEnabled = false,
+                                myLocationButtonEnabled = false,
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 32.dp)
+                                .height(200.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                        ) {
+                            Marker(
+                                state = rememberMarkerState(
+                                    position = state.event.locationCoordinates!!
+                                ), onClick = {
+                                    true
+                                })
+                        }
                     }
                 }
 
@@ -476,8 +498,7 @@ fun EventScreen(
                 ModalBottomSheet(
                     onDismissRequest = {
                         showBottomSheet = false
-                    },
-                    sheetState = sheetState
+                    }, sheetState = sheetState
                 ) {
                     state.event.participants.forEach { participant ->
                         Row(
@@ -496,8 +517,7 @@ fun EventScreen(
                                             Routes.Profile(participant.id)
                                         )
                                     }
-                                    .padding(4.dp)
-                            ) {
+                                    .padding(4.dp)) {
                                 AsyncImage(
                                     model = participant.profilePictureUri,
                                     contentDescription = "Participant Profile Picture",
@@ -529,8 +549,7 @@ fun EventScreen(
                                     IconButton(
                                         onClick = {
                                             participantActionsExpanded = !participantActionsExpanded
-                                        },
-                                        modifier = Modifier.size(24.dp)
+                                        }, modifier = Modifier.size(24.dp)
                                     ) {
                                         Icon(
                                             imageVector = Icons.Filled.MoreVert,
@@ -572,8 +591,7 @@ fun EventScreen(
         }
 
         is EventState.Error -> Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
+            modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
         ) {
             Text(text = state.message)
         }

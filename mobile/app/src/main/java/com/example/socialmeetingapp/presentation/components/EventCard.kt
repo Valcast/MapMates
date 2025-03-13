@@ -76,22 +76,30 @@ fun EventCard(event: Event, onCardClick: (String) -> Unit, modifier: Modifier = 
                     tint = Color.Unspecified
                 )
             }
-            Row {
-                Icon(
-                    imageVector = Icons.Default.LocationOn,
-                    contentDescription = "Location",
-                    modifier = Modifier
-                        .padding(end = 8.dp)
-                        .size(16.dp),
-                    tint = MaterialTheme.colorScheme.onBackground,
-
-                    )
-
+            if (event.isOnline) {
                 Text(
-                    text = event.locationAddress,
+                    text = "Online",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onBackground
                 )
+            } else {
+                Row {
+                    Icon(
+                        imageVector = Icons.Default.LocationOn,
+                        contentDescription = "Location",
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .size(16.dp),
+                        tint = MaterialTheme.colorScheme.onBackground,
+
+                        )
+
+                    Text(
+                        text = event.locationAddress!!,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                }
             }
 
             Row(
