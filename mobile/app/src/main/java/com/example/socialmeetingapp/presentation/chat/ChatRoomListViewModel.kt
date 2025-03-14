@@ -21,37 +21,38 @@ class ChatRoomListViewModel @Inject constructor(
     private var _chatRooms = MutableStateFlow<List<ChatRoomSummary>>(emptyList())
     val chatRooms = _chatRooms.asStateFlow()
 
+    private val eventDataCache = mutableMapOf<String, Pair<String, String>>()
+
     init {
-        getChatRooms()
+        listenToChatRooms()
     }
 
-    private fun getChatRooms() {
+    private fun listenToChatRooms() {
         viewModelScope.launch {
-            val currentUser = userRepository.getCurrentUser()
+            val userId = userRepository.getCurrentUserId()
 
-            val chatRoomsResult =
-                chatRepository.getChatRoomsByUser((currentUser as Result.Success).data.id)
+            if (userId == null) {
+                return@launch
+            }
 
-            if (chatRoomsResult is Result.Success) {
-                val eventData = chatRoomsResult.data.map {
-                    val eventIdAndTitleResult =
-                        chatRepository.findEventIdAndTitleByChatRoomId(it.id)
-
-                    if (eventIdAndTitleResult is Result.Error) {
-                        Log.e("ChatRoomListViewModel", eventIdAndTitleResult.message)
-                        return@map ChatRoomSummary(it, "", "")
+            chatRepository.listenForChatRoomsByUserId(userId).collect { chatRooms ->
+                val chatRoomSummaries = chatRooms.map { chatRoom ->
+                    val eventData = eventDataCache.getOrPut(chatRoom.id) {
+                        chatRepository.findEventIdAndTitleByChatRoomId(chatRoom.id).let {
+                            if (it is Result.Success) {
+                                it.data
+                            } else {
+                                Log.e(
+                                    "ChatRoomListViewModel",
+                                    "Failed to get event data for chat room ${chatRoom.id}"
+                                )
+                                return@collect
+                            }
+                        }
                     }
-
-                    eventIdAndTitleResult as Result.Success
-
-                    ChatRoomSummary(
-                        it,
-                        eventIdAndTitleResult.data.first,
-                        eventIdAndTitleResult.data.second
-                    )
+                    ChatRoomSummary(chatRoom, eventData.first, eventData.second)
                 }
-
-                _chatRooms.value = eventData
+                _chatRooms.value = chatRoomSummaries
             }
         }
     }

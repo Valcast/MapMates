@@ -227,6 +227,27 @@ class FirebaseEventRepositoryImpl(
         return updateArrayField(eventID, "participants", userID, FieldValue.arrayRemove(userID))
     }
 
+    override suspend fun inviteUsersToEvent(
+        eventID: String,
+        userIDs: List<String>
+    ): Result<Unit> {
+        return try {
+            userIDs.forEach {
+                val inviteData = hashMapOf(
+                    "eventID" to eventID,
+                    "senderID" to firebaseAuth.currentUser?.uid,
+                    "createdAt" to Timestamp.now()
+                )
+
+                db.collection("users").document(it).collection("invites").add(inviteData).await()
+            }
+
+            Success(Unit)
+        } catch (e: FirebaseFirestoreException) {
+            Error("Failed to invite users to event: ${e.message}")
+        }
+    }
+
     override suspend fun sendJoinRequest(eventID: String): Result<Unit> {
         return updateArrayField(
             eventID, "joinRequests", firebaseAuth.currentUser?.uid, FieldValue.arrayUnion(

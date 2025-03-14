@@ -26,6 +26,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import androidx.paging.compose.collectAsLazyPagingItems
 import com.example.compose.SocialMeetingAppTheme
 import com.example.socialmeetingapp.domain.model.Theme
 import com.example.socialmeetingapp.presentation.activities.ActivitiesScreen
@@ -143,6 +144,8 @@ class MainActivity : ComponentActivity() {
             val currentRoute = navController.currentBackStackEntryAsState().value?.run {
                 val route = destination.route!!
 
+                Log.i("NavigationManager", "Current route: $route")
+
                 when {
                     route.contains("Map") -> toRoute<Routes.Map>()
                     route.contains("Login") -> toRoute<Routes.Login>()
@@ -157,8 +160,8 @@ class MainActivity : ComponentActivity() {
                     route.contains("CreateEvent") -> toRoute<Routes.CreateEvent>()
                     route.contains("Event") -> toRoute<Routes.Event>()
                     route.contains("Notifications") -> toRoute<Routes.Notifications>()
-                    route.contains("Chat") -> toRoute<Routes.Chat>()
                     route.contains("ChatRoom") -> toRoute<Routes.ChatRoom>()
+                    route.contains("Chat") -> toRoute<Routes.Chat>()
                     else -> null
                 }
 
@@ -279,14 +282,16 @@ class MainActivity : ComponentActivity() {
 
                         composable<Routes.ChatRoom> {
                             val args = it.toRoute<Routes.ChatRoom>()
-                            val viewModel = hiltViewModel<ChatRoomViewModel>()
-
-                            viewModel.fetchMessages(args.chatRoomID)
-                            viewModel.fetchChatRoom(args.chatRoomID)
+                            val viewModel =
+                                hiltViewModel<ChatRoomViewModel, ChatRoomViewModel.Factory>(
+                                    creationCallback = { factory -> factory.create(args.chatRoomID) }
+                                )
 
                             ChatRoomScreen(
+                                messages = viewModel.messages.collectAsLazyPagingItems(),
                                 chatRoom = viewModel.chatRoom.collectAsStateWithLifecycle().value,
-                                messages = viewModel.messages.collectAsStateWithLifecycle().value
+                                newMessage = viewModel.newMessage.collectAsStateWithLifecycle(null).value,
+                                onSendMessage = viewModel::sendMessage
                             )
                         }
 

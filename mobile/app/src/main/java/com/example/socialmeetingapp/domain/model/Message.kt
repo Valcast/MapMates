@@ -5,5 +5,5 @@ import kotlinx.datetime.LocalDateTime
 data class Message(
     val senderId: String,
     val text: String,
-    val timestamp: LocalDateTime
+    val createdAt: LocalDateTime
 )

@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface UserRepository {
     val authenticationStatus: Flow<FirebaseUser?>
+    suspend fun getCurrentUserId(): String?
     suspend fun getCurrentUser(): Result<User>
     suspend fun getCurrentUserPreview(): Result<UserPreview>
 

@@ -158,8 +158,10 @@ object AppModule {
     @Singleton
     fun provideChatRepository(
         db: FirebaseFirestore,
+        userRepository: UserRepository
+
     ): ChatRepository {
-        return ChatRepositoryImpl(db)
+        return ChatRepositoryImpl(db, userRepository)
     }
 
 }

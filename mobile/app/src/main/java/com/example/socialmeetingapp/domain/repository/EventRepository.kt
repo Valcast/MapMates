@@ -19,6 +19,8 @@ interface EventRepository {
 
     suspend fun removeParticipant(eventID: String, userID: String): Result<Unit>
 
+    suspend fun inviteUsersToEvent(eventID: String, userIDs: List<String>): Result<Unit>
+
     suspend fun sendJoinRequest(eventID: String): Result<Unit>
     suspend fun acceptJoinRequest(eventID: String, userID: String): Result<Unit>
     suspend fun declineJoinRequest(eventID: String, userID: String): Result<Unit>

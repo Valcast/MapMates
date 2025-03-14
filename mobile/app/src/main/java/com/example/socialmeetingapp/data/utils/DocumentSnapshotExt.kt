@@ -11,6 +11,7 @@ import com.example.socialmeetingapp.domain.model.NotificationType
 import com.example.socialmeetingapp.domain.model.User
 import com.example.socialmeetingapp.domain.model.UserPreview
 import com.google.android.gms.maps.model.LatLng
+import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.GeoPoint
 import kotlinx.datetime.Instant
@@ -49,8 +50,12 @@ fun DocumentSnapshot.getInt(field: String): Int {
     return number.toInt()
 }
 
-fun DocumentSnapshot.getMap(field: String): Map<String, String> {
-    return this.get(field) as? Map<String, String> ?: throw MissingFieldException(field)
+fun DocumentSnapshot.getMap(field: String): Map<String, Any> {
+    return this.get(field) as? Map<String, Any> ?: throw MissingFieldException(field)
+}
+
+fun DocumentSnapshot.getMapOrNull(field: String): Map<String, Any>? {
+    return this.get(field) as? Map<String, Any>
 }
 
 fun LatLng.toGeoPoint(): GeoPoint = GeoPoint(latitude, longitude)
@@ -60,6 +65,7 @@ fun DocumentSnapshot.getLatLngOrNull(field: String): LatLng? =
     getGeoPoint(field)?.toLatLng()
 
 fun DocumentSnapshot.getStringOrNull(field: String): String? = this.getString(field)
+
 
 class MissingFieldException(field: String) : Exception("Required field '$field' is missing.")
 
@@ -128,21 +134,40 @@ fun DocumentSnapshot.toNotification(): Notification {
     )
 }
 
-fun DocumentSnapshot.toChatRoom(lastMessage: Message? = null): ChatRoom {
+fun DocumentSnapshot.toChatRoom(): ChatRoom {
     return ChatRoom(
         id = id,
         authorId = getRequiredString("authorId"),
         name = getRequiredString("name"),
         members = getList("members"),
-        lastMessage = lastMessage
+        lastMessage = getMessage(getMapOrNull("lastMessage"))
     )
 }
+
+fun DocumentSnapshot.getMessage(messageMap: Map<String, Any>?): Message? {
+    if (messageMap == null) {
+        return null;
+    }
+
+    return Message(
+        senderId = messageMap["senderId"].toString(),
+        text = messageMap["text"].toString(),
+        createdAt = (messageMap["createdAt"] as? Timestamp).let { timestamp ->
+            if (timestamp == null) {
+                return null
+            }
+            Instant.fromEpochSeconds(timestamp.seconds, timestamp.nanoseconds)
+                .toLocalDateTime(TimeZone.currentSystemDefault())
+        }
+    )
+}
+
 
 fun DocumentSnapshot.toMessage(): Message {
     return Message(
         senderId = getRequiredString("senderId"),
         text = getRequiredString("text"),
-        timestamp = getLocalDateTime("timestamp")
+        createdAt = getLocalDateTime("createdAt")
     )
 }
 

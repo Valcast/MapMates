@@ -32,6 +32,7 @@ androidCredentials = "1.5.0-rc01"
 googleId = "1.1.1"
 accompanistPermissions = "0.37.0"
 typesenseJava = "0.8.1"
+pagingRuntime = "3.3.6"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -57,6 +58,9 @@ androidx-navigation-compose = { group = "androidx.navigation", name = "navigatio
 androidx-navigation-testing = { group = "androidx.navigation", name = "navigation-testing", version.ref = "navigationCompose" }
 androidx-credentials = { group = "androidx.credentials", name = "credentials", version.ref = "androidCredentials" }
 androidx-credentials-playservices = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "androidCredentials" }
+androidx-paging-runtime = { group = "androidx.paging", name = "paging-runtime", version.ref = "pagingRuntime" }
+androidx-paging-compose = { group = "androidx.paging", name = "paging-compose", version.ref = "pagingRuntime" }
+
 
 hilt = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "hilt" }

@@ -29,9 +29,9 @@ class NotificationsViewModel @Inject constructor(
             val userIds = mutableSetOf<String>()
 
             notifications.forEach { notification ->
-                notification.data["authorId"]?.let { userIds.add(it) }
-                notification.data["joinRequestId"]?.let { userIds.add(it) }
-                notification.data["eventId"]?.let { eventIds.add(it) }
+                notification.data["authorId"]?.let { userIds.add(it.toString()) }
+                notification.data["joinRequestId"]?.let { userIds.add(it.toString()) }
+                notification.data["eventId"]?.let { eventIds.add(it.toString()) }
             }
 
             val eventsResult = eventRepository.getEvents(eventIds.toList())

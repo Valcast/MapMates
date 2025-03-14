@@ -89,6 +89,8 @@ dependencies {
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.playservices)
+    implementation(libs.androidx.paging.runtime)
+    implementation(libs.androidx.paging.compose)
 
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.analytics)

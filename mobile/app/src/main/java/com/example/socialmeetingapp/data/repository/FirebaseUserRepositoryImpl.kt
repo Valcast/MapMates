@@ -40,6 +40,8 @@ class FirebaseUserRepositoryImpl(
     private val storage: FirebaseStorage,
 ) : UserRepository {
 
+    private val userPreviewCache = mutableMapOf<String, UserPreview>()
+
     override val authenticationStatus = callbackFlow {
         val authStateListener = AuthStateListener { authState ->
             trySend(authState.currentUser)
@@ -50,6 +52,10 @@ class FirebaseUserRepositoryImpl(
         awaitClose {
             firebaseAuth.removeAuthStateListener(authStateListener)
         }
+    }
+
+    override suspend fun getCurrentUserId(): String? {
+        return firebaseAuth.currentUser?.uid
     }
 
     override suspend fun getCurrentUser(): Result<User> {
@@ -146,19 +152,35 @@ class FirebaseUserRepositoryImpl(
     override suspend fun getUsersPreviews(ids: List<String>): Result<List<UserPreview>> {
         try {
             if (ids.isEmpty()) return Result.Success(emptyList())
-            val userDocumentRefs =
-                db.collection("users").whereIn(FieldPath.documentId(), ids).get().await()
 
-            val users = userDocumentRefs.documents.mapNotNull { userDocument ->
+            val cachedUsers = mutableListOf<UserPreview>()
+            val missingIds = mutableListOf<String>()
+
+            ids.forEach { id ->
+                userPreviewCache[id]?.let { cachedUsers.add(it) } ?: missingIds.add(id)
+            }
+
+            if (missingIds.isEmpty()) {
+                return Result.Success(cachedUsers)
+            }
+
+            val userDocumentRefs = db.collection("users")
+                .whereIn(FieldPath.documentId(), missingIds)
+                .get().await()
+
+            val fetchedUsers = userDocumentRefs.documents.mapNotNull { userDocument ->
                 try {
-                    userDocument.toUserPreview()
+                    val userPreview = userDocument.toUserPreview()
+                    userPreviewCache[userDocument.id] = userPreview
+                    userPreview
                 } catch (e: MissingFieldException) {
                     Log.e("FirebaseUserRepositoryImpl", "${e.message} for ${userDocument.id}")
                     null
                 }
             }
-            return Result.Success(users)
 
+            val combinedUsers = (cachedUsers + fetchedUsers).sortedBy { ids.indexOf(it.id) }
+            return Result.Success(combinedUsers)
         } catch (e: FirebaseFirestoreException) {
             return Result.Error(e.message ?: "Failed to fetch users in batch: ${e.message}")
         }

@@ -7,7 +7,7 @@ data class Notification(
     val type: NotificationType,
     val timestamp: LocalDateTime,
     val isRead: Boolean,
-    val data: Map<String, String>,
+    val data: Map<String, Any>,
 )
 
 enum class NotificationType {
