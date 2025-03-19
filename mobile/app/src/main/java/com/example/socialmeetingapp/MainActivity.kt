@@ -447,6 +447,9 @@ class MainActivity : ComponentActivity() {
                             val viewModel = hiltViewModel<EventViewModel, EventViewModel.Factory>(
                                 creationCallback = { factory -> factory.create(args.id) }
                             )
+                            if (it.savedStateHandle.get<Boolean>("refresh") == true) {
+                                viewModel.loadEvent()
+                            }
 
                             EventScreen(
                                 state = viewModel.state.collectAsStateWithLifecycle().value,
@@ -475,17 +478,24 @@ class MainActivity : ComponentActivity() {
                             EditEventScreen(
                                 event = viewModel.event.collectAsStateWithLifecycle().value,
                                 chatRoom = viewModel.chatRoom.collectAsStateWithLifecycle().value,
-                                onBack = { navController.navigateUp() },
+                                onBack = {
+                                    navController.previousBackStackEntry?.savedStateHandle?.set(
+                                        "refresh", true
+                                    )
+                                    navController.popBackStack()
+                                },
                                 onDeleteEvent = viewModel::deleteEvent,
                                 newEventDescription = viewModel.newDescription.collectAsStateWithLifecycle().value,
                                 newChatRoom = viewModel.newChatRoom.collectAsStateWithLifecycle().value,
                                 onUpdateEventDescription = viewModel::updateEventDescription,
                                 onSaveEventDescription = viewModel::saveEventDescription,
+                                newMeetingLink = viewModel.newMeetingLink.collectAsStateWithLifecycle().value,
+                                onUpdateMeetingLink = viewModel::updateEventMeetingLink,
+                                onSaveMeetingLink = viewModel::saveEventMeetingLink,
+                                onRemoveParticipant = viewModel::removeParticipant,
                                 onNavigateToChatRoom = {
                                     NavigationManager.navigateTo(
-                                        Routes.ChatRoom(
-                                            it
-                                        )
+                                        Routes.ChatRoom(it)
                                     )
                                 },
                                 onUpdateNewChatRoomName = viewModel::updateNewChatRoomName,

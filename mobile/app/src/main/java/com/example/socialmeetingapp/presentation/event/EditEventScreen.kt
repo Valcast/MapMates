@@ -68,9 +68,13 @@ fun EditEventScreen(
     chatRoom: ChatRoom?,
     newEventDescription: String,
     newChatRoom: ChatRoom = ChatRoom.EMPTY,
+    newMeetingLink: String,
     onBack: () -> Unit,
     onUpdateEventDescription: (String) -> Unit,
     onSaveEventDescription: () -> Unit,
+    onUpdateMeetingLink: (String) -> Unit,
+    onSaveMeetingLink: () -> Unit,
+    onRemoveParticipant: (String) -> Unit,
     onNavigateToChatRoom: (String) -> Unit,
     onUpdateNewChatRoomName: (String) -> Unit,
     onUpdateNewChatRoomAuthorOnlyWrite: (Boolean) -> Unit,
@@ -79,6 +83,7 @@ fun EditEventScreen(
 ) {
     var showDeleteEventDialog by remember { mutableStateOf(false) }
     var showDescriptionEditDialog by remember { mutableStateOf(false) }
+    var showMeetingLinkEditDialog by remember { mutableStateOf(false) }
     var showCreateChatRoomDialog by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
     var showPeopleGoingBottomSheet by remember { mutableStateOf(false) }
@@ -156,6 +161,20 @@ fun EditEventScreen(
             Text(
                 text = "Edit description", style = MaterialTheme.typography.bodyMedium
             )
+        }
+
+        if (event.isOnline) {
+            Button(
+                onClick = { showMeetingLinkEditDialog = true },
+                shape = MaterialTheme.shapes.small,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp)
+            ) {
+                Text(
+                    text = "Edit meeting link", style = MaterialTheme.typography.bodyMedium
+                )
+            }
         }
 
         Row(
@@ -347,7 +366,10 @@ fun EditEventScreen(
                 )
 
                 Button(
-                    onClick = onSaveEventDescription,
+                    onClick = {
+                        onSaveEventDescription()
+                        showDescriptionEditDialog = false
+                    },
                     enabled = newEventDescription.trim() != event.description,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -355,6 +377,65 @@ fun EditEventScreen(
                 ) {
                     Text(
                         text = "Save Description",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            }
+        }
+    }
+
+    if (showMeetingLinkEditDialog) {
+        Dialog(
+            onDismissRequest = { showMeetingLinkEditDialog = false }) {
+            Column(
+                modifier = Modifier
+                    .clip(MaterialTheme.shapes.medium)
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(16.dp)
+            ) {
+                Text(
+                    text = "Link to the meeting",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                OutlinedTextField(
+                    value = newMeetingLink,
+                    onValueChange = onUpdateMeetingLink,
+                    placeholder = {
+                        Text(
+                            text = "https://meet.google.com/abc-xyz",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onBackground.copy(.5F)
+                        )
+                    },
+                    textStyle = MaterialTheme.typography.bodySmall,
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp)
+                )
+                Text(
+                    text = "We accept Google Meet, Teams and other popular video conferencing links.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onBackground.copy(.5F)
+                )
+
+                Button(
+                    onClick = {
+                        onSaveMeetingLink()
+                        showMeetingLinkEditDialog = false
+                    },
+                    enabled = newEventDescription.trim() != event.meetingLink && isValidLink(
+                        newMeetingLink
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp)
+                ) {
+                    Text(
+                        text = "Save meeting link",
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 }
@@ -439,6 +520,7 @@ fun EditEventScreen(
                                     )
                                 },
                                 onClick = {
+                                    onRemoveParticipant(participant.id)
                                     showPeopleGoingBottomSheet = false
                                 },
                             )
@@ -526,7 +608,10 @@ fun EditEventScreen(
                 }
 
                 Button(
-                    onClick = onCreateNewChatRoom,
+                    onClick = {
+                        onCreateNewChatRoom()
+                        showCreateChatRoomDialog = false
+                    },
                     enabled = newChatRoom.name.isNotBlank(),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -608,5 +693,16 @@ fun EditEventScreen(
             }
         }
     }
+}
 
+private fun isValidLink(link: String): Boolean {
+    val googleMeetRegex = "^(http(s)://)?meet\\.google\\.com/\\S*$"
+    val teamsRegex = "^(http(s)://)?teams\\.microsoft\\.com/\\S*$"
+    val zoomRegex = "^(http(s)://)?(us0[2-9]web\\.zoom\\.us|zoom\\.us|\\w+\\.zoom\\.us)/j/\\S*$"
+    val skypeRegex = "^(http(s)://)?join\\.skype\\.com/\\S*$"
+    val discordRegex = "^(http(s)://)?discord\\.com/\\S*$"
+
+    return link.matches(googleMeetRegex.toRegex()) || link.matches(teamsRegex.toRegex()) || link.matches(
+        zoomRegex.toRegex()
+    ) || link.matches(skypeRegex.toRegex()) || link.matches(discordRegex.toRegex())
 }

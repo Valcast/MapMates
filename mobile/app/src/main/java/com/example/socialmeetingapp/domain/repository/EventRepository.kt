@@ -27,4 +27,5 @@ interface EventRepository {
 
     suspend fun updateEventDescription(eventId: String, description: String): Result<Unit>
     suspend fun updateEventChatRoomId(eventId: String, chatRoomId: String): Result<Unit>
+    suspend fun updateEventMeetingLink(eventId: String, meetingLink: String): Result<Unit>
 }

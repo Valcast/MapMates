@@ -323,6 +323,18 @@ class FirebaseEventRepositoryImpl(
         }
     }
 
+    override suspend fun updateEventMeetingLink(
+        eventId: String,
+        meetingLink: String
+    ): Result<Unit> {
+        return try {
+            db.collection("events").document(eventId).update("meetingLink", meetingLink).await()
+            Success(Unit)
+        } catch (e: FirebaseFirestoreException) {
+            Failure("Failed to update meeting link: ${e.message}")
+        }
+    }
+
     override suspend fun joinEvent(id: String): com.example.socialmeetingapp.domain.model.Result<Unit> {
         val currentUserId =
             firebaseAuth.currentUser?.uid ?: return Failure("User not authenticated")

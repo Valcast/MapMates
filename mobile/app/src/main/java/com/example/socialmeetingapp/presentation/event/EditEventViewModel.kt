@@ -9,6 +9,7 @@ import com.example.socialmeetingapp.domain.model.onFailure
 import com.example.socialmeetingapp.domain.model.onSuccess
 import com.example.socialmeetingapp.domain.repository.ChatRepository
 import com.example.socialmeetingapp.domain.repository.EventRepository
+import com.example.socialmeetingapp.domain.usecase.CreateChatRoomUseCase
 import com.example.socialmeetingapp.presentation.common.NavigationManager
 import com.example.socialmeetingapp.presentation.common.Routes
 import com.example.socialmeetingapp.presentation.common.SnackbarManager
@@ -25,6 +26,7 @@ import kotlinx.coroutines.launch
 class EditEventViewModel @AssistedInject constructor(
     private val chatRepository: ChatRepository,
     private val eventRepository: EventRepository,
+    private val createChatRoomUseCase: CreateChatRoomUseCase,
     @Assisted private val eventId: String
 ) : ViewModel() {
     @AssistedFactory
@@ -37,6 +39,9 @@ class EditEventViewModel @AssistedInject constructor(
 
     private val _newDescription = MutableStateFlow<String>("")
     val newDescription = _newDescription.asStateFlow()
+
+    private val _newMeetingLink = MutableStateFlow<String>("")
+    val newMeetingLink = _newMeetingLink.asStateFlow()
 
     private val _chatRoom = MutableStateFlow<ChatRoom?>(null)
     val chatRoom = _chatRoom.asStateFlow()
@@ -56,6 +61,8 @@ class EditEventViewModel @AssistedInject constructor(
         eventRepository.getEvent(eventId)
             .onSuccess { eventData ->
                 _event.value = eventData
+                _newDescription.value = eventData.description
+                _newMeetingLink.value = eventData.meetingLink ?: ""
             }
             .onFailure { errorMessage ->
                 Log.e("EditEventViewModel", "Failed to get event with id $eventId: $errorMessage")
@@ -98,6 +105,26 @@ class EditEventViewModel @AssistedInject constructor(
         }
     }
 
+    fun updateEventMeetingLink(meetingLink: String) {
+        _newMeetingLink.value = meetingLink
+    }
+
+    fun saveEventMeetingLink() {
+        viewModelScope.launch {
+            eventRepository.updateEventMeetingLink(eventId, newMeetingLink.value)
+                .onSuccess {
+                    SnackbarManager.showMessage("Meeting link updated")
+                }
+                .onFailure { errorMessage ->
+                    Log.e(
+                        "EditEventViewModel",
+                        "Failed to update meeting link for event with id $eventId: $errorMessage"
+                    )
+                    SnackbarManager.showMessage("Failed to update meeting link")
+                }
+        }
+    }
+
     fun updateNewChatRoomName(name: String) {
         _newChatRoom.update { it.copy(name = name) }
     }
@@ -108,24 +135,35 @@ class EditEventViewModel @AssistedInject constructor(
 
     fun createChatRoom() {
         viewModelScope.launch {
-            chatRepository.createChatRoom(newChatRoom.value)
-                .onSuccess {
-                    eventRepository.updateEventChatRoomId(eventId, it)
-                        .onSuccess {
-                            SnackbarManager.showMessage("Chat room created")
-                        }.onFailure { error ->
-                            Log.e(
-                                "EditEventViewModel",
-                                "Failed to update chat room id for event with id $eventId"
-                            )
-                            SnackbarManager.showMessage("Failed to update chat room id")
-                        }
-
-                }.onFailure { error ->
-                    Log.e("EditEventViewModel", "Failed to create chat room")
+            createChatRoomUseCase(eventId, newChatRoom.value)
+                .onSuccess { chatRoomId ->
+                    fetchChatRoom(chatRoomId)
+                    SnackbarManager.showMessage("Chat room created")
+                }
+                .onFailure { errorMessage ->
+                    Log.e(
+                        "EditEventViewModel",
+                        "Failed to create chat room for event with id $eventId: $errorMessage"
+                    )
                     SnackbarManager.showMessage("Failed to create chat room")
                 }
+        }
+    }
 
+    fun removeParticipant(participantId: String) {
+        viewModelScope.launch {
+            eventRepository.removeParticipant(eventId, participantId)
+                .onSuccess {
+                    fetchEvent()
+                    SnackbarManager.showMessage("Participant removed")
+                }
+                .onFailure { errorMessage ->
+                    Log.e(
+                        "EditEventViewModel",
+                        "Failed to remove participant with id $participantId: $errorMessage"
+                    )
+                    SnackbarManager.showMessage("Failed to remove participant")
+                }
         }
     }
 
@@ -144,4 +182,6 @@ class EditEventViewModel @AssistedInject constructor(
                 }
         }
     }
+
+
 }

@@ -41,7 +41,7 @@ class EventViewModel @AssistedInject constructor(
         loadEvent()
     }
 
-    private fun loadEvent() {
+    fun loadEvent() {
         viewModelScope.launch {
             eventRepository.getEvent(eventId)
                 .onSuccess { eventData ->

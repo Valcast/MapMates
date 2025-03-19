@@ -32,3 +32,17 @@ fun <T> Result<T>.getOrDefault(defaultValue: T): T {
         is Result.Failure -> defaultValue
     }
 }
+
+suspend fun <T, R> Result<T>.flatMap(transform: suspend (T) -> Result<R>): Result<R> {
+    return when (val result = this) {
+        is Result.Success -> transform(result.data)
+        is Result.Failure -> Result.Failure(result.message)
+    }
+}
+
+suspend fun <T, R> Result<T>.map(transform: suspend (T) -> R): Result<R> {
+    return when (val result = this) {
+        is Result.Success -> Result.Success(transform(result.data))
+        is Result.Failure -> Result.Failure(result.message)
+    }
+}
