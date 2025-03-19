@@ -2,10 +2,11 @@ package com.example.socialmeetingapp.data.repository
 
 import android.util.Log
 import com.example.socialmeetingapp.data.source.MessagesPagingSource
-import com.example.socialmeetingapp.data.utils.getRequiredString
 import com.example.socialmeetingapp.data.utils.toChatRoom
+import com.example.socialmeetingapp.data.utils.toEventPreview
 import com.example.socialmeetingapp.data.utils.toMessage
 import com.example.socialmeetingapp.domain.model.ChatRoom
+import com.example.socialmeetingapp.domain.model.EventPreview
 import com.example.socialmeetingapp.domain.model.Message
 import com.example.socialmeetingapp.domain.model.Result
 import com.example.socialmeetingapp.domain.repository.ChatRepository
@@ -33,8 +34,8 @@ class ChatRepositoryImpl(
 
             val createChatRef = db.collection("chatRooms").add(chat).await()
             Result.Success(createChatRef.id)
-        } catch (e: Exception) {
-            Result.Error(e.message ?: "An error occurred while creating chat room")
+        } catch (_: Error) {
+            Result.Failure("")
         }
     }
 
@@ -80,7 +81,7 @@ class ChatRepositoryImpl(
 
             Result.Success(Unit)
         } catch (e: Exception) {
-            Result.Error(e.message ?: "An error occurred while joining chat room")
+            Result.Failure(e.message ?: "An error occurred while joining chat room")
         }
     }
 
@@ -89,22 +90,22 @@ class ChatRepositoryImpl(
             val chatRoom = db.collection("chatRooms").document(chatRoomID).get().await()
             Result.Success(chatRoom.toChatRoom())
         } catch (e: Exception) {
-            Result.Error(e.message ?: "An error occurred while getting chat room")
+            Result.Failure(e.message ?: "An error occurred while getting chat room")
         }
     }
 
-    override suspend fun findEventIdAndTitleByChatRoomId(chatRoomId: String): Result<Pair<String, String>> {
+    override suspend fun findEventByChatRoomId(chatRoomId: String): Result<EventPreview> {
         return try {
             val event = db.collection("events").whereEqualTo("chatRoomId", chatRoomId).get()
                 .await().documents.first()
 
-            Result.Success(Pair(event.id, event.getRequiredString("title")))
+            Result.Success(event.toEventPreview())
         } catch (e: Exception) {
-            Result.Error(e.message ?: "An error occurred while getting event")
+            Result.Failure(e.message ?: "An error occurred while getting event")
         }
     }
 
-    override suspend fun sendMessage(chatRoomID: String, message: String) {
+    override suspend fun sendMessage(chatRoomId: String, message: String) {
         val userId = userRepository.getCurrentUserId()
         if (userId == null) {
             return
@@ -118,11 +119,11 @@ class ChatRepositoryImpl(
             )
 
             val messageResult =
-                db.collection("chatRooms").document(chatRoomID).collection("messages")
+                db.collection("chatRooms").document(chatRoomId).collection("messages")
                     .add(messageMap).await()
 
             Log.i("ChatRepositoryImpl", "Message sent with ID: ${messageResult.id}")
-            db.collection("chatRooms").document(chatRoomID).update("lastMessage", messageMap)
+            db.collection("chatRooms").document(chatRoomId).update("lastMessage", messageMap)
                 .await()
         } catch (e: Exception) {
             throw Exception(e.message ?: "An error occurred while sending message")
@@ -132,6 +133,7 @@ class ChatRepositoryImpl(
     override suspend fun listenForNewMessage(chatRoomID: String): Flow<Message> = callbackFlow {
         val messagesCollection =
             db.collection("chatRooms").document(chatRoomID).collection("messages")
+                .whereGreaterThan("createdAt", Timestamp.now())
                 .orderBy("createdAt", Query.Direction.DESCENDING).limit(1)
 
         Log.i(
@@ -150,7 +152,10 @@ class ChatRepositoryImpl(
 
             if (value != null) {
                 Log.i("ChatRepositoryImpl", "Received messages in chat room $chatRoomID")
-                trySend(value.documents.first().toMessage())
+
+                if (value.documents.isNotEmpty()) {
+                    trySend(value.documents.first().toMessage())
+                }
             }
         }
 

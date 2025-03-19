@@ -21,13 +21,13 @@ sealed class Routes {
     data object Activities : Routes()
 
     @Serializable
-    data class Profile(val userID: String = "") : Routes()
+    data class Profile(val userId: String = "") : Routes()
 
     @Serializable
     data object CreateProfile : Routes()
 
     @Serializable
-    data object EditProfile : Routes()
+    data class EditProfile(val userId: String) : Routes()
 
     @Serializable
     data object Notifications : Routes()
@@ -45,9 +45,12 @@ sealed class Routes {
     data class Event(val id: String) : Routes()
 
     @Serializable
+    data class EditEvent(val id: String) : Routes()
+
+    @Serializable
     data object Chat : Routes()
 
     @Serializable
-    data class ChatRoom(val chatRoomID: String) : Routes()
+    data class ChatRoom(val chatRoomId: String) : Routes()
 
 }

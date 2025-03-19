@@ -23,11 +23,11 @@ class LocationRepositoryImpl(
 
     override suspend fun getLocation(): Result<LatLng> {
         if (!checkLocationPermission()) {
-            return Result.Error("Location permission not granted")
+            return Result.Failure("Location permission not granted")
         }
 
         val location = fusedLocationProviderClient.getCurrentLocation(locationRequest, null).await()
-                ?: return Result.Error("Cannot get location")
+            ?: return Result.Failure("Cannot get location")
 
         return Result.Success(LatLng(location.latitude, location.longitude))
     }
@@ -52,13 +52,13 @@ class LocationRepositoryImpl(
                 if (address != null) {
                     Result.Success(address)
                 } else {
-                    Result.Error("No address found")
+                    Result.Failure("No address found")
                 }
             } else {
-                Result.Error("Error fetching address")
+                Result.Failure("Error fetching address")
             }
         } catch (e: HttpException) {
-            Result.Error(e.message())
+            Result.Failure(e.message())
         }
     }
 

@@ -36,13 +36,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.socialmeetingapp.R
-import com.example.socialmeetingapp.domain.model.Result
 import com.example.socialmeetingapp.presentation.authentication.components.AuthenticationTextField
 import kotlinx.coroutines.flow.merge
 
 @Composable
 fun LoginScreen(
-    state: Result<Unit>,
+    state: LoginUiState,
     onSignIn: (String, String) -> Unit,
     onGoToRegister: () -> Unit,
     onGoToForgotPassword: () -> Unit,
@@ -89,7 +88,7 @@ fun LoginScreen(
         )
 
         Text(
-            text = if (state is Result.Error) state.message else "",
+            text = if (state is LoginUiState.Error) state.message else "",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.error,
             textAlign = TextAlign.Center,
@@ -127,20 +126,24 @@ fun LoginScreen(
 
             }
 
-            Button(onClick = { onSignIn(email, password) }, enabled = state !is Result.Loading, modifier = Modifier.fillMaxWidth()) {
-                    if (state is Result.Loading) {
-                        CircularProgressIndicator(
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            strokeWidth = 2.dp,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    } else {
-                        Text(
-                            text = stringResource(id = R.string.login_button),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                    }
+            Button(
+                onClick = { onSignIn(email, password) },
+                enabled = state !is LoginUiState.Loading,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                if (state is LoginUiState.Loading) {
+                    CircularProgressIndicator(
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(24.dp)
+                    )
+                } else {
+                    Text(
+                        text = stringResource(id = R.string.login_button),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
 
             }
         }

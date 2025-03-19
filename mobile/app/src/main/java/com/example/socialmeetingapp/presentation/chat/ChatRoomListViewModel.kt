@@ -4,7 +4,9 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.socialmeetingapp.domain.model.ChatRoom
+import com.example.socialmeetingapp.domain.model.EventPreview
 import com.example.socialmeetingapp.domain.model.Result
+import com.example.socialmeetingapp.domain.model.UserPreview
 import com.example.socialmeetingapp.domain.repository.ChatRepository
 import com.example.socialmeetingapp.domain.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -18,10 +20,8 @@ class ChatRoomListViewModel @Inject constructor(
     private val chatRepository: ChatRepository,
     private val userRepository: UserRepository
 ) : ViewModel() {
-    private var _chatRooms = MutableStateFlow<List<ChatRoomSummary>>(emptyList())
-    val chatRooms = _chatRooms.asStateFlow()
-
-    private val eventDataCache = mutableMapOf<String, Pair<String, String>>()
+    private var _roomPreviews = MutableStateFlow<List<RoomPreview>>(emptyList())
+    val roomPreviews = _roomPreviews.asStateFlow()
 
     init {
         listenToChatRooms()
@@ -32,34 +32,40 @@ class ChatRoomListViewModel @Inject constructor(
             val userId = userRepository.getCurrentUserId()
 
             if (userId == null) {
+                Log.e("ChatRoomListViewModel", "Failed to get current user id")
                 return@launch
             }
 
             chatRepository.listenForChatRoomsByUserId(userId).collect { chatRooms ->
-                val chatRoomSummaries = chatRooms.map { chatRoom ->
-                    val eventData = eventDataCache.getOrPut(chatRoom.id) {
-                        chatRepository.findEventIdAndTitleByChatRoomId(chatRoom.id).let {
-                            if (it is Result.Success) {
-                                it.data
-                            } else {
-                                Log.e(
-                                    "ChatRoomListViewModel",
-                                    "Failed to get event data for chat room ${chatRoom.id}"
-                                )
-                                return@collect
-                            }
+                val roomPreviews = chatRooms.mapNotNull { chatRoom ->
+                    val event = chatRepository.findEventByChatRoomId(chatRoom.id)
+                        .takeIf { it is Result.Success }
+                        ?.let { (it as Result.Success).data }
+                        ?: run {
+                            Log.e(
+                                "ChatRoomListViewModel",
+                                "Failed to find event for chat room ${chatRoom.id}"
+                            )
+                            return@mapNotNull null
                         }
+
+                    val lastMessageUserPreview = chatRoom.lastMessage?.let {
+                        userRepository.getUserPreview(it.senderId)
+                            .takeIf { it is Result.Success }
+                            ?.let { (it as Result.Success).data }
                     }
-                    ChatRoomSummary(chatRoom, eventData.first, eventData.second)
+
+                    RoomPreview(chatRoom, event, lastMessageUserPreview)
                 }
-                _chatRooms.value = chatRoomSummaries
+
+                _roomPreviews.value = roomPreviews
             }
         }
     }
 }
 
-data class ChatRoomSummary(
+data class RoomPreview(
     val chatRoom: ChatRoom,
-    val eventId: String,
-    val eventTitle: String
+    val event: EventPreview,
+    val lastMessageUserPreview: UserPreview? = null
 )

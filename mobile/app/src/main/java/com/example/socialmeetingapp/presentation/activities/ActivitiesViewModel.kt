@@ -34,7 +34,7 @@ class ActivitiesViewModel @Inject constructor(
     private fun getActivities() {
         viewModelScope.launch {
             when (val currentUserResult = userRepository.getCurrentUserPreview()) {
-                is Result.Error -> {
+                is Result.Failure -> {
                     _state.update { ActivitiesState.Error(currentUserResult.message) }
                 }
 
@@ -43,7 +43,7 @@ class ActivitiesViewModel @Inject constructor(
                     val createdEventsResult = eventRepository.getEventsByAuthor(currentUser.id)
                     val joinedEventsResult = eventRepository.getEventsByParticipant(currentUser.id)
 
-                    if (createdEventsResult is Result.Error || joinedEventsResult is Result.Error) {
+                    if (createdEventsResult is Result.Failure || joinedEventsResult is Result.Failure) {
                         _state.update { ActivitiesState.Error("Error occurred while loading activities") }
                     } else if (createdEventsResult is Result.Success && joinedEventsResult is Result.Success) {
                         _state.update {
@@ -55,10 +55,6 @@ class ActivitiesViewModel @Inject constructor(
                     } else {
                         _state.update { ActivitiesState.Loading }
                     }
-                }
-
-                else -> {
-                    _state.update { ActivitiesState.Loading }
                 }
             }
         }

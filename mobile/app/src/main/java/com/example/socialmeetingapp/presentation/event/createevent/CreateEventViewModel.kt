@@ -6,8 +6,9 @@ import androidx.lifecycle.viewModelScope
 import com.example.socialmeetingapp.domain.model.Category
 import com.example.socialmeetingapp.domain.model.ChatRoom
 import com.example.socialmeetingapp.domain.model.Event
-import com.example.socialmeetingapp.domain.model.Result
 import com.example.socialmeetingapp.domain.model.UserPreview
+import com.example.socialmeetingapp.domain.model.onFailure
+import com.example.socialmeetingapp.domain.model.onSuccess
 import com.example.socialmeetingapp.domain.repository.ChatRepository
 import com.example.socialmeetingapp.domain.repository.EventRepository
 import com.example.socialmeetingapp.domain.repository.LocationRepository
@@ -38,58 +39,37 @@ class CreateEventViewModel @Inject constructor(
 
         if (createEventUiState.value.createEventFlowState == CreateEventFlow.RULES) {
             viewModelScope.launch {
-                when (val createEventResult =
-                    eventRepository.createEvent(createEventUiState.value.event)) {
-                    is Result.Success -> {
-                        val eventId = createEventResult.data
-
-                        if (createEventUiState.value.chatRoom != null) {
-                            when (val createChatResult =
-                                chatRepository.createChatRoom(createEventUiState.value.chatRoom!!)) {
-                                is Result.Success -> {
-                                    val assignChatRoomIdResult = eventRepository.updateEvent(
-                                        createEventUiState.value.event.copy(
-                                            id = createEventResult.data,
-                                            chatRoomId = createChatResult.data
-                                        ),
+                eventRepository.createEvent(createEventUiState.value.event).onSuccess { eventId ->
+                    if (createEventUiState.value.chatRoom != null) {
+                        chatRepository.createChatRoom(createEventUiState.value.chatRoom!!)
+                            .onSuccess { chatRoomId ->
+                                eventRepository.updateEvent(
+                                    createEventUiState.value.event.copy(
+                                        id = eventId, chatRoomId = chatRoomId
                                     )
-
-                                    if (assignChatRoomIdResult is Result.Error) {
-                                        Log.e(
-                                            "CreateEventViewModel",
-                                            "Assign chat room id failed: ${assignChatRoomIdResult.message}"
-                                        )
-                                    }
-
-                                    NavigationManager.navigateTo(Routes.Event(eventId))
-                                }
-
-                                is Result.Error -> {
+                                ).onFailure { assignChatRoomError ->
                                     Log.e(
                                         "CreateEventViewModel",
-                                        "Create chat room failed: ${createChatResult.message}"
+                                        "Assign chat room id failed: $assignChatRoomError"
                                     )
                                 }
 
-                                else -> {}
+                                NavigationManager.navigateTo(Routes.Event(eventId))
+                            }.onFailure { createChatError ->
+                                Log.e(
+                                    "CreateEventViewModel",
+                                    "Create chat room failed: $createChatError"
+                                )
                             }
-
-                        } else {
-                            NavigationManager.navigateTo(Routes.Event(eventId))
-                        }
+                    } else {
+                        NavigationManager.navigateTo(Routes.Event(eventId))
                     }
-
-                    is Result.Error -> {
-                        Log.e(
-                            "CreateEventViewModel",
-                            "Create event failed: ${createEventResult.message}"
-                        )
-                    }
-
-                    else -> {}
+                }.onFailure { createEventError ->
+                    Log.e(
+                        "CreateEventViewModel", "Create event failed: $createEventError"
+                    )
                 }
             }
-            return
         }
 
         _createEventUiState.update { it.copy(createEventFlowState = it.createEventFlowState.next()) }
@@ -151,11 +131,9 @@ class CreateEventViewModel @Inject constructor(
         val skypeRegex = "^(http(s)://)?join\\.skype\\.com/\\S*$"
         val discordRegex = "^(http(s)://)?discord\\.com/\\S*$"
 
-        return link.matches(googleMeetRegex.toRegex()) ||
-                link.matches(teamsRegex.toRegex()) ||
-                link.matches(zoomRegex.toRegex()) ||
-                link.matches(discordRegex.toRegex()) ||
-                link.matches(skypeRegex.toRegex())
+        return link.matches(googleMeetRegex.toRegex()) || link.matches(teamsRegex.toRegex()) || link.matches(
+            zoomRegex.toRegex()
+        ) || link.matches(discordRegex.toRegex()) || link.matches(skypeRegex.toRegex())
     }
 
     private fun isTimeValid(event: Event): Boolean {
@@ -206,12 +184,11 @@ class CreateEventViewModel @Inject constructor(
 
     fun updateLocation(location: LatLng) {
         viewModelScope.launch {
-            val addressResult = locationRepository.getAddressFromLatLng(location)
-            if (addressResult is Result.Success) {
+            locationRepository.getAddressFromLatLng(location).onSuccess { addressData ->
                 _createEventUiState.update {
                     it.copy(
                         event = it.event.copy(
-                            locationCoordinates = location, locationAddress = addressResult.data
+                            locationCoordinates = location, locationAddress = addressData
                         )
                     )
                 }
@@ -229,13 +206,12 @@ class CreateEventViewModel @Inject constructor(
 
     private fun fetchFollowersAndFollowing() {
         viewModelScope.launch {
-            val followersAndFollowingResult = userRepository.getCurrentUserFollowersAndFollowing()
-
-            if (followersAndFollowingResult is Result.Success) {
-                _createEventUiState.update {
-                    it.copy(followersAndFollowing = followersAndFollowingResult.data)
+            userRepository.getCurrentUserFollowersAndFollowing()
+                .onSuccess { followersAndFollowingData ->
+                    _createEventUiState.update {
+                        it.copy(followersAndFollowing = followersAndFollowingData)
+                    }
                 }
-            }
         }
     }
 
@@ -255,19 +231,18 @@ class CreateEventViewModel @Inject constructor(
 
     fun updateChatRoomShouldCreate(boolean: Boolean) {
         viewModelScope.launch {
-            val userResult = userRepository.getCurrentUserPreview()
+            userRepository.getCurrentUserPreview()
+                .onSuccess { userData ->
+                    _createEventUiState.update {
+                        it.copy(
+                            chatRoom = if (boolean) ChatRoom.EMPTY.copy(
+                                members = listOf(userData.id), authorId = userData.id
+                            ) else null
+                        )
+                    }
 
-            if (userResult is Result.Success) {
-                _createEventUiState.update {
-                    it.copy(
-                        chatRoom = if (boolean) ChatRoom.EMPTY.copy(
-                            members = listOf(userResult.data.id), authorId = userResult.data.id
-                        ) else null
-                    )
+                    validateNextButton()
                 }
-
-                validateNextButton()
-            }
         }
     }
 
@@ -329,9 +304,5 @@ enum class CreateEventFlow {
             INVITE -> CHAT
             RULES -> INVITE
         }
-    }
-
-    fun toInt(): Int {
-        return ordinal
     }
 }

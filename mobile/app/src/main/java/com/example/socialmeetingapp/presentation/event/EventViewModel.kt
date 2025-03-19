@@ -3,18 +3,19 @@ package com.example.socialmeetingapp.presentation.event
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.socialmeetingapp.domain.model.Event
-import com.example.socialmeetingapp.domain.model.Result
 import com.example.socialmeetingapp.domain.model.UserPreview
+import com.example.socialmeetingapp.domain.model.onFailure
+import com.example.socialmeetingapp.domain.model.onSuccess
 import com.example.socialmeetingapp.domain.repository.EventRepository
 import com.example.socialmeetingapp.domain.repository.UserRepository
-import com.example.socialmeetingapp.presentation.common.NavigationManager
-import com.example.socialmeetingapp.presentation.common.Routes
 import com.example.socialmeetingapp.presentation.common.SnackbarManager
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 sealed class EventState {
     data object Loading : EventState()
@@ -22,32 +23,40 @@ sealed class EventState {
     data class Content(val event: Event, val currentUser: UserPreview) : EventState()
 }
 
-@HiltViewModel
-class EventViewModel @Inject constructor(
+@HiltViewModel(assistedFactory = EventViewModel.Factory::class)
+class EventViewModel @AssistedInject constructor(
+    @Assisted private val eventId: String,
     private val eventRepository: EventRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
 ) : ViewModel() {
+    @AssistedFactory
+    interface Factory {
+        fun create(eventId: String): EventViewModel
+    }
+
     private val _state = MutableStateFlow<EventState>(EventState.Loading)
     val state = _state.asStateFlow()
 
-    fun getEvent(eventID: String) {
+    init {
+        loadEvent()
+    }
+
+    private fun loadEvent() {
         viewModelScope.launch {
-            when (val eventResult = eventRepository.getEvent(eventID)) {
-                is Result.Success -> {
-                    val currentUser = userRepository.getCurrentUserPreview()
-                    if (currentUser is Result.Success) {
-                        _state.value = EventState.Content(eventResult.data, currentUser.data)
-                    } else {
-                        _state.value = EventState.Error("Failed to get current user")
-                    }
+            eventRepository.getEvent(eventId)
+                .onSuccess { eventData ->
+                    userRepository.getCurrentUserPreview()
+                        .onSuccess { userData ->
+                            _state.value = EventState.Content(eventData, userData)
+                        }
+                        .onFailure { userError ->
+                            _state.value =
+                                EventState.Error("Failed to get current user: $userError")
+                        }
                 }
-
-                is Result.Error -> {
-                    _state.value = EventState.Error(eventResult.message)
+                .onFailure { eventError ->
+                    _state.value = EventState.Error(eventError)
                 }
-
-                else -> {}
-            }
         }
     }
 
@@ -67,18 +76,14 @@ class EventViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            when (val joinResult = eventRepository.joinEvent(eventID)) {
-                is Result.Success -> {
+            eventRepository.joinEvent(eventID)
+                .onSuccess {
                     SnackbarManager.showMessage("You have joined the event")
-                    getEvent(eventID)
+                    loadEvent()
                 }
-
-                is Result.Error -> {
-                    SnackbarManager.showMessage(joinResult.message)
+                .onFailure { errorMessage ->
+                    SnackbarManager.showMessage(errorMessage)
                 }
-
-                else -> {}
-            }
         }
     }
 
@@ -93,52 +98,14 @@ class EventViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            when (val leaveResult = eventRepository.leaveEvent(eventID)) {
-                is Result.Success -> {
+            eventRepository.leaveEvent(eventID)
+                .onSuccess {
                     SnackbarManager.showMessage("You have left the event")
-                    getEvent(eventID)
+                    loadEvent()
                 }
-
-                is Result.Error -> {
-                    SnackbarManager.showMessage(leaveResult.message)
+                .onFailure { errorMessage ->
+                    SnackbarManager.showMessage(errorMessage)
                 }
-
-                else -> {}
-            }
-        }
-    }
-
-    fun deleteEvent(eventID: String) {
-        viewModelScope.launch {
-            when (val deleteResult = eventRepository.deleteEvent(eventID)) {
-                is Result.Success -> {
-                    SnackbarManager.showMessage("Event deleted")
-                    NavigationManager.navigateTo(Routes.Map())
-                }
-
-                is Result.Error -> {
-                    SnackbarManager.showMessage(deleteResult.message)
-                }
-
-                else -> {}
-            }
-        }
-    }
-
-    fun removeParticipant(eventID: String, userID: String) {
-        viewModelScope.launch {
-            when (val removeResult = eventRepository.removeParticipant(eventID, userID)) {
-                is Result.Success -> {
-                    SnackbarManager.showMessage("Participant removed")
-                    getEvent(eventID)
-                }
-
-                is Result.Error -> {
-                    SnackbarManager.showMessage(removeResult.message)
-                }
-
-                else -> {}
-            }
         }
     }
 
@@ -157,18 +124,13 @@ class EventViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            when (val result = eventRepository.sendJoinRequest(eventID)) {
-                is Result.Success -> {
+            eventRepository.sendJoinRequest(eventID)
+                .onSuccess {
                     SnackbarManager.showMessage("Join request sent")
-                    getEvent(eventID)
                 }
-
-                is Result.Error -> {
-                    SnackbarManager.showMessage(result.message)
+                .onFailure { errorMessage ->
+                    SnackbarManager.showMessage(errorMessage)
                 }
-
-                else -> {}
-            }
         }
     }
 }

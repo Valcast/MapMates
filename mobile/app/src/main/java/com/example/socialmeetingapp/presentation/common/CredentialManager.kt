@@ -16,22 +16,26 @@ import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 class CredentialManager(private val context: Context) {
     private val credentialManager = CredentialManager.create(context)
 
-    private val googleIdOption = GetGoogleIdOption.Builder().setFilterByAuthorizedAccounts(false).setServerClientId(context.getString(
-        R.string.default_web_client_id)).build()
+    private val googleIdOption =
+        GetGoogleIdOption.Builder().setFilterByAuthorizedAccounts(false).setServerClientId(
+            context.getString(
+                R.string.default_web_client_id
+            )
+        ).build()
 
     suspend fun getCredential(): Result<PasswordCredential> {
-         return try {
-             val credentialResponse = credentialManager.getCredential(
-                 request = GetCredentialRequest(listOf(GetPasswordOption())),
-                 context = context,
-             )
+        return try {
+            val credentialResponse = credentialManager.getCredential(
+                request = GetCredentialRequest(listOf(GetPasswordOption())),
+                context = context,
+            )
 
-             Result.Success(credentialResponse.credential as PasswordCredential)
-         } catch (e: CreateCredentialCancellationException) {
-             Result.Error("")
-         } catch (e: Exception) {
-             Result.Error(e.message ?: "Unknown error")
-         }
+            Result.Success(credentialResponse.credential as PasswordCredential)
+        } catch (e: CreateCredentialCancellationException) {
+            Result.Failure("")
+        } catch (e: Exception) {
+            Result.Failure(e.message ?: "Unknown error")
+        }
     }
 
     suspend fun getGoogleIdCredential(): Result<CustomCredential> {
@@ -43,21 +47,24 @@ class CredentialManager(private val context: Context) {
 
             Result.Success(credentialResponse.credential as CustomCredential)
         } catch (e: CreateCredentialCancellationException) {
-            Result.Error("")
-        }  catch (e: Exception) {
-            Result.Error(e.message ?: "Unknown error")
+            Result.Failure("")
+        } catch (e: Exception) {
+            Result.Failure(e.message ?: "Unknown error")
         }
     }
 
     suspend fun saveCredential(username: String, password: String): Result<Unit> {
         return try {
-            credentialManager.createCredential(request = CreatePasswordRequest(username, password), context = context)
+            credentialManager.createCredential(
+                request = CreatePasswordRequest(username, password),
+                context = context
+            )
 
             Result.Success(Unit)
         } catch (e: CreateCredentialCancellationException) {
-            return Result.Error("Registration cancelled")
+            return Result.Failure("Registration cancelled")
         } catch (e: Exception) {
-            return Result.Error(e.message ?: "Unknown error")
+            return Result.Failure(e.message ?: "Unknown error")
         }
     }
 }

@@ -1,9 +1,11 @@
 package com.example.socialmeetingapp.presentation.authentication.login
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.socialmeetingapp.domain.model.Result
 import com.example.socialmeetingapp.domain.model.SignUpStatus
+import com.example.socialmeetingapp.domain.model.onFailure
+import com.example.socialmeetingapp.domain.model.onSuccess
 import com.example.socialmeetingapp.domain.repository.UserRepository
 import com.example.socialmeetingapp.presentation.common.CredentialManager
 import com.example.socialmeetingapp.presentation.common.NavigationManager
@@ -17,97 +19,76 @@ import javax.inject.Inject
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
-    private val credentialManager: CredentialManager,
-    private val userRepository: UserRepository
+    private val credentialManager: CredentialManager, private val userRepository: UserRepository
 ) : ViewModel() {
-    private var _state = MutableStateFlow<Result<Unit>>(Result.Initial)
-    val state = _state.asStateFlow()
+
+    private val _uiState = MutableStateFlow<LoginUiState>(LoginUiState.Initial)
+    val uiState = _uiState.asStateFlow()
 
     fun requestCredential() {
         viewModelScope.launch {
-            when (val result = credentialManager.getCredential()) {
-                is Result.Success -> {
-                    val credential = result.data
+            credentialManager.getCredential().onSuccess { credential ->
                     signIn(credential.id, credential.password)
-                }
-
-                is Result.Error -> {
-                    _state.value = Result.Error(result.message)
-                }
-
-                else -> {
-                    return@launch
-                }
+            }.onFailure { error ->
+                _uiState.value = LoginUiState.Error("Failed to get credential: $error")
+                Log.e("LoginViewModel", "Failed to get credential: $error")
             }
         }
     }
 
     fun signInWithGoogle() {
         viewModelScope.launch {
-            when (val result = credentialManager.getGoogleIdCredential()) {
-                is Result.Success -> {
-                    val credential = result.data
+            _uiState.value = LoginUiState.Loading
 
+            credentialManager.getGoogleIdCredential().onSuccess { credential ->
                     if (credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
-                        val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
+                        val googleIdTokenCredential =
+                            GoogleIdTokenCredential.createFrom(credential.data)
 
-                        when (val result = userRepository.signUpWithGoogle(googleIdTokenCredential.idToken)) {
-                            is Result.Success -> {
-                                when (result.data) {
+                        userRepository.signUpWithGoogle(googleIdTokenCredential.idToken)
+                            .onSuccess { signUpStatus ->
+                                _uiState.value = LoginUiState.Success
+                                when (signUpStatus) {
                                     is SignUpStatus.NewUser -> NavigationManager.navigateTo(Routes.CreateProfile)
-                                    is SignUpStatus.ExistingUser -> NavigationManager.navigateTo(Routes.Map())
+                                    is SignUpStatus.ExistingUser -> NavigationManager.navigateTo(
+                                        Routes.Map()
+                                    )
                                 }
+                            }.onFailure { error ->
+                                _uiState.value = LoginUiState.Error(error)
                             }
-
-                            is Result.Error -> {
-                                _state.value = Result.Error(result.message)
-                            }
-
-                            else -> {
-                                return@launch
-                            }
-                        }
-
                     } else {
-                        _state.value = Result.Error("Invalid credential")
+                        _uiState.value = LoginUiState.Error("Invalid credential")
                     }
+            }.onFailure { error ->
+                _uiState.value = LoginUiState.Error("Failed to get Google credential: $error")
                 }
-
-                is Result.Error -> {
-                    _state.value = Result.Error(result.message)
-                }
-
-                else -> {
-                    return@launch
-                }
-            }
         }
-
     }
 
     fun signIn(email: String, password: String) {
         if (email.isBlank() || password.isBlank()) {
-            _state.value = Result.Error("Email and password cannot be empty")
+            _uiState.value = LoginUiState.Error("Email and password cannot be empty")
             return
         }
 
-
         viewModelScope.launch {
-            _state.value = Result.Loading
+            _uiState.value = LoginUiState.Loading
 
-            when (val result = userRepository.signIn(email, password)) {
-                is Result.Success -> {
+            userRepository.signIn(email, password).onSuccess {
+                _uiState.value = LoginUiState.Success
                     NavigationManager.navigateTo(Routes.Map())
+            }.onFailure { error ->
+                _uiState.value = LoginUiState.Error(error)
                 }
-
-                is Result.Error -> {
-                    _state.value = Result.Error(result.message)
-                }
-
-                else -> {
-                    return@launch
-                }
-            }
         }
     }
+}
+
+
+sealed class LoginUiState {
+    object Initial : LoginUiState()
+    object Loading : LoginUiState()
+    object Success : LoginUiState()
+    data class Error(val message: String) : LoginUiState()
 }

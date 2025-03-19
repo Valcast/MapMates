@@ -44,6 +44,8 @@ import com.example.socialmeetingapp.presentation.chat.ChatRoomViewModel
 import com.example.socialmeetingapp.presentation.common.NavigationManager
 import com.example.socialmeetingapp.presentation.common.Routes
 import com.example.socialmeetingapp.presentation.common.SnackbarManager
+import com.example.socialmeetingapp.presentation.event.EditEventScreen
+import com.example.socialmeetingapp.presentation.event.EditEventViewModel
 import com.example.socialmeetingapp.presentation.event.EventScreen
 import com.example.socialmeetingapp.presentation.event.EventViewModel
 import com.example.socialmeetingapp.presentation.event.createevent.CreateEventScreen
@@ -131,6 +133,9 @@ class MainActivity : ComponentActivity() {
                             }
                         }
 
+                        is Routes.Event -> navController.navigate(screen)
+
+
                         else -> {
                             navController.navigate(screen) {
                                 launchSingleTop = true
@@ -169,11 +174,8 @@ class MainActivity : ComponentActivity() {
 
             SocialMeetingAppTheme(theme) {
                 Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }, bottomBar = {
-                    if (currentRoute is Routes.Map || currentRoute == Routes.Activities || currentRoute == Routes.Notifications || currentRoute == Routes.Profile(
-                            user?.id ?: return@Scaffold
-                        ) || currentRoute == Routes.Chat
+                    if (currentRoute is Routes.Map || currentRoute == Routes.Activities || currentRoute == Routes.Notifications || currentRoute == Routes.Chat
                     ) {
-                        Log.d("MainActivity", "Current route: $currentRoute")
 
                         NavigationBar(
                             currentRoute = currentRoute,
@@ -229,9 +231,10 @@ class MainActivity : ComponentActivity() {
 
                         composable<Routes.Profile> {
                             val args = it.toRoute<Routes.Profile>()
-                            val viewModel = hiltViewModel<ProfileViewModel>()
-
-                            viewModel.getUserByID(args.userID)
+                            val viewModel =
+                                hiltViewModel<ProfileViewModel, ProfileViewModel.Factory>(
+                                    creationCallback = { factory -> factory.create(args.userId) }
+                                )
 
                             ProfileScreen(
                                 state = viewModel.userData.collectAsStateWithLifecycle().value,
@@ -239,7 +242,13 @@ class MainActivity : ComponentActivity() {
                                 onFollowUser = { viewModel.followUser(it) },
                                 onUnfollowUser = { viewModel.unfollowUser(it) },
                                 onDeleteFollower = { viewModel.deleteFollower(it) },
-                                onEditProfile = { NavigationManager.navigateTo(Routes.EditProfile) },
+                                onEditProfile = {
+                                    NavigationManager.navigateTo(
+                                        Routes.EditProfile(
+                                            args.userId
+                                        )
+                                    )
+                                },
                                 onGoToSettings = { NavigationManager.navigateTo(Routes.Settings) },
                                 onCardClick = { NavigationManager.navigateTo(Routes.Event(it)) })
                         }
@@ -275,7 +284,7 @@ class MainActivity : ComponentActivity() {
                             val viewModel = hiltViewModel<ChatRoomListViewModel>()
 
                             ChatRoomListScreen(
-                                chatRooms = viewModel.chatRooms.collectAsStateWithLifecycle().value,
+                                chatRooms = viewModel.roomPreviews.collectAsStateWithLifecycle().value,
                                 onChatRoomClick = { NavigationManager.navigateTo(Routes.ChatRoom(it)) }
                             )
                         }
@@ -284,14 +293,15 @@ class MainActivity : ComponentActivity() {
                             val args = it.toRoute<Routes.ChatRoom>()
                             val viewModel =
                                 hiltViewModel<ChatRoomViewModel, ChatRoomViewModel.Factory>(
-                                    creationCallback = { factory -> factory.create(args.chatRoomID) }
+                                    creationCallback = { factory -> factory.create(args.chatRoomId) }
                                 )
 
                             ChatRoomScreen(
                                 messages = viewModel.messages.collectAsLazyPagingItems(),
                                 chatRoom = viewModel.chatRoom.collectAsStateWithLifecycle().value,
-                                newMessage = viewModel.newMessage.collectAsStateWithLifecycle(null).value,
-                                onSendMessage = viewModel::sendMessage
+                                latestMessages = viewModel.latestMessages.collectAsStateWithLifecycle().value,
+                                onSendMessage = viewModel::sendMessage,
+                                onBackClick = { navController.navigateUp() },
                             )
                         }
 
@@ -314,7 +324,7 @@ class MainActivity : ComponentActivity() {
                         composable<Routes.Login> {
                             val viewModel = hiltViewModel<LoginViewModel>()
                             LoginScreen(
-                                state = viewModel.state.collectAsStateWithLifecycle().value,
+                                state = viewModel.uiState.collectAsStateWithLifecycle().value,
                                 onSignIn = { email, password ->
                                     viewModel.signIn(
                                         email, password
@@ -330,15 +340,15 @@ class MainActivity : ComponentActivity() {
                         composable<Routes.ForgotPassword> {
                             val viewModel = hiltViewModel<ForgotPasswordViewModel>()
                             ForgotPasswordScreen(
-                                state = viewModel.state.collectAsStateWithLifecycle().value,
-                                onResetPassword = { email -> viewModel.resetPassword(email) },
+                                state = viewModel.uiState.collectAsStateWithLifecycle().value,
+                                onResetPassword = viewModel::resetPassword,
                                 onGoToLogin = { navController.popBackStack() })
                         }
 
                         composable<Routes.Register> {
                             val viewModel = hiltViewModel<RegisterViewModel>()
                             RegisterScreen(
-                                state = viewModel.state.collectAsStateWithLifecycle().value,
+                                state = viewModel.uiState.collectAsStateWithLifecycle().value,
                                 onGoToLogin = { NavigationManager.navigateTo(Routes.Login) },
                                 registerUser = viewModel::registerUser,
                                 onSignUpWithGoogle = viewModel::signUpWithGoogle
@@ -368,10 +378,14 @@ class MainActivity : ComponentActivity() {
                         }
 
                         composable<Routes.EditProfile> {
-                            val viewModel = hiltViewModel<EditProfileViewModel>()
+                            val args = it.toRoute<Routes.EditProfile>()
+                            val viewModel =
+                                hiltViewModel<EditProfileViewModel, EditProfileViewModel.Factory>(
+                                    creationCallback = { factory -> factory.create(args.userId) }
+                                )
 
                             EditProfileScreen(
-                                onBack = { NavigationManager.navigateTo(Routes.Profile(user!!.id)) },
+                                onBack = { navController.navigateUp() },
                                 onUpdateBio = { viewModel.updateBio(it) },
                                 onUpdateUsernameAndDateOfBirth = { username, dateOfBirth ->
                                     viewModel.updateUsernameAndDateOfBirth(
@@ -387,7 +401,7 @@ class MainActivity : ComponentActivity() {
 
                             SettingsScreen(
                                 settings = settings,
-                                onBack = { NavigationManager.navigateTo(Routes.Profile(user!!.id)) },
+                                onBack = { navController.navigateUp() },
                                 onSignOut = viewModel::signOut,
                                 onThemeChange = { viewModel.updateSettings(settings.copy(theme = it)) },
                             )
@@ -430,22 +444,53 @@ class MainActivity : ComponentActivity() {
 
                         composable<Routes.Event> { it ->
                             val args = it.toRoute<Routes.Event>()
-                            val viewModel = hiltViewModel<EventViewModel>()
-                            viewModel.getEvent(args.id)
+                            val viewModel = hiltViewModel<EventViewModel, EventViewModel.Factory>(
+                                creationCallback = { factory -> factory.create(args.id) }
+                            )
 
                             EventScreen(
                                 state = viewModel.state.collectAsStateWithLifecycle().value,
                                 onJoinEvent = { viewModel.joinEvent(args.id) },
-                                onBack = { NavigationManager.navigateTo(Routes.Map()) },
+                                onBack = { navController.navigateUp() },
                                 onGoToAuthor = { NavigationManager.navigateTo(Routes.Profile(it)) },
                                 onLeaveEvent = { viewModel.leaveEvent(args.id) },
-                                onDeleteEvent = { viewModel.deleteEvent(args.id) },
-                                onRemoveParticipant = {
-                                    viewModel.removeParticipant(
-                                        args.id, it
+                                onGoToEditEvent = {
+                                    NavigationManager.navigateTo(
+                                        Routes.EditEvent(
+                                            args.id
+                                        )
                                     )
                                 },
                                 onSendJoinRequest = { viewModel.sendJoinRequest(args.id) },
+                            )
+                        }
+
+                        composable<Routes.EditEvent> { it ->
+                            val args = it.toRoute<Routes.EditEvent>()
+                            val viewModel =
+                                hiltViewModel<EditEventViewModel, EditEventViewModel.Factory>(
+                                    creationCallback = { factory -> factory.create(args.id) }
+                                )
+
+                            EditEventScreen(
+                                event = viewModel.event.collectAsStateWithLifecycle().value,
+                                chatRoom = viewModel.chatRoom.collectAsStateWithLifecycle().value,
+                                onBack = { navController.navigateUp() },
+                                onDeleteEvent = viewModel::deleteEvent,
+                                newEventDescription = viewModel.newDescription.collectAsStateWithLifecycle().value,
+                                newChatRoom = viewModel.newChatRoom.collectAsStateWithLifecycle().value,
+                                onUpdateEventDescription = viewModel::updateEventDescription,
+                                onSaveEventDescription = viewModel::saveEventDescription,
+                                onNavigateToChatRoom = {
+                                    NavigationManager.navigateTo(
+                                        Routes.ChatRoom(
+                                            it
+                                        )
+                                    )
+                                },
+                                onUpdateNewChatRoomName = viewModel::updateNewChatRoomName,
+                                onUpdateNewChatRoomAuthorOnlyWrite = viewModel::updateNewChatRoomAuthorOnlyWrite,
+                                onCreateNewChatRoom = viewModel::createChatRoom
                             )
                         }
                     }

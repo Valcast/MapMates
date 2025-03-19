@@ -3,8 +3,9 @@ package com.example.socialmeetingapp.presentation.authentication.register
 import android.util.Patterns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.socialmeetingapp.domain.model.Result
 import com.example.socialmeetingapp.domain.model.SignUpStatus
+import com.example.socialmeetingapp.domain.model.onFailure
+import com.example.socialmeetingapp.domain.model.onSuccess
 import com.example.socialmeetingapp.domain.repository.UserRepository
 import com.example.socialmeetingapp.presentation.common.CredentialManager
 import com.example.socialmeetingapp.presentation.common.NavigationManager
@@ -23,73 +24,59 @@ class RegisterViewModel @Inject constructor(
     private val credentialManager: CredentialManager,
     private val userRepository: UserRepository
 ) : ViewModel() {
-    private var _state = MutableStateFlow<Result<Unit>>(Result.Initial)
-    val state: StateFlow<Result<Unit>> = _state.asStateFlow()
+
+    private val _uiState = MutableStateFlow<RegisterUiState>(RegisterUiState.Initial)
+    val uiState: StateFlow<RegisterUiState> = _uiState.asStateFlow()
 
     fun signUpWithGoogle() {
         viewModelScope.launch {
+            _uiState.value = RegisterUiState.Loading
 
-            when (val result = credentialManager.getGoogleIdCredential()) {
-                is Result.Success -> {
-                    val credential = result.data
+            credentialManager.getGoogleIdCredential()
+                .onSuccess { credential ->
                     if (credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
-                        val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
+                        val googleIdTokenCredential =
+                            GoogleIdTokenCredential.createFrom(credential.data)
 
-                        when (val result = userRepository.signUpWithGoogle(googleIdTokenCredential.idToken)) {
-                            is Result.Success -> {
-                                when (result.data) {
+                        userRepository.signUpWithGoogle(googleIdTokenCredential.idToken)
+                            .onSuccess { signUpStatus ->
+                                _uiState.value = RegisterUiState.Success
+                                when (signUpStatus) {
                                     is SignUpStatus.NewUser -> NavigationManager.navigateTo(Routes.CreateProfile)
-                                    is SignUpStatus.ExistingUser -> NavigationManager.navigateTo(Routes.Map())
+                                    is SignUpStatus.ExistingUser -> NavigationManager.navigateTo(
+                                        Routes.Map()
+                                    )
                                 }
                             }
-
-                            is Result.Error -> {
-                                _state.value = Result.Error(result.message)
+                            .onFailure { error ->
+                                _uiState.value = RegisterUiState.Error(error)
                             }
-
-                            else -> {
-                                return@launch
-                            }
-                        }
-
-
                     } else {
-                        _state.value = Result.Error("Invalid credential")
+                        _uiState.value = RegisterUiState.Error("Invalid credential")
                     }
                 }
-                is Result.Error -> {
-                    _state.value = Result.Error(result.message)
+                .onFailure { error ->
+                    _uiState.value =
+                        RegisterUiState.Error("Failed to get Google credential: $error")
                 }
-                else -> {
-                    return@launch
-                }
-            }
         }
     }
 
     fun registerUser(email: String, password: String, confirmPassword: String) {
-        _state.value = Result.Loading
+        _uiState.value = RegisterUiState.Loading
 
         if (!isPasswordValid(password, confirmPassword) || !isEmailValid(email)) return
 
         viewModelScope.launch {
-            when (val registerResult = userRepository.signUp(email, password)) {
-                is Result.Success<Unit> -> {
-                    _state.value = Result.Success(Unit)
-
+            userRepository.signUp(email, password)
+                .onSuccess {
+                    _uiState.value = RegisterUiState.Success
                     credentialManager.saveCredential(email, password)
-
                     NavigationManager.navigateTo(Routes.CreateProfile)
                 }
-
-                is Result.Error -> {
-                    _state.value = Result.Error(registerResult.message)
+                .onFailure { error ->
+                    _uiState.value = RegisterUiState.Error("Failed to register: $error")
                 }
-
-                else -> {
-                    return@launch
-                }
-            }
         }
     }
 
@@ -104,7 +91,7 @@ class RegisterViewModel @Inject constructor(
         )
 
         rules.firstOrNull { !it.first }?.let { (_, errorMessage) ->
-            _state.value = Result.Error(errorMessage)
+            _uiState.value = RegisterUiState.Error(errorMessage)
             return false
         }
 
@@ -113,12 +100,17 @@ class RegisterViewModel @Inject constructor(
 
     private fun isEmailValid(email: String): Boolean {
         if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            _state.value = Result.Error("Invalid email address")
+            _uiState.value = RegisterUiState.Error("Invalid email address")
             return false
         }
 
         return true
     }
+}
 
-
+sealed class RegisterUiState {
+    object Initial : RegisterUiState()
+    object Loading : RegisterUiState()
+    object Success : RegisterUiState()
+    data class Error(val message: String) : RegisterUiState()
 }

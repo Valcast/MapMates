@@ -7,6 +7,7 @@ import com.example.socialmeetingapp.domain.model.Message
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.Source
 import kotlinx.coroutines.tasks.await
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
@@ -26,6 +27,7 @@ class MessagesPagingSource(private val db: FirebaseFirestore, private val chatRo
             val startAfterInstantSeconds = params.key
 
             val query = db.collection("chatRooms").document(chatRoomId).collection("messages")
+                .whereLessThan("createdAt", Timestamp.now())
                 .orderBy("createdAt", Query.Direction.DESCENDING)
                 .limit(pageSize.toLong())
 
@@ -33,7 +35,7 @@ class MessagesPagingSource(private val db: FirebaseFirestore, private val chatRo
                 query.startAfter(arrayOf(Timestamp(startAfterInstantSeconds, 0)))
             }
 
-            val messages = query.get().await().documents.map {
+            val messages = query.get(Source.CACHE).await().documents.map {
                 it.toMessage()
             }
 

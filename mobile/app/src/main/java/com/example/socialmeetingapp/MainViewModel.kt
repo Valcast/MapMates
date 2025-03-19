@@ -7,7 +7,8 @@ import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.socialmeetingapp.domain.model.AppConfig
-import com.example.socialmeetingapp.domain.model.Result
+import com.example.socialmeetingapp.domain.model.onFailure
+import com.example.socialmeetingapp.domain.model.onSuccess
 import com.example.socialmeetingapp.domain.repository.NotificationRepository
 import com.example.socialmeetingapp.domain.repository.SettingsRepository
 import com.example.socialmeetingapp.domain.repository.UserRepository
@@ -39,14 +40,15 @@ class MainViewModel @Inject constructor(
             _startDestination.update { Routes.Login }
             null
         } else {
-            val currentUserResult = userRepository.getCurrentUserPreview()
-
-            if (currentUserResult is Result.Success) {
-                _startDestination.update { Routes.Map() }
-                currentUserResult.data
-            } else {
-                null
-            }
+            userRepository.getCurrentUserPreview()
+                .onSuccess { currentUserData ->
+                    _startDestination.update { Routes.Map() }
+                    currentUserData
+                }
+                .onFailure { _ ->
+                    null
+                }
+                .getOrNull()
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 

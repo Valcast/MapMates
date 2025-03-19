@@ -22,16 +22,22 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.socialmeetingapp.R
-import com.example.socialmeetingapp.domain.model.Result
 
 @Composable
-fun ForgotPasswordScreen(state: Result<Unit>, onResetPassword: (String) -> Unit, onGoToLogin: () -> Unit) {
+fun ForgotPasswordScreen(
+    state: ForgotPasswordUiState,
+    onResetPassword: (String) -> Unit,
+    onGoToLogin: () -> Unit
+) {
 
     var email by rememberSaveable { mutableStateOf("") }
 
     Column(
-        modifier = Modifier.fillMaxSize()
-            .padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
         Text(
             text = stringResource(id = R.string.forgot_password_header),
@@ -53,9 +59,14 @@ fun ForgotPasswordScreen(state: Result<Unit>, onResetPassword: (String) -> Unit,
             onValueChange = { email = it },
             label = { Text(text = "E-mail", style = MaterialTheme.typography.labelSmall) })
 
-        Button(onClick = { onResetPassword(email)
-        }, enabled = state !is Result.Success, modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)) {
-            if (state is Result.Loading) {
+        Button(
+            onClick = {
+                onResetPassword(email)
+            },
+            enabled = state !is ForgotPasswordUiState.Success,
+            modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+        ) {
+            if (state is ForgotPasswordUiState.Loading) {
                 CircularProgressIndicator()
             } else {
                 Text(

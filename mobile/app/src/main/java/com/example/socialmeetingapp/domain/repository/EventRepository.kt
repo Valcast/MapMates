@@ -24,4 +24,7 @@ interface EventRepository {
     suspend fun sendJoinRequest(eventID: String): Result<Unit>
     suspend fun acceptJoinRequest(eventID: String, userID: String): Result<Unit>
     suspend fun declineJoinRequest(eventID: String, userID: String): Result<Unit>
+
+    suspend fun updateEventDescription(eventId: String, description: String): Result<Unit>
+    suspend fun updateEventChatRoomId(eventId: String, chatRoomId: String): Result<Unit>
 }

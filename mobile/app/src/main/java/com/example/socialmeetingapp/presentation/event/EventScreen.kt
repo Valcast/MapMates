@@ -1,12 +1,14 @@
 package com.example.socialmeetingapp.presentation.event
 
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -17,22 +19,22 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonColors
+import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -42,12 +44,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import coil3.compose.AsyncImage
 import com.example.socialmeetingapp.R
+import com.example.socialmeetingapp.domain.model.Category
 import com.example.socialmeetingapp.presentation.common.NavigationManager
 import com.example.socialmeetingapp.presentation.common.Routes
 import com.google.android.gms.maps.model.CameraPosition
@@ -55,10 +63,11 @@ import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.rememberCameraPositionState
-import com.google.maps.android.compose.rememberMarkerState
+import com.google.maps.android.compose.rememberUpdatedMarkerState
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import java.time.format.TextStyle
 import java.util.Locale
 
 
@@ -69,14 +78,16 @@ fun EventScreen(
     onJoinEvent: () -> Unit,
     onBack: () -> Unit,
     onGoToAuthor: (authorId: String) -> Unit,
-    onDeleteEvent: () -> Unit,
+    onGoToEditEvent: () -> Unit,
     onLeaveEvent: () -> Unit,
-    onRemoveParticipant: (participantId: String) -> Unit,
     onSendJoinRequest: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState()
     var showBottomSheet by remember { mutableStateOf(false) }
     var eventActionsExpanded by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
+
 
     when (state) {
         is EventState.Loading -> {
@@ -91,6 +102,21 @@ fun EventScreen(
             val isEventHappeningNow = state.event.startTime < Clock.System.now()
                 .toLocalDateTime(TimeZone.currentSystemDefault())
 
+            val navigateInMapIntent = remember {
+                Intent().apply {
+                    action = Intent.ACTION_VIEW
+                    data = state.event.locationCoordinates?.let {
+                        "google.navigation:q=${it.latitude},${it.longitude}"
+                    }?.toUri()
+                }
+            }
+
+            val goToMeetingLink = remember {
+                Intent(
+                    Intent.ACTION_VIEW, state.event.meetingLink?.toUri()
+                )
+            }
+
             Column(
                 modifier = Modifier
                     .padding(16.dp)
@@ -100,6 +126,7 @@ fun EventScreen(
                     modifier = Modifier
                         .verticalScroll(rememberScrollState())
                         .weight(1f)
+                        .padding(bottom = 40.dp)
                 ) {
                     Row(
                         modifier = Modifier
@@ -109,7 +136,7 @@ fun EventScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Button(
-                            onClick = { onBack() },
+                            onClick = onBack,
                             shape = RoundedCornerShape(10.dp),
                         ) {
                             Text(text = "Back")
@@ -130,36 +157,32 @@ fun EventScreen(
                             DropdownMenu(
                                 expanded = eventActionsExpanded,
                                 onDismissRequest = { eventActionsExpanded = false }) {
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            "Leave Event",
+                                            style = MaterialTheme.typography.titleSmall,
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                    },
+                                    onClick = {
+                                        onLeaveEvent()
+                                        eventActionsExpanded = false
+                                    },
+                                    enabled = state.event.participants.any { it.id == state.currentUser.id } && !isEventEnded && !isEventHappeningNow
+                                )
                                 if (state.currentUser.id == state.event.author.id) {
                                     DropdownMenuItem(
                                         text = {
                                             Text(
-                                                "Delete Event",
+                                                "Edit Event",
                                                 style = MaterialTheme.typography.titleSmall,
-                                                color = MaterialTheme.colorScheme.error
                                             )
                                         },
-                                        enabled = !(isEventEnded || isEventHappeningNow),
-                                        onClick = onDeleteEvent,
+                                        onClick = onGoToEditEvent
                                     )
-                                } else {
-                                    DropdownMenuItem(
-                                        text = {
-                                            Text(
-                                                "Leave Event",
-                                                style = MaterialTheme.typography.titleSmall,
-                                                color = MaterialTheme.colorScheme.error
-                                            )
-                                        },
-                                        onClick = {
-                                            onLeaveEvent()
-                                            eventActionsExpanded = false
-                                        },
-                                        enabled = state.event.participants.any { it.id == state.currentUser.id } && !isEventEnded && !isEventHappeningNow)
-
                                 }
                             }
-
                         }
                     }
 
@@ -179,46 +202,64 @@ fun EventScreen(
                         )
                     }
 
-                    Text(
-                        text = "${state.event.title} ${if (state.event.isPrivate) "(Private)" else ""}",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Text(
-                        text = "${state.event.startTime.dayOfMonth} ${
-                            state.event.startTime.month.name.lowercase(Locale.ROOT)
-                                .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() }
-                        } ${state.event.startTime.year}",
-                        color = MaterialTheme.colorScheme.onBackground.copy(0.5f),
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding(vertical = 4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            painter = painterResource(
+                                when (state.event.category) {
+                                    Category.CINEMA -> R.drawable.cinema
+                                    Category.CONCERT -> R.drawable.concert
+                                    Category.CONFERENCE -> R.drawable.conference
+                                    Category.HOUSEPARTY -> R.drawable.houseparty
+                                    Category.MEETUP -> R.drawable.meetup
+                                    Category.THEATER -> R.drawable.theater
+                                    Category.WEBINAR -> R.drawable.webinar
+                                }
+                            ),
+                            contentDescription = "Event Category Icon",
+                            tint = Color.Unspecified,
+                            modifier = Modifier.size(48.dp),
+                        )
+                        Text(
+                            text = "${state.event.title} ${if (state.event.isPrivate) "(Private)" else ""}",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onBackground,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(start = 16.dp)
+                        )
+                    }
 
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(vertical = 16.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(IntrinsicSize.Max)
+                            .padding(vertical = 16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.DateRange,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier
-                                .padding(end = 8.dp)
-                                .background(
-                                    MaterialTheme.colorScheme.secondaryContainer,
-                                    RoundedCornerShape(10.dp)
-                                )
-                                .padding(10.dp)
-                        )
-                        Column {
+                        Card {
                             Text(
-                                text = state.event.startTime.dayOfWeek.name.lowercase(Locale.ROOT)
-                                    .replaceFirstChar {
-                                        if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString()
-                                    },
+                                text = "Date & Time",
+                                style = MaterialTheme.typography.titleSmall,
                                 color = MaterialTheme.colorScheme.onBackground,
-                                style = MaterialTheme.typography.titleMedium
+                                modifier = Modifier.padding(
+                                    start = 16.dp, top = 22.dp, end = 16.dp, bottom = 8.dp
+                                )
+                            )
+
+                            Spacer(modifier = Modifier.weight(1f))
+
+                            Text(
+                                text = "${state.event.startTime.dayOfMonth} ${
+                                    state.event.startTime.month.getDisplayName(
+                                        TextStyle.SHORT_STANDALONE, Locale.getDefault()
+                                    )
+                                } ${state.event.startTime.year}",
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(
+                                    0.5f
+                                ),
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(
+                                    start = 16.dp, end = 16.dp
+                                )
                             )
                             Text(
                                 text = String.format(
@@ -229,182 +270,232 @@ fun EventScreen(
                                     state.event.endTime.hour,
                                     state.event.endTime.minute
                                 ),
-                                color = MaterialTheme.colorScheme.onBackground,
-                                style = MaterialTheme.typography.titleMedium
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(
+                                    0.5f
+                                ),
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(
+                                    start = 16.dp, bottom = 16.dp, end = 16.dp
+                                )
                             )
 
+
+                        }
+
+                        Card(
+                            modifier = Modifier.padding(start = 16.dp)
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .padding(
+                                        start = 16.dp, top = 16.dp, bottom = 8.dp, end = 16.dp
+                                    )
+                                    .fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = "Location",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = MaterialTheme.colorScheme.onBackground
+                                )
+
+                                FilledIconButton(
+                                    onClick = {
+                                        context.startActivity(navigateInMapIntent)
+                                    },
+                                    modifier = Modifier.size(32.dp),
+                                    enabled = !state.event.isOnline
+                                ) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.navigate),
+                                        contentDescription = "Location",
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.weight(1f))
+
+                            if (state.event.isOnline) {
+                                Text(
+                                    text = "Online",
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(0.5f),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    minLines = 2,
+                                    maxLines = 2,
+                                    modifier = Modifier.padding(
+                                        start = 16.dp, bottom = 16.dp, end = 16.dp
+                                    )
+                                )
+                            } else {
+                                Text(
+                                    text = state.event.locationAddress!!,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(0.5f),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    minLines = 2,
+                                    maxLines = 2,
+                                    modifier = Modifier.padding(
+                                        start = 16.dp, bottom = 16.dp, end = 16.dp
+                                    )
+                                )
+                            }
                         }
                     }
+
+                    Text(
+                        text = "About ${state.event.title}",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    Text(
+                        text = if (state.event.description.isEmpty()) "No description" else state.event.description,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onBackground.copy(0.5f),
+                    )
 
                     if (state.event.isOnline) {
-                        Text(
-                            text = "Online Event",
-                            color = MaterialTheme.colorScheme.primary,
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.padding(vertical = 16.dp)
-                        )
-                    } else {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(vertical = 16.dp)
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.padding(top = 16.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.LocationOn,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onBackground,
-                                modifier = Modifier
-                                    .padding(end = 8.dp)
-                                    .background(
-                                        MaterialTheme.colorScheme.secondaryContainer,
-                                        RoundedCornerShape(10.dp)
-                                    )
-                                    .padding(10.dp)
-                            )
                             Text(
-                                text = state.event.locationAddress!!,
+                                text = "Meeting Link:",
+                                style = MaterialTheme.typography.titleSmall,
                                 color = MaterialTheme.colorScheme.onBackground,
-                                style = MaterialTheme.typography.titleMedium,
-                                minLines = 2,
-                                maxLines = 2,
-                                modifier = Modifier.fillMaxWidth(0.9f)
+                            )
+                            TextButton(
+                                onClick = {
+                                    context.startActivity(goToMeetingLink)
+                                }, modifier = Modifier.padding(start = 16.dp)
+                            ) {
+                                Text(
+                                    text = state.event.meetingLink!!,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    overflow = TextOverflow.Ellipsis,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+
+                    }
+
+                    OutlinedCard(
+                        onClick = {
+                            onGoToAuthor(state.event.author.id)
+                        }, modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            AsyncImage(
+                                model = state.event.author.profilePictureUri,
+                                contentDescription = "Author Profile Picture",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(RoundedCornerShape(16.dp))
                             )
 
-                        }
-                    }
-
-                    if (state.event.isPrivate) {
-                        Text(
-                            text = "This is a private event. You can only join if approved by the author.",
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.padding(vertical = 16.dp)
-                        )
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "Hosted By",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-
-
-                        Button(
-                            onClick = { onGoToAuthor(state.event.author.id) },
-                            colors = ButtonColors(
-                                containerColor = MaterialTheme.colorScheme.background,
-                                contentColor = MaterialTheme.colorScheme.onBackground.copy(0.5f),
-                                disabledContainerColor = MaterialTheme.colorScheme.background,
-                                disabledContentColor = MaterialTheme.colorScheme.background
-                            ),
-                            contentPadding = PaddingValues(0.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Column(
+                                modifier = Modifier
+                                    .padding(start = 16.dp)
+                                    .weight(1f)
+                            ) {
                                 Text(
                                     text = state.event.author.username,
                                     style = MaterialTheme.typography.titleMedium,
-                                    modifier = Modifier.padding(end = 8.dp)
+                                    color = MaterialTheme.colorScheme.onBackground,
                                 )
-
-                                AsyncImage(
-                                    model = state.event.author.profilePictureUri,
-                                    contentDescription = "Author Profile Picture",
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier
-                                        .size(32.dp)
-                                        .clip(RoundedCornerShape(16.dp))
+                                Text(
+                                    text = (Clock.System.now()
+                                        .toLocalDateTime(TimeZone.currentSystemDefault()).year - state.event.author.dateOfBirth.year).toString() + " years old",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onBackground.copy(0.8f),
                                 )
                             }
                         }
                     }
-
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = "People Going",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onBackground
-                            )
-                            Text(
-                                text = if (state.event.maxParticipants == Int.MAX_VALUE) "" else "(${state.event.participants.size}/${state.event.maxParticipants})",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                                modifier = Modifier.padding(start = 4.dp)
-                            )
+                        Text(
+                            text = "People Going",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Text(
+                            text = if (state.event.maxParticipants == Int.MAX_VALUE) "" else "(${state.event.participants.size}/${state.event.maxParticipants})",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                            modifier = Modifier.padding(start = 4.dp)
+                        )
 
-                        }
-                        Button(
-                            onClick = {
-                                if (state.event.participants.isNotEmpty()) showBottomSheet = true
-                            },
-                            colors = ButtonColors(
-                                containerColor = MaterialTheme.colorScheme.background,
-                                contentColor = MaterialTheme.colorScheme.primary,
-                                disabledContainerColor = MaterialTheme.colorScheme.background,
-                                disabledContentColor = MaterialTheme.colorScheme.background
-                            ),
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(0.dp)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.End
-                            ) {
-                                state.event.participants.forEachIndexed { index, participant ->
-                                    if (index < 3) {
-                                        AsyncImage(
-                                            model = participant.profilePictureUri,
-                                            contentDescription = "Participant Profile Picture",
-                                            contentScale = ContentScale.Crop,
-                                            modifier = Modifier
-                                                .size(32.dp)
-                                                .offset(
-                                                    if (index == 0) 0.dp else (-8).dp * index, 0.dp
-                                                )
-                                                .clip(RoundedCornerShape(16.dp))
-                                        )
-                                    }
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.End,
+                            modifier = Modifier.clickable {
+                                if (state.event.participants.isNotEmpty()) showBottomSheet =
+                                    true
+                            }) {
+                            state.event.participants.forEachIndexed { index, participant ->
+                                if (index < 3) {
+                                    AsyncImage(
+                                        model = participant.profilePictureUri,
+                                        contentDescription = "Participant Profile Picture",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier
+                                            .size(32.dp)
+                                            .offset(
+                                                if (index == 0) 0.dp else (-8).dp * index, 0.dp
+                                            )
+                                            .clip(RoundedCornerShape(16.dp))
+                                    )
                                 }
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .offset(
+                                        when {
+                                            state.event.participants.isEmpty() -> (0).dp
+                                            state.event.participants.size == 1 -> (-8).dp
+                                            state.event.participants.size > 1 -> (-16).dp
+                                            else -> 0.dp
+                                        }, 0.dp
+                                    )
+                                    .size(32.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(MaterialTheme.colorScheme.primary)
+                            ) {
+                                Text(
+                                    text = "+${
+                                        when {
+                                            state.event.participants.size < 3 -> "0"
+                                            else -> state.event.participants.size - 2
+                                        }
+                                    }",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.background,
+                                    modifier = Modifier.align(Alignment.Center)
+                                )
                             }
                         }
                     }
 
-                    Text(
-                        text = "About Event",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.padding(top = 16.dp, bottom = 4.dp)
-                    )
-                    Text(
-                        text = state.event.description,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onBackground,
-                    )
 
-                    if (state.event.isOnline) {
-                        Text(
-                            text = "Meeting Link",
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.padding(bottom = 4.dp, top = 32.dp)
-                        )
-                        Text(
-                            text = state.event.meetingLink!!,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
 
-                    } else {
+
+                    if (!state.event.isOnline) {
                         GoogleMap(
                             cameraPositionState = rememberCameraPositionState {
                                 position = CameraPosition.fromLatLngZoom(
@@ -438,11 +529,10 @@ fun EventScreen(
                                 .clip(RoundedCornerShape(10.dp))
                         ) {
                             Marker(
-                                state = rememberMarkerState(
+                                state = rememberUpdatedMarkerState(
                                     position = state.event.locationCoordinates!!
-                                ), onClick = {
-                                    true
-                                })
+                                )
+                            )
                         }
                     }
                 }
@@ -555,26 +645,6 @@ fun EventScreen(
                                             imageVector = Icons.Filled.MoreVert,
                                             contentDescription = "Edit Profile",
                                             tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
-                                        )
-                                    }
-
-
-                                    DropdownMenu(
-                                        expanded = participantActionsExpanded,
-                                        onDismissRequest = { participantActionsExpanded = false }) {
-
-                                        DropdownMenuItem(
-                                            text = {
-                                                Text(
-                                                    "Remove from event",
-                                                    style = MaterialTheme.typography.titleSmall,
-                                                    color = MaterialTheme.colorScheme.error
-                                                )
-                                            },
-                                            onClick = {
-                                                onRemoveParticipant(participant.id)
-                                                showBottomSheet = false
-                                            },
                                         )
                                     }
                                 }

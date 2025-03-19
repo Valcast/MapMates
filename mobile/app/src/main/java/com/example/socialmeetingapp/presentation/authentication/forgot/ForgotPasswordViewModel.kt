@@ -2,7 +2,8 @@ package com.example.socialmeetingapp.presentation.authentication.forgot
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.socialmeetingapp.domain.model.Result
+import com.example.socialmeetingapp.domain.model.onFailure
+import com.example.socialmeetingapp.domain.model.onSuccess
 import com.example.socialmeetingapp.domain.repository.UserRepository
 import com.example.socialmeetingapp.presentation.common.SnackbarManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -14,27 +15,30 @@ import javax.inject.Inject
 @HiltViewModel
 class ForgotPasswordViewModel @Inject constructor(
     private val userRepository: UserRepository
-): ViewModel() {
-    private var _state =
-        MutableStateFlow<Result<Unit>>(Result.Initial)
-    val state = _state.asStateFlow()
+) : ViewModel() {
+
+    private val _uiState = MutableStateFlow<ForgotPasswordUiState>(ForgotPasswordUiState.Initial)
+    val uiState = _uiState.asStateFlow()
 
     fun resetPassword(email: String) {
-        _state.value = Result.Loading
+        _uiState.value = ForgotPasswordUiState.Loading
 
         viewModelScope.launch {
-            when (val resetResult = userRepository.resetPassword(email)) {
-                is Result.Success -> {
-                    _state.value = Result.Success(Unit)
+            userRepository.resetPassword(email)
+                .onSuccess {
+                    _uiState.value = ForgotPasswordUiState.Success
                     SnackbarManager.showMessage("Password reset email sent")
                 }
-
-                is Result.Error -> {
-                    _state.value = Result.Error(resetResult.message)
+                .onFailure { error ->
+                    _uiState.value = ForgotPasswordUiState.Error(error)
                 }
-
-                else -> { return@launch }
-            }
         }
     }
+}
+
+sealed class ForgotPasswordUiState {
+    object Initial : ForgotPasswordUiState()
+    object Loading : ForgotPasswordUiState()
+    object Success : ForgotPasswordUiState()
+    data class Error(val message: String) : ForgotPasswordUiState()
 }

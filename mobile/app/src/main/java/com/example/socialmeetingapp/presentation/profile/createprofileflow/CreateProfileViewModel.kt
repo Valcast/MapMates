@@ -3,8 +3,9 @@ package com.example.socialmeetingapp.presentation.profile.createprofileflow
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.socialmeetingapp.domain.model.Result
 import com.example.socialmeetingapp.domain.model.User
+import com.example.socialmeetingapp.domain.model.onFailure
+import com.example.socialmeetingapp.domain.model.onSuccess
 import com.example.socialmeetingapp.domain.repository.UserRepository
 import com.example.socialmeetingapp.presentation.common.NavigationManager
 import com.example.socialmeetingapp.presentation.common.Routes
@@ -36,19 +37,14 @@ class CreateProfileViewModel @Inject constructor(
     fun nextStep() {
         if (uiState.value == CreateProfileFlow.Rules) {
             viewModelScope.launch {
-                when (val updateUserResult = userRepository.updateUser(user.value)) {
-                    is Result.Success -> {
+                userRepository.updateUser(user.value)
+                    .onSuccess {
                         NavigationManager.navigateTo(Routes.Map())
                     }
-
-                    is Result.Error -> {
-                        SnackbarManager.showMessage(updateUserResult.message)
+                    .onFailure { error ->
+                        SnackbarManager.showMessage(error)
                     }
-
-                    else -> Unit
-                }
             }
-
         }
 
         _uiState.update { it.inc() }
@@ -85,19 +81,15 @@ class CreateProfileViewModel @Inject constructor(
 
     fun updateProfilePicture(imageUri: Uri) {
         viewModelScope.launch {
-            when (val updateProfilePictureResult = userRepository.uploadProfilePicture(imageUri)) {
-                is Result.Success<Uri> -> {
+            userRepository.uploadProfilePicture(imageUri)
+                .onSuccess { uri ->
                     SnackbarManager.showMessage("Profile picture updated")
-                    _user.update { it.copy(profilePictureUri = updateProfilePictureResult.data) }
+                    _user.update { it.copy(profilePictureUri = uri) }
                     validateNextButton()
                 }
-
-                is Result.Error -> {
-                    SnackbarManager.showMessage(updateProfilePictureResult.message)
+                .onFailure { error ->
+                    SnackbarManager.showMessage(error)
                 }
-
-                else -> {}
-            }
         }
     }
 

@@ -32,12 +32,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.socialmeetingapp.R
-import com.example.socialmeetingapp.domain.model.Result
 import com.example.socialmeetingapp.presentation.authentication.components.AuthenticationTextField
 
 @Composable
 fun RegisterScreen(
-    state: Result<Unit>,
+    state: RegisterUiState,
     onGoToLogin: () -> Unit,
     onSignUpWithGoogle: () -> Unit,
     registerUser: (String, String, String) -> Unit
@@ -71,7 +70,7 @@ fun RegisterScreen(
 
 
         Text(
-            text = if (state is Result.Error) state.message else "",
+            text = if (state is RegisterUiState.Error) state.message else "",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.error,
             textAlign = TextAlign.Center,
@@ -101,10 +100,10 @@ fun RegisterScreen(
 
         Button(
             onClick = { registerUser(email, password, confirmPassword) },
-            enabled = state !is Result.Loading,
+            enabled = state !is RegisterUiState.Loading,
             modifier = Modifier.padding(top = 16.dp)
         ) {
-            if (state is Result.Loading) {
+            if (state is RegisterUiState.Loading) {
                 CircularProgressIndicator()
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically) {

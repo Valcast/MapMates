@@ -10,5 +10,4 @@ object NavigationManager {
     fun navigateTo(event: Routes) {
         _route.tryEmit(event)
     }
-
 }

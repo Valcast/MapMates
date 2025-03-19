@@ -6,12 +6,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
@@ -23,49 +20,36 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.paging.compose.LazyPagingItems
-import coil3.compose.AsyncImage
 import com.example.socialmeetingapp.domain.model.ChatRoom
-import com.example.socialmeetingapp.domain.model.Message
-import com.example.socialmeetingapp.presentation.common.NavigationManager
-import com.example.socialmeetingapp.presentation.common.Routes
 import java.util.Locale
 
 @Composable
 fun ChatRoomScreen(
-    messages: LazyPagingItems<MessageWithUserData>,
+    messages: LazyPagingItems<UserMessage>,
     chatRoom: ChatRoom?,
-    newMessage: Message?,
+    latestMessages: List<UserMessage>,
     onSendMessage: (String) -> Unit,
+    onBackClick: () -> Unit
 ) {
     var message by remember { mutableStateOf("") }
-    var visibleMessageData by remember { mutableStateOf<Int?>(null) }
-
-    LaunchedEffect(newMessage) {
-        newMessage?.let {
-            messages
-        }
-    }
+    var messageIndexWithVisibleDate by remember { mutableStateOf<Int?>(null) }
 
     Column(verticalArrangement = Arrangement.Top) {
         Box(modifier = Modifier.fillMaxWidth()) {
             IconButton(
-                onClick = { NavigationManager.navigateTo(Routes.Chat) },
+                onClick = onBackClick,
                 modifier = Modifier.align(Alignment.CenterStart)
             ) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back"
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back"
                 )
             }
 
@@ -79,106 +63,44 @@ fun ChatRoomScreen(
             )
         }
 
-        LazyColumn(
-            reverseLayout = true,
-        ) {
-            items(messages.itemCount) { messageIndex ->
-                if (messages[messageIndex] != null) {
-                    val message = messages[messageIndex]!!
-                    val prevMessage =
-                        if (messageIndex < messages.itemCount - 1) messages[messageIndex + 1] else null
+        Box(modifier = Modifier.weight(1f)) {
+            LazyColumn(
+                reverseLayout = true,
+            ) {
+                items(latestMessages.size) { messageIndex ->
+                    val message = latestMessages[messageIndex]
+                    MessageItem(
+                        message = message,
+                        onShowDate = {
+                            messageIndexWithVisibleDate =
+                                if (messageIndexWithVisibleDate == messageIndex) {
+                                    null
+                                } else {
+                                    messageIndex
+                                }
+                        }, isDateVisible = messageIndexWithVisibleDate == messageIndex
+                    )
+                }
 
-                    val nextMessage =
-                        if (messageIndex > 0) messages[messageIndex - 1] else null
-                    Row(
-                        horizontalArrangement = if (message.isCurrentUser) Arrangement.End else Arrangement.Start,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
+                items(messages.itemCount) { messageIndex ->
+                    if (messages[messageIndex] != null) {
+                        val message = messages[messageIndex]!!
 
-                        if (nextMessage?.isCurrentUser == message.isCurrentUser && !message.isCurrentUser) {
-                            AsyncImage(
-                                model = message.senderProfileImageUrl,
-                                contentDescription = "Profile image",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .padding(8.dp)
-                                    .size(36.dp)
-                                    .clip(
-                                        RoundedCornerShape(100)
-                                    )
-                            )
-                        }
-
-                        Column(
-                            horizontalAlignment = Alignment.End, modifier = Modifier.padding(
-                                start = if (message.isCurrentUser) 0.dp else 52.dp,
-                                end = if (message.isCurrentUser && nextMessage?.isCurrentUser == true) 52.dp else 0.dp
-                            )
-                        ) {
-                            if (prevMessage?.isCurrentUser != message.isCurrentUser) {
-                                Text(
-                                    text = message.senderNick,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-
-                            Card(
-                                onClick = {
-                                    visibleMessageData = if (visibleMessageData == messageIndex) {
+                        MessageItem(
+                            message = message,
+                            onShowDate = {
+                                messageIndexWithVisibleDate =
+                                    if (messageIndexWithVisibleDate == messageIndex) {
                                         null
                                     } else {
                                         messageIndex
                                     }
-                                },
-                            ) {
-                                Text(
-                                    text = message.message.text,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.padding(8.dp)
-                                )
-                            }
-
-                            AnimatedVisibility(
-                                visible = visibleMessageData == messageIndex,
-                                modifier = Modifier.padding(start = 8.dp)
-                            ) {
-
-                                Text(
-                                    text = String.format(
-                                        Locale.getDefault(),
-                                        "%02d:%02d",
-                                        message.message.createdAt.hour,
-                                        message.message.createdAt.minute
-                                    ),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.padding(start = 8.dp)
-                                )
-
-                            }
-                        }
-                        if (nextMessage?.isCurrentUser != message.isCurrentUser && message.isCurrentUser) {
-                            AsyncImage(
-                                model = message.senderProfileImageUrl,
-                                contentDescription = "Profile image",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .padding(8.dp)
-                                    .size(36.dp)
-                                    .clip(
-                                        RoundedCornerShape(100)
-                                    )
-                            )
-                        }
+                            }, isDateVisible = messageIndexWithVisibleDate == messageIndex
+                        )
                     }
                 }
             }
         }
-
-        Spacer(modifier = Modifier.weight(1f))
-
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -201,14 +123,62 @@ fun ChatRoomScreen(
                     onClick = {
                         onSendMessage(message)
                         message = ""
-                    },
-                    modifier = Modifier.padding(start = 4.dp)
+                    }, modifier = Modifier.padding(start = 4.dp)
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Send,
                         contentDescription = "Send message"
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun MessageItem(message: UserMessage, onShowDate: () -> Unit, isDateVisible: Boolean) {
+    Row(
+        horizontalArrangement = if (message.isCurrentUser) Arrangement.End else Arrangement.Start,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            horizontalAlignment = Alignment.End,
+        ) {
+            if (!message.isCurrentUser) {
+                Text(
+                    text = message.senderName,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            Card(
+                onClick = onShowDate,
+            ) {
+                Text(
+                    text = message.message.text,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(8.dp)
+                )
+            }
+
+            AnimatedVisibility(
+                visible = isDateVisible, modifier = Modifier.padding(start = 8.dp)
+            ) {
+
+                Text(
+                    text = String.format(
+                        Locale.getDefault(),
+                        "%02d:%02d",
+                        message.message.createdAt.hour,
+                        message.message.createdAt.minute
+                    ),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(start = 8.dp)
+                )
+
             }
         }
     }

@@ -7,6 +7,7 @@ import com.example.socialmeetingapp.domain.model.User
 import com.example.socialmeetingapp.domain.model.UserPreview
 import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.flow.Flow
+import kotlinx.datetime.LocalDateTime
 
 interface UserRepository {
     val authenticationStatus: Flow<FirebaseUser?>
@@ -30,5 +31,15 @@ interface UserRepository {
     suspend fun deleteFollower(friendID: String): Result<Unit>
     suspend fun uploadProfilePicture(imageUri: Uri): Result<Uri>
     suspend fun sendEmailVerification(): Result<Unit>
+
+
+    suspend fun updateUsernameAndDateOfBirth(
+        username: String,
+        dateOfBirth: LocalDateTime
+    ): Result<Unit>
+
+    suspend fun updateBio(bio: String): Result<Unit>
+
+
     fun signOut()
 }

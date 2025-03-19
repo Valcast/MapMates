@@ -5,6 +5,7 @@ import androidx.core.net.toUri
 import com.example.socialmeetingapp.domain.model.Category
 import com.example.socialmeetingapp.domain.model.ChatRoom
 import com.example.socialmeetingapp.domain.model.Event
+import com.example.socialmeetingapp.domain.model.EventPreview
 import com.example.socialmeetingapp.domain.model.Message
 import com.example.socialmeetingapp.domain.model.Notification
 import com.example.socialmeetingapp.domain.model.NotificationType
@@ -121,6 +122,15 @@ fun DocumentSnapshot.toEvent(
         isOnline = getRequiredBoolean("isOnline"),
         chatRoomId = getStringOrNull("chatRoomId"),
         meetingLink = getStringOrNull("meetingLink")
+    )
+}
+
+fun DocumentSnapshot.toEventPreview(): EventPreview {
+    return EventPreview(
+        id = id,
+        title = getRequiredString("title"),
+        locationAddress = getStringOrNull("locationAddress"),
+        category = getRequiredString("category").let { Category.valueOf(it.uppercase(Locale.getDefault())) },
     )
 }
 

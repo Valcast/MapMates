@@ -6,8 +6,9 @@ import androidx.lifecycle.viewModelScope
 import com.example.socialmeetingapp.domain.model.Category
 import com.example.socialmeetingapp.domain.model.DateRange
 import com.example.socialmeetingapp.domain.model.Event
-import com.example.socialmeetingapp.domain.model.Result
 import com.example.socialmeetingapp.domain.model.SortOrder
+import com.example.socialmeetingapp.domain.model.onFailure
+import com.example.socialmeetingapp.domain.model.onSuccess
 import com.example.socialmeetingapp.domain.repository.EventRepository
 import com.example.socialmeetingapp.domain.repository.LocationRepository
 import com.example.socialmeetingapp.presentation.common.SnackbarManager
@@ -43,11 +44,10 @@ class HomeViewModel @Inject constructor(
 
     private var _currentLocation = MutableStateFlow<LatLng?>(null)
     val currentLocation: StateFlow<LatLng?> = _currentLocation.onStart {
-        val locationResult = locationRepository.getLocation()
-
-        if (locationResult is Result.Success) {
-            _currentLocation.update { locationResult.data }
-        }
+        locationRepository.getLocation()
+            .onSuccess { locationData ->
+                _currentLocation.update { locationData }
+            }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     private var _events = MutableStateFlow<List<Event>>(emptyList())
@@ -59,13 +59,11 @@ class HomeViewModel @Inject constructor(
         _isLoadingEvents.value = true
         _events.value = emptyList()
         viewModelScope.launch {
-            try {
-                val fetchedEventsResult = eventRepository.getEvents()
-                val filters = _filters.value
+            eventRepository.getEvents()
+                .onSuccess { fetchedEvents ->
+                    Log.i("HomeViewModel", "Fetched events: $fetchedEvents")
+                    val filters = _filters.value
 
-                if (fetchedEventsResult is Result.Success) {
-                    Log.i("HomeViewModel", "Fetched events: ${fetchedEventsResult.data}")
-                    val fetchedEvents = fetchedEventsResult.data
                     val filteredEvents = fetchedEvents.filter { event ->
                         val eventStartTime = event.startTime.toInstant(TimeZone.UTC)
                             .toLocalDateTime(TimeZone.currentSystemDefault())
@@ -106,17 +104,18 @@ class HomeViewModel @Inject constructor(
                             filteredEvents
                         }
                     }
+
                     _isLoadingEvents.value = false
                     _events.value = filteredEvents
-                } else {
+                }
+                .onFailure { _ ->
                     _isLoadingEvents.value = false
                     _events.value = emptyList()
                     SnackbarManager.showMessage("Failed to fetch events")
                 }
-
-            } catch (e: Exception) {
-                _events.value = emptyList()
-            }
+                .also {
+                    _isLoadingEvents.value = false
+                }
         }
     }
 
@@ -133,16 +132,14 @@ class HomeViewModel @Inject constructor(
     }
 
     suspend fun getLocation() {
-        when (val locationResult = locationRepository.getLocation()) {
-            is Result.Error -> _currentLocation.value = null
-            is Result.Success -> {
-                Log.d("HomeViewModel", "Location: ${locationResult.data}")
-                _currentLocation.value = locationResult.data
+        locationRepository.getLocation()
+            .onSuccess { locationData ->
+                Log.d("HomeViewModel", "Location: $locationData")
+                _currentLocation.value = locationData
             }
-
-            else -> {}
-        }
-
+            .onFailure { _ ->
+                _currentLocation.value = null
+            }
     }
 
     private fun sortEvents(events: List<Event>, sortOrderType: SortOrder): List<Event> {

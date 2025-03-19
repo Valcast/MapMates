@@ -30,6 +30,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import kotlinx.datetime.Clock
+import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toJavaInstant
@@ -65,9 +66,9 @@ class FirebaseUserRepositoryImpl(
 
             Result.Success(userDocumentRef.toUser())
         } catch (e: FirebaseFirestoreException) {
-            return Result.Error(e.message ?: "Failed to fetch user: ${e.message}")
+            return Result.Failure(e.message ?: "Failed to fetch user: ${e.message}")
         } catch (e: MissingFieldException) {
-            return Result.Error(e.message ?: "Failed to load user")
+            return Result.Failure(e.message ?: "Failed to load user")
         }
     }
 
@@ -78,9 +79,9 @@ class FirebaseUserRepositoryImpl(
 
             Result.Success(userDocumentRef.toUserPreview())
         } catch (e: FirebaseFirestoreException) {
-            return Result.Error(e.message ?: "Failed to fetch user: ${e.message}")
+            return Result.Failure(e.message ?: "Failed to fetch user: ${e.message}")
         } catch (e: MissingFieldException) {
-            return Result.Error(e.message ?: "Failed to load user")
+            return Result.Failure(e.message ?: "Failed to load user")
         }
     }
 
@@ -95,14 +96,14 @@ class FirebaseUserRepositoryImpl(
             if (followers is Result.Success && following is Result.Success) {
                 Result.Success(Pair(followers.data, following.data))
             } else {
-                Result.Error("Failed to fetch followers and following")
+                Result.Failure("Failed to fetch followers and following")
             }
         } catch (e: FirebaseFirestoreException) {
-            return Result.Error(
+            return Result.Failure(
                 e.message ?: "Failed to fetch followers and following: ${e.message}"
             )
         } catch (e: MissingFieldException) {
-            return Result.Error(e.message ?: "Failed to load followers and following")
+            return Result.Failure(e.message ?: "Failed to load followers and following")
         }
     }
 
@@ -112,9 +113,9 @@ class FirebaseUserRepositoryImpl(
 
             Result.Success(userDocumentRef.toUser())
         } catch (e: FirebaseFirestoreException) {
-            return Result.Error(e.message ?: "Failed to fetch user: ${e.message}")
+            return Result.Failure(e.message ?: "Failed to fetch user: ${e.message}")
         } catch (e: MissingFieldException) {
-            return Result.Error(e.message ?: "Failed to load user")
+            return Result.Failure(e.message ?: "Failed to load user")
         }
     }
 
@@ -124,9 +125,9 @@ class FirebaseUserRepositoryImpl(
 
             Result.Success(userDocumentRef.toUserPreview())
         } catch (e: FirebaseFirestoreException) {
-            return Result.Error(e.message ?: "Failed to fetch user: ${e.message}")
+            return Result.Failure(e.message ?: "Failed to fetch user: ${e.message}")
         } catch (e: MissingFieldException) {
-            return Result.Error(e.message ?: "Failed to load user")
+            return Result.Failure(e.message ?: "Failed to load user")
         }
     }
 
@@ -145,7 +146,7 @@ class FirebaseUserRepositoryImpl(
             return Result.Success(users)
 
         } catch (e: FirebaseFirestoreException) {
-            return Result.Error(e.message ?: "Failed to fetch users in batch: ${e.message}")
+            return Result.Failure(e.message ?: "Failed to fetch users in batch: ${e.message}")
         }
     }
 
@@ -182,7 +183,7 @@ class FirebaseUserRepositoryImpl(
             val combinedUsers = (cachedUsers + fetchedUsers).sortedBy { ids.indexOf(it.id) }
             return Result.Success(combinedUsers)
         } catch (e: FirebaseFirestoreException) {
-            return Result.Error(e.message ?: "Failed to fetch users in batch: ${e.message}")
+            return Result.Failure(e.message ?: "Failed to fetch users in batch: ${e.message}")
         }
     }
 
@@ -210,13 +211,13 @@ class FirebaseUserRepositoryImpl(
             )
             Result.Success(Unit)
         } catch (_: FirebaseAuthWeakPasswordException) {
-            Result.Error("Password is too weak")
+            Result.Failure("Password is too weak")
         } catch (_: FirebaseAuthInvalidCredentialsException) {
-            Result.Error("Invalid email address")
+            Result.Failure("Invalid email address")
         } catch (_: FirebaseAuthUserCollisionException) {
-            Result.Error("Email address already in use")
+            Result.Failure("Email address already in use")
         } catch (e: Exception) {
-            Result.Error(e.message ?: "Unknown error")
+            Result.Failure(e.message ?: "Unknown error")
         }
     }
 
@@ -225,7 +226,7 @@ class FirebaseUserRepositoryImpl(
             firebaseAuth.signInWithEmailAndPassword(email, password).await()
             Result.Success(Unit)
         } catch (_: FirebaseAuthException) {
-            Result.Error("Email address or password is incorrect")
+            Result.Failure("Email address or password is incorrect")
         }
 
     }
@@ -258,7 +259,7 @@ class FirebaseUserRepositoryImpl(
             Result.Success(SignUpStatus.NewUser)
         } catch (e: Exception) {
             e.printStackTrace()
-            Result.Error(e.message ?: "Unknown error")
+            Result.Failure(e.message ?: "Unknown error")
         }
     }
 
@@ -268,7 +269,7 @@ class FirebaseUserRepositoryImpl(
             Result.Success(Unit)
         } catch (e: Exception) {
             e.printStackTrace()
-            Result.Error(e.message ?: "Unknown error")
+            Result.Failure(e.message ?: "Unknown error")
         }
     }
 
@@ -290,7 +291,7 @@ class FirebaseUserRepositoryImpl(
 
             return Result.Success(Unit)
         } catch (e: Exception) {
-            return Result.Error(e.message ?: "Unknown error")
+            return Result.Failure(e.message ?: "Unknown error")
         }
     }
 
@@ -313,7 +314,7 @@ class FirebaseUserRepositoryImpl(
 
             return Result.Success(Unit)
         } catch (e: Exception) {
-            return Result.Error(e.message ?: "Unknown error")
+            return Result.Failure(e.message ?: "Unknown error")
         }
     }
 
@@ -337,7 +338,7 @@ class FirebaseUserRepositoryImpl(
 
             return Result.Success(Unit)
         } catch (e: Exception) {
-            return Result.Error(e.message ?: "Unknown error")
+            return Result.Failure(e.message ?: "Unknown error")
         }
     }
 
@@ -352,7 +353,7 @@ class FirebaseUserRepositoryImpl(
 
             return Result.Success(downloadUrl)
         } catch (e: Exception) {
-            return Result.Error(e.message ?: "Unknown error")
+            return Result.Failure(e.message ?: "Unknown error")
         }
     }
 
@@ -364,7 +365,40 @@ class FirebaseUserRepositoryImpl(
 
 
         } catch (e: Exception) {
-            return Result.Error(e.message ?: "Unknown error")
+            return Result.Failure(e.message ?: "Unknown error")
+        }
+    }
+
+    override suspend fun updateUsernameAndDateOfBirth(
+        username: String,
+        dateOfBirth: LocalDateTime
+    ): Result<Unit> {
+        try {
+            db.collection("users").document(firebaseAuth.currentUser!!.uid).set(
+                hashMapOf(
+                    "username" to username,
+                    "dateOfBirth" to Timestamp(dateOfBirth.toInstant(TimeZone.UTC).toJavaInstant())
+                ), SetOptions.merge()
+            )
+
+
+            return Result.Success(Unit)
+        } catch (e: Exception) {
+            return Result.Failure(e.message ?: "Unknown error")
+        }
+    }
+
+    override suspend fun updateBio(bio: String): Result<Unit> {
+        try {
+            db.collection("users").document(firebaseAuth.currentUser!!.uid).set(
+                hashMapOf(
+                    "bio" to bio
+                ), SetOptions.merge()
+            )
+
+            return Result.Success(Unit)
+        } catch (e: Exception) {
+            return Result.Failure(e.message ?: "Unknown error")
         }
     }
 

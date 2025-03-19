@@ -6,7 +6,7 @@ import com.example.socialmeetingapp.data.utils.getRequiredString
 import com.example.socialmeetingapp.data.utils.toEvent
 import com.example.socialmeetingapp.domain.model.Event
 import com.example.socialmeetingapp.domain.model.Result
-import com.example.socialmeetingapp.domain.model.Result.Error
+import com.example.socialmeetingapp.domain.model.Result.Failure
 import com.example.socialmeetingapp.domain.model.Result.Success
 import com.example.socialmeetingapp.domain.repository.EventRepository
 import com.example.socialmeetingapp.domain.repository.UserRepository
@@ -28,7 +28,7 @@ class FirebaseEventRepositoryImpl(
     private val firebaseAuth: FirebaseAuth,
 ) : EventRepository {
 
-    override suspend fun getEvents(ids: List<String>?): Result<List<Event>> {
+    override suspend fun getEvents(ids: List<String>?): com.example.socialmeetingapp.domain.model.Result<List<Event>> {
         return try {
             val events = if (ids != null) {
                 db.collection("events").whereIn("id", ids).get()
@@ -64,11 +64,11 @@ class FirebaseEventRepositoryImpl(
             Success(events)
         } catch (e: FirebaseFirestoreException) {
             Log.e("FirebaseEventRepositoryImpl", "getEvents: error = ${e.message}")
-            Error("Failed to get events: ${e.message}")
+            Failure("Failed to get events: ${e.message}")
         }
     }
 
-    override suspend fun getEventsByAuthor(authorID: String): Result<List<Event>> {
+    override suspend fun getEventsByAuthor(authorID: String): com.example.socialmeetingapp.domain.model.Result<List<Event>> {
         return try {
             val events = db.collection("events").whereEqualTo("author", authorID).get()
                 .await().documents.mapNotNull { document ->
@@ -85,11 +85,11 @@ class FirebaseEventRepositoryImpl(
 
             Success(events)
         } catch (e: FirebaseFirestoreException) {
-            Error("Failed to get events: ${e.message}")
+            Failure("Failed to get events: ${e.message}")
         }
     }
 
-    override suspend fun getEventsByParticipant(participantID: String): Result<List<Event>> {
+    override suspend fun getEventsByParticipant(participantID: String): com.example.socialmeetingapp.domain.model.Result<List<Event>> {
         return try {
             val events =
                 db.collection("events").whereArrayContains("participants", participantID).get()
@@ -108,11 +108,11 @@ class FirebaseEventRepositoryImpl(
 
             Success(events)
         } catch (e: FirebaseFirestoreException) {
-            Error("Failed to get events: ${e.message}")
+            Failure("Failed to get events: ${e.message}")
         }
     }
 
-    override suspend fun getEvent(id: String): Result<Event> {
+    override suspend fun getEvent(id: String): com.example.socialmeetingapp.domain.model.Result<Event> {
         return try {
             val eventDocument = db.collection("events").document(id).get().await()
 
@@ -139,15 +139,15 @@ class FirebaseEventRepositoryImpl(
                 val event = eventDocument.toEvent(author.data, participants.data)
                 Success(event)
             } else {
-                Error("Failed to get event data")
+                Failure("Failed to get event data")
             }
         } catch (e: FirebaseFirestoreException) {
-            Error("Failed to get event: ${e.message}")
+            Failure("Failed to get event: ${e.message}")
         }
     }
 
 
-    override suspend fun createEvent(event: Event): Result<String> {
+    override suspend fun createEvent(event: Event): com.example.socialmeetingapp.domain.model.Result<String> {
         return try {
             val currentTime = Timestamp.now()
 
@@ -178,11 +178,11 @@ class FirebaseEventRepositoryImpl(
 
             Success(createdEventRef.id)
         } catch (e: FirebaseFirestoreException) {
-            return Error(e.message ?: "Could not create event: ${e.message}")
+            return Failure(e.message ?: "Could not create event: ${e.message}")
         }
     }
 
-    override suspend fun updateEvent(event: Event): Result<Unit> {
+    override suspend fun updateEvent(event: Event): com.example.socialmeetingapp.domain.model.Result<Unit> {
         return try {
 
             val eventData = hashMapOf(
@@ -210,27 +210,30 @@ class FirebaseEventRepositoryImpl(
             db.collection("events").document(event.id).update(eventData).await()
             Success(Unit)
         } catch (e: FirebaseFirestoreException) {
-            return Error(e.message ?: "Failed to update event: ${e.message}")
+            return Failure(e.message ?: "Failed to update event: ${e.message}")
         }
     }
 
-    override suspend fun deleteEvent(id: String): Result<Unit> {
+    override suspend fun deleteEvent(id: String): com.example.socialmeetingapp.domain.model.Result<Unit> {
         return try {
             db.collection("events").document(id).delete().await()
             Success(Unit)
         } catch (e: FirebaseFirestoreException) {
-            return Error(e.message ?: "Failed to delete event: ${e.message}")
+            return Failure(e.message ?: "Failed to delete event: ${e.message}")
         }
     }
 
-    override suspend fun removeParticipant(eventID: String, userID: String): Result<Unit> {
+    override suspend fun removeParticipant(
+        eventID: String,
+        userID: String
+    ): com.example.socialmeetingapp.domain.model.Result<Unit> {
         return updateArrayField(eventID, "participants", userID, FieldValue.arrayRemove(userID))
     }
 
     override suspend fun inviteUsersToEvent(
         eventID: String,
         userIDs: List<String>
-    ): Result<Unit> {
+    ): com.example.socialmeetingapp.domain.model.Result<Unit> {
         return try {
             userIDs.forEach {
                 val inviteData = hashMapOf(
@@ -244,19 +247,22 @@ class FirebaseEventRepositoryImpl(
 
             Success(Unit)
         } catch (e: FirebaseFirestoreException) {
-            Error("Failed to invite users to event: ${e.message}")
+            Failure("Failed to invite users to event: ${e.message}")
         }
     }
 
-    override suspend fun sendJoinRequest(eventID: String): Result<Unit> {
+    override suspend fun sendJoinRequest(eventID: String): com.example.socialmeetingapp.domain.model.Result<Unit> {
         return updateArrayField(
             eventID, "joinRequests", firebaseAuth.currentUser?.uid, FieldValue.arrayUnion(
-                firebaseAuth.currentUser?.uid ?: return Error("User not authenticated")
+                firebaseAuth.currentUser?.uid ?: return Failure("User not authenticated")
             )
         )
     }
 
-    override suspend fun acceptJoinRequest(eventID: String, userID: String): Result<Unit> {
+    override suspend fun acceptJoinRequest(
+        eventID: String,
+        userID: String
+    ): com.example.socialmeetingapp.domain.model.Result<Unit> {
         return try {
             val eventDocumentRef = db.collection("events").document(eventID)
             db.runTransaction { transaction ->
@@ -282,16 +288,44 @@ class FirebaseEventRepositoryImpl(
             }.await()
             Success(Unit)
         } catch (e: FirebaseFirestoreException) {
-            Error("Failed to accept join request: ${e.message}")
+            Failure("Failed to accept join request: ${e.message}")
         }
     }
 
-    override suspend fun declineJoinRequest(eventID: String, userID: String): Result<Unit> {
+    override suspend fun declineJoinRequest(
+        eventID: String,
+        userID: String
+    ): com.example.socialmeetingapp.domain.model.Result<Unit> {
         return updateArrayField(eventID, "joinRequests", userID, FieldValue.arrayRemove(userID))
     }
 
-    override suspend fun joinEvent(id: String): Result<Unit> {
-        val currentUserId = firebaseAuth.currentUser?.uid ?: return Error("User not authenticated")
+    override suspend fun updateEventDescription(
+        eventId: String,
+        description: String
+    ): com.example.socialmeetingapp.domain.model.Result<Unit> {
+        return try {
+            db.collection("events").document(eventId).update("description", description).await()
+            Success(Unit)
+        } catch (e: FirebaseFirestoreException) {
+            Failure("Failed to update description: ${e.message}")
+        }
+    }
+
+    override suspend fun updateEventChatRoomId(
+        eventId: String,
+        chatRoomId: String
+    ): com.example.socialmeetingapp.domain.model.Result<Unit> {
+        return try {
+            db.collection("events").document(eventId).update("chatRoomId", chatRoomId).await()
+            Success(Unit)
+        } catch (e: FirebaseFirestoreException) {
+            Failure("Failed to update chat room ID: ${e.message}")
+        }
+    }
+
+    override suspend fun joinEvent(id: String): com.example.socialmeetingapp.domain.model.Result<Unit> {
+        val currentUserId =
+            firebaseAuth.currentUser?.uid ?: return Failure("User not authenticated")
         return try {
             val eventDocument = db.collection("events").document(id)
             eventDocument.update(
@@ -306,18 +340,19 @@ class FirebaseEventRepositoryImpl(
 
             Success(Unit)
         } catch (e: FirebaseFirestoreException) {
-            Error("Failed to join event: ${e.message}")
+            Failure("Failed to join event: ${e.message}")
         }
     }
 
-    override suspend fun leaveEvent(id: String): Result<Unit> {
-        val currentUserId = firebaseAuth.currentUser?.uid ?: return Error("User not authenticated")
+    override suspend fun leaveEvent(id: String): com.example.socialmeetingapp.domain.model.Result<Unit> {
+        val currentUserId =
+            firebaseAuth.currentUser?.uid ?: return Failure("User not authenticated")
         return try {
             val eventDocument = db.collection("events").document(id)
             eventDocument.update("participants", FieldValue.arrayRemove(currentUserId)).await()
             Success(Unit)
         } catch (e: FirebaseFirestoreException) {
-            Error("Failed to leave event: ${e.message}")
+            Failure("Failed to leave event: ${e.message}")
         }
     }
 
@@ -325,14 +360,14 @@ class FirebaseEventRepositoryImpl(
         eventID: String, fieldName: String, userId: String?, updateType: FieldValue
     ): Result<Unit> {
         if (userId == null) {
-            return Error("User ID is null, cannot perform update")
+            return Failure("User ID is null, cannot perform update")
         }
         return try {
             val eventDocument = db.collection("events").document(eventID)
             eventDocument.update(fieldName, updateType).await()
             Success(Unit)
         } catch (e: FirebaseFirestoreException) {
-            Error("Failed to update $fieldName: ${e.message}")
+            Failure("Failed to update $fieldName: ${e.message}")
         }
     }
 

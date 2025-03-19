@@ -1,19 +1,28 @@
 package com.example.socialmeetingapp.presentation.chat
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Card
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.socialmeetingapp.R
+import com.example.socialmeetingapp.domain.model.Category
+import com.example.socialmeetingapp.presentation.notifications.formatTimeAgo
 
 @Composable
-fun ChatRoomListScreen(chatRooms: List<ChatRoomSummary>, onChatRoomClick: (String) -> Unit) {
+fun ChatRoomListScreen(chatRooms: List<RoomPreview>, onChatRoomClick: (String) -> Unit) {
     Column {
         Text(
             text = "Chat Rooms",
@@ -23,44 +32,77 @@ fun ChatRoomListScreen(chatRooms: List<ChatRoomSummary>, onChatRoomClick: (Strin
         )
 
         chatRooms.forEach { chatRoom ->
-            ChatRoomListItem(chatRoom = chatRoom, onChatRoomClick = onChatRoomClick)
+            ChatRoomListItem(roomPreview = chatRoom, onChatRoomClick = onChatRoomClick)
         }
     }
 
 }
 
 @Composable
-fun ChatRoomListItem(chatRoom: ChatRoomSummary, onChatRoomClick: (String) -> Unit) {
+fun ChatRoomListItem(roomPreview: RoomPreview, onChatRoomClick: (String) -> Unit) {
 
-    Card(
+    Column(
+        verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = Modifier
-            .padding(16.dp)
+            .clickable { onChatRoomClick(roomPreview.chatRoom.id) }
+            .padding(32.dp)
             .fillMaxWidth()
-            .clickable { onChatRoomClick(chatRoom.chatRoom.id) }) {
+    ) {
         Text(
-            text = chatRoom.chatRoom.name,
+            text = roomPreview.chatRoom.name,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(16.dp)
         )
 
-        Text(
-            text = chatRoom.eventTitle,
-            style = MaterialTheme.typography.bodyMedium,
-        )
-
-        Text(
-            text = "Members: ${chatRoom.chatRoom.members.size}",
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.padding(16.dp)
-        )
-
-        chatRoom.chatRoom.lastMessage?.let { lastMessage ->
-            Text(
-                text = "Last Message: ${lastMessage.text}",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(16.dp)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                painter = painterResource(
+                    when (roomPreview.event.category) {
+                        Category.CINEMA -> R.drawable.cinema
+                        Category.CONCERT -> R.drawable.concert
+                        Category.CONFERENCE -> R.drawable.conference
+                        Category.HOUSEPARTY -> R.drawable.houseparty
+                        Category.MEETUP -> R.drawable.meetup
+                        Category.THEATER -> R.drawable.theater
+                        Category.WEBINAR -> R.drawable.webinar
+                    }
+                ),
+                tint = Color.Unspecified,
+                contentDescription = "Event Icon",
+                modifier = Modifier.size(32.dp)
             )
+            Text(
+                text = roomPreview.event.title,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(start = 8.dp)
+            )
+        }
+
+
+
+        Text(
+            text = "Members: ${roomPreview.chatRoom.members.size}",
+            style = MaterialTheme.typography.bodyMedium,
+        )
+
+        roomPreview.chatRoom.lastMessage?.let { lastMessage ->
+            Row {
+                Text(
+                    text = "${roomPreview.lastMessageUserPreview?.username}: ${lastMessage.text}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(0.8f),
+                    modifier = Modifier.weight(1f)
+                )
+
+                Text(
+                    text = formatTimeAgo(lastMessage.createdAt),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(0.8f),
+                    modifier = Modifier.padding(start = 8.dp)
+                )
+            }
         }
     }
 }
