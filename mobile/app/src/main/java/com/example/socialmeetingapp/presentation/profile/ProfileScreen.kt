@@ -40,10 +40,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.paging.compose.LazyPagingItems
 import coil3.compose.AsyncImage
 import com.example.socialmeetingapp.R
+import com.example.socialmeetingapp.domain.model.Relationship
 import com.example.socialmeetingapp.presentation.common.NavigationManager
 import com.example.socialmeetingapp.presentation.common.Routes
 import com.example.socialmeetingapp.presentation.components.EventCard
@@ -54,6 +55,8 @@ import kotlinx.datetime.toLocalDateTime
 @Composable
 fun ProfileScreen(
     state: ProfileState,
+    following: LazyPagingItems<Relationship>,
+    followers: LazyPagingItems<Relationship>,
     onFollowUser: (String) -> Unit,
     onUnfollowUser: (String) -> Unit,
     onDeleteFollower: (String) -> Unit,
@@ -83,15 +86,15 @@ fun ProfileScreen(
 
                 Row(
                     modifier = Modifier
-                        .fillMaxWidth().padding(16.dp),
+                        .fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = "Profile",
-                        style = MaterialTheme.typography.headlineLarge,
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp
+                        modifier = Modifier.padding(16.dp)
                     )
 
                     if (!state.isMyProfile) {
@@ -182,7 +185,7 @@ fun ProfileScreen(
                                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                             )
                             Text(
-                                text = state.user.followers.size.toString(),
+                                text = "${state.user.followersCount}",
                                 style = MaterialTheme.typography.titleSmall,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -212,7 +215,7 @@ fun ProfileScreen(
                                     )
                                 }
 
-                                if (state.followers.isEmpty()) {
+                                if (followers.itemCount == 0) {
                                     item {
                                         Text(
                                             text = "You are not following anyone",
@@ -226,7 +229,7 @@ fun ProfileScreen(
                                         )
                                     }
                                 }
-                                items(state.followers.size) { follower ->
+                                items(followers.itemCount) { followerIndex ->
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -235,7 +238,7 @@ fun ProfileScreen(
                                             .fillMaxWidth()
                                     ) {
                                         AsyncImage(
-                                            model = state.followers[follower].profilePictureUri,
+                                            model = followers[followerIndex]?.userPreview?.profilePictureUri,
                                             contentDescription = "Follower Avatar",
                                             contentScale = ContentScale.Crop,
                                             modifier = Modifier
@@ -244,14 +247,19 @@ fun ProfileScreen(
                                         )
 
                                         Text(
-                                            text = state.followers[follower].username,
+                                            text = followers[followerIndex]?.userPreview?.username
+                                                ?: "",
                                             style = MaterialTheme.typography.bodyMedium,
                                             modifier = Modifier.padding(start = 8.dp)
                                         )
 
                                         Spacer(modifier = Modifier.weight(1f))
 
-                                        IconButton(onClick = { onDeleteFollower(state.followers[follower].id) }) {
+                                        IconButton(onClick = {
+                                            onDeleteFollower(
+                                                followers[followerIndex]?.userPreview?.id ?: ""
+                                            )
+                                        }) {
                                             Icon(
                                                 imageVector = Icons.Default.Close,
                                                 contentDescription = "Unfollow"
@@ -271,7 +279,7 @@ fun ProfileScreen(
                             .clip(MaterialTheme.shapes.medium)
                             .clickable { isFollowingDialogVisible = true },
                         shape = MaterialTheme.shapes.medium
-                            ) {
+                    ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -285,7 +293,7 @@ fun ProfileScreen(
                                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                             )
                             Text(
-                                text = state.user.following.size.toString(),
+                                text = "${state.user.followingCount}",
                                 style = MaterialTheme.typography.titleSmall,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -316,7 +324,7 @@ fun ProfileScreen(
                                 )
                             }
 
-                            if (state.following.isEmpty()) {
+                            if (following.itemCount == 0) {
                                 item {
                                     Text(
                                         text = "You are not following anyone",
@@ -330,18 +338,22 @@ fun ProfileScreen(
                                 }
                             }
 
-                            items(state.following.size) { following ->
+                            items(following.itemCount) { followingIndex ->
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier
                                         .padding(16.dp)
                                         .fillMaxWidth()
                                         .clickable {
-                                            NavigationManager.navigateTo(Routes.Profile(state.following[following].id))
+                                            NavigationManager.navigateTo(
+                                                Routes.Profile(
+                                                    following[followingIndex]?.userPreview?.id ?: ""
+                                                )
+                                            )
                                         }
                                 ) {
                                     AsyncImage(
-                                        model = state.following[following].profilePictureUri,
+                                        model = following[followingIndex]?.userPreview?.profilePictureUri,
                                         contentDescription = "Follower Avatar",
                                         contentScale = ContentScale.Crop,
                                         modifier = Modifier
@@ -350,14 +362,19 @@ fun ProfileScreen(
                                     )
 
                                     Text(
-                                        text = state.following[following].username,
+                                        text = following[followingIndex]?.userPreview?.username
+                                            ?: "",
                                         style = MaterialTheme.typography.bodyMedium,
                                         modifier = Modifier.padding(start = 8.dp)
                                     )
 
                                     Spacer(modifier = Modifier.weight(1f))
 
-                                    IconButton(onClick = { onUnfollowUser(state.following[following].id) }) {
+                                    IconButton(onClick = {
+                                        onUnfollowUser(
+                                            following[followingIndex]?.userPreview?.id ?: ""
+                                        )
+                                    }) {
                                         Icon(
                                             imageVector = Icons.Default.Close,
                                             contentDescription = "Unfollow"
@@ -507,7 +524,7 @@ fun ProfileScreen(
                     state.userEventDetails.forEach { event ->
                         EventCard(
                             event = event,
-                            onCardClick = {onCardClick(event.id)},
+                            onCardClick = { onCardClick(event.id) },
                             modifier = Modifier.padding(top = 16.dp, start = 16.dp, end = 16.dp)
                         )
                     }

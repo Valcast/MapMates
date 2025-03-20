@@ -75,7 +75,7 @@ class CreateEventViewModel @Inject constructor(
         _createEventUiState.update { it.copy(createEventFlowState = it.createEventFlowState.next()) }
 
         if (createEventUiState.value.createEventFlowState == CreateEventFlow.INVITE) {
-            fetchFollowersAndFollowing()
+
         }
 
         validateNextButton()
@@ -202,17 +202,6 @@ class CreateEventViewModel @Inject constructor(
             it.copy(event = it.event.copy(meetingLink = meetingLink))
         }
         validateNextButton()
-    }
-
-    private fun fetchFollowersAndFollowing() {
-        viewModelScope.launch {
-            userRepository.getCurrentUserFollowersAndFollowing()
-                .onSuccess { followersAndFollowingData ->
-                    _createEventUiState.update {
-                        it.copy(followersAndFollowing = followersAndFollowingData)
-                    }
-                }
-        }
     }
 
     fun setStartTime(startTime: LocalDateTime) {

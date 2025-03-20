@@ -2,8 +2,9 @@ package com.example.socialmeetingapp.data.repository
 
 import android.net.Uri
 import android.util.Log
+import com.example.socialmeetingapp.data.source.FollowersPagingSource
+import com.example.socialmeetingapp.data.source.FollowingPagingSource
 import com.example.socialmeetingapp.data.utils.MissingFieldException
-import com.example.socialmeetingapp.data.utils.getList
 import com.example.socialmeetingapp.data.utils.toUser
 import com.example.socialmeetingapp.data.utils.toUserPreview
 import com.example.socialmeetingapp.domain.model.Result
@@ -20,8 +21,8 @@ import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.FirebaseAuthWeakPasswordException
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.firestore.AggregateSource
 import com.google.firebase.firestore.FieldPath
-import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.SetOptions
@@ -64,59 +65,27 @@ class FirebaseUserRepositoryImpl(
         return firebaseAuth.currentUser?.uid
     }
 
-    override suspend fun getCurrentUser(): Result<User> {
-        return try {
-            val userDocumentRef =
-                db.collection("users").document(firebaseAuth.currentUser!!.uid).get().await()
+    override suspend fun getCurrentUser(): Result<User> =
+        getUser(firebaseAuth.currentUser!!.uid)
 
-            Result.Success(userDocumentRef.toUser())
-        } catch (e: FirebaseFirestoreException) {
-            return Result.Failure(e.message ?: "Failed to fetch user: ${e.message}")
-        } catch (e: MissingFieldException) {
-            return Result.Failure(e.message ?: "Failed to load user")
-        }
-    }
-
-    override suspend fun getCurrentUserPreview(): Result<UserPreview> {
-        return try {
-            val userDocumentRef =
-                db.collection("users").document(firebaseAuth.currentUser!!.uid).get().await()
-
-            Result.Success(userDocumentRef.toUserPreview())
-        } catch (e: FirebaseFirestoreException) {
-            return Result.Failure(e.message ?: "Failed to fetch user: ${e.message}")
-        } catch (e: MissingFieldException) {
-            return Result.Failure(e.message ?: "Failed to load user")
-        }
-    }
-
-    override suspend fun getCurrentUserFollowersAndFollowing(): Result<Pair<List<UserPreview>, List<UserPreview>>> {
-        return try {
-            val currentUserDocumentRef =
-                db.collection("users").document(firebaseAuth.currentUser!!.uid).get().await()
-
-            val followers = getUsersPreviews(currentUserDocumentRef.getList("followers"))
-            val following = getUsersPreviews(currentUserDocumentRef.getList("following"))
-
-            if (followers is Result.Success && following is Result.Success) {
-                Result.Success(Pair(followers.data, following.data))
-            } else {
-                Result.Failure("Failed to fetch followers and following")
-            }
-        } catch (e: FirebaseFirestoreException) {
-            return Result.Failure(
-                e.message ?: "Failed to fetch followers and following: ${e.message}"
-            )
-        } catch (e: MissingFieldException) {
-            return Result.Failure(e.message ?: "Failed to load followers and following")
-        }
-    }
+    override suspend fun getCurrentUserPreview(): Result<UserPreview> =
+        getUserPreview(firebaseAuth.currentUser!!.uid)
 
     override suspend fun getUser(id: String): Result<User> {
         return try {
             val userDocumentRef = db.collection("users").document(id).get().await()
 
-            Result.Success(userDocumentRef.toUser())
+            val followersCount =
+                db.collection("users").document(id).collection("followers").count().get(
+                    AggregateSource.SERVER
+                ).await().count.toInt()
+
+            val followingCount =
+                db.collection("users").document(id).collection("following").count().get(
+                    AggregateSource.SERVER
+                ).await().count.toInt()
+
+            Result.Success(userDocumentRef.toUser(followersCount, followingCount))
         } catch (e: FirebaseFirestoreException) {
             return Result.Failure(e.message ?: "Failed to fetch user: ${e.message}")
         } catch (e: MissingFieldException) {
@@ -133,25 +102,6 @@ class FirebaseUserRepositoryImpl(
             return Result.Failure(e.message ?: "Failed to fetch user: ${e.message}")
         } catch (e: MissingFieldException) {
             return Result.Failure(e.message ?: "Failed to load user")
-        }
-    }
-
-    override suspend fun getUsers(ids: List<String>): Result<List<User>> {
-        try {
-            if (ids.isEmpty()) return Result.Success(emptyList())
-            val userDocumentRefs = db.collection("users").whereIn("id", ids).get().await()
-            val users = userDocumentRefs.documents.mapNotNull { userDocument ->
-                try {
-                    userDocument.toUser()
-                } catch (e: MissingFieldException) {
-                    Log.e("FirebaseUserRepositoryImpl", "${e.message} for ${userDocument.id}")
-                    null
-                }
-            }
-            return Result.Success(users)
-
-        } catch (e: FirebaseFirestoreException) {
-            return Result.Failure(e.message ?: "Failed to fetch users in batch: ${e.message}")
         }
     }
 
@@ -192,6 +142,14 @@ class FirebaseUserRepositoryImpl(
         }
     }
 
+    override fun getFollowersPagingSource(userId: String): FollowersPagingSource {
+        return FollowersPagingSource(db, userId)
+    }
+
+    override fun getFollowingPagingSource(userId: String): FollowingPagingSource {
+        return FollowingPagingSource(db, userId)
+    }
+
     override suspend fun signUp(
         email: String, password: String
     ): Result<Unit> {
@@ -205,8 +163,6 @@ class FirebaseUserRepositoryImpl(
                 hashMapOf(
                     "email" to email,
                     "createdAt" to currentMoment,
-                    "following" to emptyList<String>(),
-                    "followers" to emptyList<String>(),
                     "gender" to "",
                     "dateOfBirth" to currentMoment,
                     "bio" to "",
@@ -253,8 +209,6 @@ class FirebaseUserRepositoryImpl(
                     "createdAt" to currentMoment,
                     "gender" to "",
                     "dateOfBirth" to currentMoment,
-                    "following" to emptyList<String>(),
-                    "followers" to emptyList<String>(),
                     "bio" to "",
                     "username" to "",
                     "profilePictureUri" to ""
@@ -300,22 +254,39 @@ class FirebaseUserRepositoryImpl(
         }
     }
 
-    private suspend fun updateFriendship(
-        friendID: String, action: FieldValue
-    ): Result<Unit> {
+    override suspend fun followUser(friendID: String): Result<Unit> {
         try {
             val currentUserId = firebaseAuth.currentUser!!.uid
-            val currentUserDocument = db.collection("users").document(currentUserId)
-            val friendDocument = db.collection("users").document(friendID)
 
-            currentUserDocument.update("following", action).await()
-            friendDocument.update(
-                "followers", if (action.javaClass == FieldValue.arrayUnion().javaClass) {
-                    FieldValue.arrayUnion(currentUserId)
-                } else {
-                    FieldValue.arrayRemove(currentUserId)
-                }
-            ).await()
+            db.collection("users").document(currentUserId).collection("following")
+                .document(friendID).set(
+                    hashMapOf(
+                        "followedAt" to Timestamp.now()
+                    )
+                ).await()
+
+            db.collection("users").document(friendID).collection("followers")
+                .document(currentUserId).set(
+                    hashMapOf(
+                        "followedAt" to Timestamp.now()
+                    )
+                ).await()
+
+            return Result.Success(Unit)
+        } catch (e: Exception) {
+            return Result.Failure(e.message ?: "Unknown error")
+        }
+
+    }
+
+    override suspend fun unfollowUser(friendId: String): Result<Unit> {
+        try {
+            val currentUserId = firebaseAuth.currentUser!!.uid
+
+            db.collection("users").document(currentUserId).collection("following")
+                .document(friendId).delete().await()
+            db.collection("users").document(friendId).collection("followers")
+                .document(currentUserId).delete().await()
 
             return Result.Success(Unit)
         } catch (e: Exception) {
@@ -323,23 +294,15 @@ class FirebaseUserRepositoryImpl(
         }
     }
 
-    override suspend fun followUser(friendID: String): Result<Unit> {
-
-        return updateFriendship(friendID, FieldValue.arrayUnion(friendID))
-    }
-
-    override suspend fun unfollowUser(friendID: String): Result<Unit> {
-        return updateFriendship(friendID, FieldValue.arrayRemove(friendID))
-    }
-
-    override suspend fun deleteFollower(friendID: String): Result<Unit> {
+    override suspend fun deleteFollower(friendId: String): Result<Unit> {
         try {
             val currentUserId = firebaseAuth.currentUser!!.uid
-            val currentUserDocument = db.collection("users").document(currentUserId)
-            val friendDocument = db.collection("users").document(friendID)
 
-            currentUserDocument.update("followers", FieldValue.arrayRemove(friendID)).await()
-            friendDocument.update("following", FieldValue.arrayRemove(currentUserId)).await()
+            db.collection("users").document(currentUserId).collection("followers")
+                .document(friendId).delete().await()
+
+            db.collection("users").document(friendId).collection("following")
+                .document(currentUserId).delete().await()
 
             return Result.Success(Unit)
         } catch (e: Exception) {

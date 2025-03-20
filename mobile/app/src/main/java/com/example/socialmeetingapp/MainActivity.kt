@@ -251,7 +251,8 @@ class MainActivity : ComponentActivity() {
 
                             ProfileScreen(
                                 state = viewModel.userData.collectAsStateWithLifecycle().value,
-
+                                followers = viewModel.followers.collectAsLazyPagingItems(),
+                                following = viewModel.following.collectAsLazyPagingItems(),
                                 onFollowUser = { viewModel.followUser(it) },
                                 onUnfollowUser = { viewModel.unfollowUser(it) },
                                 onDeleteFollower = { viewModel.deleteFollower(it) },

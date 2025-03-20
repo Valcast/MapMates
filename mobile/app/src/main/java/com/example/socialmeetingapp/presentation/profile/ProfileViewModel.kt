@@ -2,10 +2,12 @@ package com.example.socialmeetingapp.presentation.profile
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.cachedIn
 import com.example.socialmeetingapp.domain.model.Event
 import com.example.socialmeetingapp.domain.model.Result
 import com.example.socialmeetingapp.domain.model.User
-import com.example.socialmeetingapp.domain.model.UserPreview
 import com.example.socialmeetingapp.domain.model.onFailure
 import com.example.socialmeetingapp.domain.model.onSuccess
 import com.example.socialmeetingapp.domain.repository.EventRepository
@@ -27,8 +29,6 @@ sealed class ProfileState {
         val userEventDetails: List<Event> = emptyList(),
         val isMyProfile: Boolean = false,
         val isObservedUser: Boolean = false,
-        val followers: List<UserPreview> = emptyList(),
-        val following: List<UserPreview> = emptyList()
     ) : ProfileState()
 }
 
@@ -46,13 +46,25 @@ class ProfileViewModel @AssistedInject constructor(
     private val _userData = MutableStateFlow<ProfileState>(ProfileState.Loading)
     val userData = _userData.asStateFlow()
 
+    private val pagingConfig = PagingConfig(
+        pageSize = 20, enablePlaceholders = false, prefetchDistance = 5
+    )
+
+    val followers = Pager(pagingConfig) {
+        userRepository.getFollowersPagingSource(userId)
+    }.flow.cachedIn(viewModelScope)
+
+    val following = Pager(pagingConfig) {
+        userRepository.getFollowingPagingSource(userId)
+    }.flow.cachedIn(viewModelScope)
+
     init {
         getUserByID(userId)
     }
 
     fun getUserByID(userID: String) {
         viewModelScope.launch {
-            val currentUser = userRepository.getCurrentUser()
+            val currentUserId = userRepository.getCurrentUserId()
 
             when (val userResult = userRepository.getUser(userID)) {
                 is Result.Success -> {
@@ -60,22 +72,13 @@ class ProfileViewModel @AssistedInject constructor(
 
                     val userEvents = eventRepository.getEventsByAuthor(user.id)
 
-                    val isMyProfile =
-                        currentUser is Result.Success && currentUser.data.id == user.id
-                    val isObservedUser =
-                        currentUser is Result.Success && currentUser.data.following.any { it == user.id }
+                    val isMyProfile = user.id == currentUserId
 
-                    val followersResult = userRepository.getUsersPreviews(user.followers)
-                    val followingResult = userRepository.getUsersPreviews(user.following)
-
-                    if (followersResult is Result.Success && followingResult is Result.Success && userEvents is Result.Success) {
+                    if (userEvents is Result.Success) {
                         _userData.value = ProfileState.Content(
                             user,
                             userEvents.data,
                             isMyProfile,
-                            isObservedUser,
-                            followersResult.data,
-                            followingResult.data
                         )
                     } else {
                         _userData.value = ProfileState.Error("Error loading followers or following")
@@ -85,8 +88,6 @@ class ProfileViewModel @AssistedInject constructor(
                 is Result.Failure -> {
                     _userData.value = ProfileState.Error(userResult.message)
                 }
-
-                else -> {}
             }
         }
     }

@@ -1,6 +1,8 @@
 package com.example.socialmeetingapp.domain.repository
 
 import android.net.Uri
+import com.example.socialmeetingapp.data.source.FollowersPagingSource
+import com.example.socialmeetingapp.data.source.FollowingPagingSource
 import com.example.socialmeetingapp.domain.model.Result
 import com.example.socialmeetingapp.domain.model.SignUpStatus
 import com.example.socialmeetingapp.domain.model.User
@@ -14,11 +16,7 @@ interface UserRepository {
     suspend fun getCurrentUserId(): String?
     suspend fun getCurrentUser(): Result<User>
     suspend fun getCurrentUserPreview(): Result<UserPreview>
-
-    suspend fun getCurrentUserFollowersAndFollowing(): Result<Pair<List<UserPreview>, List<UserPreview>>>
-
     suspend fun getUser(id: String): Result<User>
-    suspend fun getUsers(ids: List<String>): Result<List<User>>
     suspend fun getUserPreview(id: String): Result<UserPreview>
     suspend fun getUsersPreviews(ids: List<String>): Result<List<UserPreview>>
     suspend fun signUp(email: String, password: String): Result<Unit>
@@ -32,6 +30,8 @@ interface UserRepository {
     suspend fun updateProfilePicture(imageUri: Uri): Result<Uri>
     suspend fun sendEmailVerification(): Result<Unit>
 
+    fun getFollowersPagingSource(userId: String): FollowersPagingSource
+    fun getFollowingPagingSource(userId: String): FollowingPagingSource
 
     suspend fun updateUsernameAndDateOfBirth(
         username: String,

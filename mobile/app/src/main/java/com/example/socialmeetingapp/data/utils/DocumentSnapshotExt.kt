@@ -70,20 +70,15 @@ fun DocumentSnapshot.getStringOrNull(field: String): String? = this.getString(fi
 
 class MissingFieldException(field: String) : Exception("Required field '$field' is missing.")
 
-/**
- *  Converts a [DocumentSnapshot] object from Firestore into a [User] object
- *  @return A [User] object
- *  @throws [MissingFieldException] if one of the fields are missing in the [DocumentSnapshot]
- */
-fun DocumentSnapshot.toUser(): User {
+fun DocumentSnapshot.toUser(followersCount: Int, followingCount: Int): User {
     return User(
         id = id,
         email = getRequiredString("email"),
         username = getRequiredString("username"),
         bio = getRequiredString("bio"),
         dateOfBirth = getLocalDateTime("dateOfBirth"),
-        following = getList("following"),
-        followers = getList("followers"),
+        followingCount = followingCount,
+        followersCount = followersCount,
         gender = getRequiredString("gender"),
         createdAt = getLocalDateTime("createdAt"),
         profilePictureUri = getUri("profilePictureUri")
