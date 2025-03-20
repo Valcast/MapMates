@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.socialmeetingapp.domain.model.AppConfig
+import com.example.socialmeetingapp.domain.model.UserPreview
 import com.example.socialmeetingapp.domain.model.onFailure
 import com.example.socialmeetingapp.domain.model.onSuccess
 import com.example.socialmeetingapp.domain.repository.NotificationRepository
@@ -17,6 +18,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -35,22 +37,17 @@ class MainViewModel @Inject constructor(
     private val _startDestination = MutableStateFlow<Routes?>(null)
     val startDestination = _startDestination.asStateFlow()
 
-    val user = userRepository.authenticationStatus.map { authStatus ->
-        if (authStatus == null) {
-            _startDestination.update { Routes.Login }
-            null
-        } else {
-            userRepository.getCurrentUserPreview()
-                .onSuccess { currentUserData ->
-                    _startDestination.update { Routes.Map() }
-                    currentUserData
-                }
-                .onFailure { _ ->
-                    null
-                }
-                .getOrNull()
-        }
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    private val authenticationStatus = userRepository.authenticationStatus.stateIn(
+        viewModelScope,
+        SharingStarted.Eagerly,
+        null
+    )
+
+    private var _user = MutableStateFlow<UserPreview?>(null)
+    val user = _user.asStateFlow()
+
+    private var _isLoading = MutableStateFlow(true)
+    val isLoading = _isLoading.asStateFlow()
 
     private val _appConfig = MutableStateFlow(AppConfig.DEFAULT)
     val settings = _appConfig.asStateFlow()
@@ -65,7 +62,35 @@ class MainViewModel @Inject constructor(
                 _appConfig.value = it
             }
         }
+
+        viewModelScope.launch {
+            authenticationStatus.collectLatest { authStatus ->
+                if (authStatus == null) {
+                    _startDestination.update { Routes.Login }
+                    _user.value = null
+                    _isLoading.value = false
+                } else {
+                    refresh()
+                }
+            }
+        }
     }
+
+    fun refresh() {
+        viewModelScope.launch {
+            userRepository.getCurrentUserPreview()
+                .onSuccess { currentUserData ->
+                    _startDestination.value = Routes.Map()
+                    _user.value = currentUserData
+                    _isLoading.value = false
+                }
+                .onFailure { _ ->
+                    _user.value = null
+                    _isLoading.value = false
+                }
+        }
+    }
+
 
     fun onIntroductionFinished() {
         viewModelScope.launch {

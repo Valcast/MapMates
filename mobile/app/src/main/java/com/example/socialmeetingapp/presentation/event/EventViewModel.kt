@@ -37,14 +37,23 @@ class EventViewModel @AssistedInject constructor(
     private val _state = MutableStateFlow<EventState>(EventState.Loading)
     val state = _state.asStateFlow()
 
+    private val _isRefresh = MutableStateFlow(false)
+    val isRefresh = _isRefresh.asStateFlow()
+
     init {
         loadEvent()
     }
 
-    fun loadEvent() {
+    fun refresh() {
+        _isRefresh.value = true
+        loadEvent()
+    }
+
+    private fun loadEvent() {
         viewModelScope.launch {
             eventRepository.getEvent(eventId)
                 .onSuccess { eventData ->
+                    _isRefresh.value = false
                     userRepository.getCurrentUserPreview()
                         .onSuccess { userData ->
                             _state.value = EventState.Content(eventData, userData)

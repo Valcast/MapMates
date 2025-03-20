@@ -81,7 +81,7 @@ class CreateProfileViewModel @Inject constructor(
 
     fun updateProfilePicture(imageUri: Uri) {
         viewModelScope.launch {
-            userRepository.uploadProfilePicture(imageUri)
+            userRepository.updateProfilePicture(imageUri)
                 .onSuccess { uri ->
                     SnackbarManager.showMessage("Profile picture updated")
                     _user.update { it.copy(profilePictureUri = uri) }

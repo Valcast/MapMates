@@ -1,25 +1,41 @@
 package com.example.socialmeetingapp.presentation.profile.editprofile
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredWidthIn
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.ElevatedButton
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -27,25 +43,52 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import coil3.compose.AsyncImagePainter
+import coil3.compose.rememberAsyncImagePainter
+import coil3.request.ImageRequest
+import com.example.socialmeetingapp.domain.model.User
+import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
+import kotlinx.datetime.toLocalDateTime
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EditProfileScreen(onBack: () -> Unit, onUpdateBio: (String) -> Unit, onUpdateUsernameAndDateOfBirth: (String, LocalDateTime) -> Unit) {
-
+fun EditProfileScreen(
+    user: User?,
+    username: String,
+    bio: String,
+    profilePictureUri: Uri?,
+    isLoading: Boolean,
+    onUpdateProfilePictureUri: (Uri) -> Unit,
+    onSaveProfilePicture: () -> Unit,
+    onUpdateBio: (String) -> Unit,
+    onSaveBio: () -> Unit,
+    onUpdateUsername: (String) -> Unit,
+    onUpdateDateOfBirth: (LocalDateTime) -> Unit,
+    onSaveUsernameAndDateOfBirth: () -> Unit,
+    onBack: () -> Unit,
+) {
     var isEditUsernameAndAgeDialogVisible by remember { mutableStateOf(false) }
     var isEditBioDialogVisible by remember { mutableStateOf(false) }
+    var showProfilePictureEditDialog by remember { mutableStateOf(false) }
 
-    var bio by remember { mutableStateOf("") }
-    var username by remember { mutableStateOf("") }
-
-    var day by remember { mutableStateOf("") }
-    var month by remember { mutableStateOf("") }
-    var year by remember { mutableStateOf("") }
+    val pickPhoto = rememberLauncherForActivityResult(
+        PickVisualMedia(
+        )
+    ) { uri ->
+        if (uri != null) {
+            onUpdateProfilePictureUri(uri)
+        }
+    }
 
 
     Column {
@@ -74,6 +117,16 @@ fun EditProfileScreen(onBack: () -> Unit, onUpdateBio: (String) -> Unit, onUpdat
         HorizontalDivider()
 
         Button(
+            onClick = { showProfilePictureEditDialog = true },
+            modifier = Modifier
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium
+        ) {
+            Text(text = "Edit Profile Picture")
+        }
+
+        Button(
             onClick = { isEditUsernameAndAgeDialogVisible = true },
             modifier = Modifier
                 .padding(horizontal = 16.dp, vertical = 8.dp)
@@ -92,184 +145,248 @@ fun EditProfileScreen(onBack: () -> Unit, onUpdateBio: (String) -> Unit, onUpdat
         ) {
             Text(text = "Edit Bio")
         }
+    }
 
-        if (isEditUsernameAndAgeDialogVisible) {
-            Dialog(onDismissRequest = { isEditUsernameAndAgeDialogVisible = false }) {
-                Column(
+    if (showProfilePictureEditDialog) {
+        Dialog(onDismissRequest = { showProfilePictureEditDialog = false }) {
+            Column(
+                modifier = Modifier
+                    .clip(MaterialTheme.shapes.medium)
+                    .background(MaterialTheme.colorScheme.background)
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = "Edit Profile Picture",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Box(
                     modifier = Modifier
-                        .clip(MaterialTheme.shapes.medium)
-                        .background(MaterialTheme.colorScheme.background)
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
+                        .padding(top = 16.dp)
+                        .fillMaxWidth(0.6f)
+                        .aspectRatio(1f)
+                        .clip(RoundedCornerShape(100))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .clickable {
+                            pickPhoto.launch(
+                                PickVisualMediaRequest(
+                                    mediaType = PickVisualMedia.SingleMimeType("image/jpeg")
+                                )
+                            )
+                        }
                 ) {
-                    Text(
-                        text = "Edit Username and Age",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                    val painter = rememberAsyncImagePainter(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(profilePictureUri)
+                            .build(),
                     )
+                    val state by painter.state.collectAsState()
 
-                    OutlinedTextField(
-                        value = username,
-                        onValueChange = { username = it },
-                        singleLine = true,
-                        label = {
-                            Text(
-                                text = "Username",
-                                style = MaterialTheme.typography.labelSmall
+                    when (state) {
+                        is AsyncImagePainter.State.Empty -> {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "Add Profile Picture",
                             )
-                        },
-                        trailingIcon = {
-                            Text(
-                                text = "${username.length}/30",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                        }
+
+                        is AsyncImagePainter.State.Loading -> {
+                            CircularProgressIndicator(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .align(Alignment.Center),
+                                strokeWidth = 4.dp,
                             )
-                        },
-                        modifier = Modifier.padding(top = 16.dp).fillMaxWidth()
-                    )
+                        }
 
-                    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                        OutlinedTextField(
-                            value = day,
-                            onValueChange = {
-                                if (it.isEmpty()) {
-                                    day = ""
-                                } else {
-                                    val newValue = when {
-                                        it.length == 1 && it.toIntOrNull() in 4..9 -> "0$it"
-                                        it.length == 2 && it.startsWith("3") && (it[1].toString()
-                                            .toIntOrNull() ?: 0) > 1 -> "31"
-                                        it.toIntOrNull() in 1..31 -> it
+                        is AsyncImagePainter.State.Success -> {
+                            Image(
+                                painter = painter,
+                                contentScale = ContentScale.Crop,
+                                contentDescription = "Profile Picture",
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(RoundedCornerShape(100)),
+                            )
+                        }
 
-                                        else -> day
-                                    }
-                                    day = newValue
-                                }
-                            },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            label = {
-                                Text(
-                                    text = "Day",
-                                    style = MaterialTheme.typography.labelSmall
-                                )
-                            },
-                            placeholder = {
-                                Text(
-                                    text = "dd",
-                                    style = MaterialTheme.typography.labelSmall
-                                )
-                            },
-                            modifier = Modifier.padding(top = 16.dp, end = 8.dp).width(70.dp)
-                        )
-
-                        OutlinedTextField(
-                            value = month,
-                            onValueChange = {
-                                if (it.toInt() in 1..12) month = it
-                            },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            label = {
-                                Text(
-                                    text = "Month",
-                                    style = MaterialTheme.typography.labelSmall
-                                )
-                            },
-                            placeholder = {
-                                Text(
-                                    text = "mm",
-                                    style = MaterialTheme.typography.labelSmall
-                                )},
-                            modifier = Modifier.padding(top = 16.dp, start = 8.dp, end = 8.dp).width(70.dp)
-                        )
-
-                        OutlinedTextField(
-                            value = year,
-                            onValueChange = {
-                                if (it.toInt() in 1900..2024) year = it
-                            },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            label = {
-                                Text(
-                                    text = "Year",
-                                    style = MaterialTheme.typography.labelSmall
-                                )
-                            },
-                            placeholder = {
-                                Text(
-                                    text = "yyyy",
-                                    style = MaterialTheme.typography.labelSmall
-                                )
-                            },
-                            modifier = Modifier.padding(top = 16.dp, start = 8.dp).fillMaxWidth()
-                        )
-
-
-                    }
-
-                    Button(
-                        onClick = {
-                            onUpdateUsernameAndDateOfBirth(username, LocalDateTime(year.toInt(), month.toInt(), day.toInt(), 1, 0, 0))
-                            isEditUsernameAndAgeDialogVisible = false
-                        }, modifier = Modifier
-                            .padding(top = 16.dp)
-                            .fillMaxWidth(),
-                        shape = MaterialTheme.shapes.medium
-                    ) {
-                        Text(text = "Save", style = MaterialTheme.typography.bodyMedium)
+                        is AsyncImagePainter.State.Error -> {
+                            // Show some error UI.
+                        }
                     }
                 }
 
+                Button(
+                    onClick = {
+                        onSaveProfilePicture()
+                        showProfilePictureEditDialog = false
+                    },
+                    modifier = Modifier
+                        .padding(top = 16.dp)
+                        .fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    enabled = !isLoading && profilePictureUri != user?.profilePictureUri
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator()
+                    } else {
+                        Text(text = "Save", style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            }
+        }
+    }
+
+    if (isEditUsernameAndAgeDialogVisible) {
+        var datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = user?.dateOfBirth?.toInstant(TimeZone.currentSystemDefault())
+                ?.toEpochMilliseconds()
+        )
+
+        LaunchedEffect(datePickerState) {
+            datePickerState.selectedDateMillis?.let {
+                onUpdateDateOfBirth(
+                    Instant.fromEpochMilliseconds(datePickerState.selectedDateMillis!!)
+                        .toLocalDateTime(TimeZone.currentSystemDefault())
+                )
             }
         }
 
-        if (isEditBioDialogVisible) {
-            Dialog(onDismissRequest = { isEditBioDialogVisible = false }) {
-                Column(
+        Dialog(onDismissRequest = { isEditUsernameAndAgeDialogVisible = false }) {
+            Column(
+                modifier = Modifier
+                    .clip(MaterialTheme.shapes.medium)
+                    .background(MaterialTheme.colorScheme.background)
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = "Edit Username and Age",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Text(
+                    text = "Username",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier
-                        .clip(MaterialTheme.shapes.medium)
-                        .background(MaterialTheme.colorScheme.background)
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text(
-                        text = "Edit Bio",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+                        .padding(top = 16.dp)
+                        .align(Alignment.Start)
+                )
 
-                    Text(
-                        text = "${bio.length}/250",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                        modifier = Modifier.padding(bottom = 4.dp, top = 16.dp).align(Alignment.End)
-                    )
+                OutlinedTextField(
+                    value = username,
+                    onValueChange = onUpdateUsername,
+                    singleLine = true,
+                    trailingIcon = {
+                        Text(
+                            text = "${username.length}/30",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                        )
+                    },
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                        .fillMaxWidth()
+                )
 
-                    OutlinedTextField(
-                        value = bio,
-                        onValueChange = { if (it.length <= 250) bio = it },
-                        minLines = 3,
-                        maxLines = 3,
+
+                Text(
+                    text = "Date of Birth",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier
+                        .padding(top = 16.dp)
+                        .align(Alignment.Start)
+                )
+                BoxWithConstraints {
+                    val scale =
+                        remember(this.maxWidth) { if (this.maxWidth > 360.dp) 1f else (this.maxWidth / 360.dp) }
+                    Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                    )
-
-                    Button(
-                        onClick = {
-                            onUpdateBio(bio)
-                            isEditBioDialogVisible = false
-                        }, modifier = Modifier
-                            .padding(top = 16.dp)
-                            .fillMaxWidth(),
-                        shape = MaterialTheme.shapes.medium
+                            .requiredWidthIn(min = 360.dp)
+                            .aspectRatio(1f)
                     ) {
-                        Text(text = "Save", style = MaterialTheme.typography.bodyMedium)
+                        DatePicker(
+                            state = datePickerState,
+                            title = null,
+                            headline = null,
+                            showModeToggle = false,
+                            colors = DatePickerDefaults.colors().copy(
+                                containerColor = MaterialTheme.colorScheme.surface,
+                            ),
+                            modifier = Modifier.scale(scale),
+                        )
                     }
-
-
                 }
+                Button(
+                    onClick = {
+                        onSaveUsernameAndDateOfBirth()
+                        isEditUsernameAndAgeDialogVisible = false
+                    }, modifier = Modifier
+                        .padding(top = 16.dp)
+                        .fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    enabled = username != user?.username || datePickerState.selectedDateMillis != user.dateOfBirth.toInstant(
+                        TimeZone.currentSystemDefault()
+                    )
+                        .toEpochMilliseconds()
+                ) {
+                    Text(text = "Save", style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        }
+    }
+
+    if (isEditBioDialogVisible) {
+        Dialog(onDismissRequest = { isEditBioDialogVisible = false }) {
+            Column(
+                modifier = Modifier
+                    .clip(MaterialTheme.shapes.medium)
+                    .background(MaterialTheme.colorScheme.background)
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = "Edit Bio",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Text(
+                    text = "${bio.length}/250",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                    modifier = Modifier
+                        .padding(bottom = 4.dp, top = 16.dp)
+                        .align(Alignment.End)
+                )
+
+                OutlinedTextField(
+                    value = bio,
+                    onValueChange = onUpdateBio,
+                    minLines = 3,
+                    maxLines = 3,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                )
+
+                Button(
+                    onClick = {
+                        onSaveBio()
+                        isEditBioDialogVisible = false
+                    }, modifier = Modifier
+                        .padding(top = 16.dp)
+                        .fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Text(text = "Save", style = MaterialTheme.typography.bodyMedium)
+                }
+
+
             }
         }
     }

@@ -3,7 +3,7 @@ plugins {
     alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.google.services)
     alias(libs.plugins.google.hilt)
-    alias(libs.plugins.jetbrains.kotlin.kapt)
+    alias(libs.plugins.ksp.plugin)
     alias(libs.plugins.jetbrains.kotlin.serialization)
     alias(libs.plugins.jetbrains.compose.compiler)
 
@@ -123,9 +123,5 @@ dependencies {
     implementation(libs.typesense.java)
 
     implementation(libs.hilt)
-    kapt(libs.hilt.compiler)
-}
-
-kapt {
-    correctErrorTypes = true
+    ksp(libs.hilt.compiler)
 }

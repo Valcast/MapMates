@@ -29,7 +29,7 @@ interface UserRepository {
     suspend fun followUser(friendID: String): Result<Unit>
     suspend fun unfollowUser(friendID: String): Result<Unit>
     suspend fun deleteFollower(friendID: String): Result<Unit>
-    suspend fun uploadProfilePicture(imageUri: Uri): Result<Uri>
+    suspend fun updateProfilePicture(imageUri: Uri): Result<Uri>
     suspend fun sendEmailVerification(): Result<Unit>
 
 

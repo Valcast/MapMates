@@ -4,63 +4,112 @@ import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.socialmeetingapp.domain.model.User
 import com.example.socialmeetingapp.domain.model.onFailure
 import com.example.socialmeetingapp.domain.model.onSuccess
 import com.example.socialmeetingapp.domain.repository.UserRepository
 import com.example.socialmeetingapp.presentation.common.SnackbarManager
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedFactory
-import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDateTime
+import javax.inject.Inject
 
-@HiltViewModel(assistedFactory = EditProfileViewModel.Factory::class)
-class EditProfileViewModel @AssistedInject constructor(
-    private val userRepository: UserRepository, @Assisted private val userId: String
+@HiltViewModel
+class EditProfileViewModel @Inject constructor(
+    private val userRepository: UserRepository
 ) : ViewModel(
 ) {
-    @AssistedFactory
-    interface Factory {
-        fun create(userId: String): EditProfileViewModel
+    private val _user = MutableStateFlow<User?>(null)
+    val user = _user.asStateFlow()
+
+    private val _profilePictureUri = MutableStateFlow<Uri>(Uri.EMPTY)
+    val profilePictureUri = _profilePictureUri.asStateFlow()
+
+    private var _isLoading = MutableStateFlow(false)
+    val isLoading = _isLoading.asStateFlow()
+
+    private val _bio = MutableStateFlow<String>("")
+    val bio = _bio.asStateFlow()
+
+    private val _username = MutableStateFlow<String>("")
+    val username = _username.asStateFlow()
+
+    private val _dateOfBirth = MutableStateFlow<LocalDateTime?>(null)
+    val dateOfBirth = _dateOfBirth.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            userRepository.getCurrentUser()
+                .onSuccess {
+                    _user.value = it
+                    _bio.value = it.bio
+                    _username.value = it.username
+                    _dateOfBirth.value = it.dateOfBirth
+                    _profilePictureUri.value = it.profilePictureUri
+                }
+                .onFailure {
+                    Log.e("EditProfileViewModel", "Error occurred while fetching user")
+                    SnackbarManager.showMessage("Error occurred while fetching user")
+                }
+        }
     }
 
     fun updateBio(bio: String) {
+        _bio.value = bio
+    }
+
+    fun saveBio() {
         viewModelScope.launch {
-            userRepository.updateBio(bio).onSuccess {
-                Log.d("EditProfileViewModel", "Bio updated successfully")
-                SnackbarManager.showMessage("Bio updated successfully")
-            }.onFailure {
-                Log.e("EditProfileViewModel", "Error occurred while updating bio")
-                SnackbarManager.showMessage("Error occurred while updating bio")
-            }
+            userRepository.updateBio(bio.value)
+                .onSuccess {
+                    SnackbarManager.showMessage("Bio updated successfully")
+                }
+                .onFailure { error ->
+                    SnackbarManager.showMessage(error)
+                }
         }
     }
 
     fun updateProfilePicture(uri: Uri) {
+        _profilePictureUri.value = uri
+    }
+
+    fun saveProfilePicture() {
+        _isLoading.value = true
         viewModelScope.launch {
-            userRepository.uploadProfilePicture(uri).onSuccess {
-                Log.d("EditProfileViewModel", "Profile picture uploaded successfully")
-                SnackbarManager.showMessage("Profile picture uploaded successfully")
-            }.onFailure {
-                Log.e("EditProfileViewModel", "Error occurred while uploading profile picture")
-                SnackbarManager.showMessage("Error occurred while uploading profile picture")
-            }
+            userRepository.updateProfilePicture(profilePictureUri.value)
+                .onSuccess {
+                    _isLoading.value = false
+                    SnackbarManager.showMessage("Profile picture updated successfully")
+                }
+                .onFailure { error ->
+                    SnackbarManager.showMessage(error)
+                }
         }
     }
 
-    fun updateUsernameAndDateOfBirth(username: String, dateOfBirth: LocalDateTime) {
+    fun updateUsername(username: String) {
+        _username.value = username
+    }
+
+    fun updateDateOfBirth(dateOfBirth: LocalDateTime) {
+        _dateOfBirth.value = dateOfBirth
+    }
+
+    fun saveUsernameAndDateOfBirth() {
         viewModelScope.launch {
-            userRepository.updateUsernameAndDateOfBirth(username, dateOfBirth).onSuccess {
-                Log.d("EditProfileViewModel", "Username and date of birth updated successfully")
-                SnackbarManager.showMessage("Profile updated successfully")
-            }.onFailure {
-                Log.e(
-                    "EditProfileViewModel",
-                    "Error occurred while updating username and date of birth"
-                )
-                SnackbarManager.showMessage("Error occurred while updating profile")
-            }
+            userRepository.updateUsernameAndDateOfBirth(
+                username.value,
+                dateOfBirth.value ?: return@launch
+            )
+                .onSuccess {
+                    SnackbarManager.showMessage("Username and date of birth updated successfully")
+                }
+                .onFailure { error ->
+                    SnackbarManager.showMessage(error)
+                }
         }
     }
 }

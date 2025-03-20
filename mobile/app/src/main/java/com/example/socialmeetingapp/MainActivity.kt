@@ -3,6 +3,7 @@ package com.example.socialmeetingapp
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
@@ -95,7 +96,8 @@ class MainActivity : ComponentActivity() {
                 mainViewModel.startDestination.collectAsStateWithLifecycle().value
             val user = mainViewModel.user.collectAsStateWithLifecycle().value
             val theme = mainViewModel.settings.collectAsStateWithLifecycle().value.theme
-            splashScreen.setKeepOnScreenCondition { startDestination == null }
+            val isLoading = mainViewModel.isLoading.collectAsStateWithLifecycle().value
+            splashScreen.setKeepOnScreenCondition { isLoading }
 
             when (theme) {
                 Theme.LIGHT -> WindowCompat.getInsetsController(
@@ -133,7 +135,13 @@ class MainActivity : ComponentActivity() {
                             }
                         }
 
-                        is Routes.Event -> navController.navigate(screen)
+                        is Routes.Event -> {
+                            if (navController.currentBackStackEntry?.destination?.route?.contains("CreateEvent") == true) {
+                                navController.navigate(screen) {
+                                    popUpTo(Routes.Map())
+                                }
+                            } else navController.navigate(screen)
+                        }
 
 
                         else -> {
@@ -174,7 +182,9 @@ class MainActivity : ComponentActivity() {
 
             SocialMeetingAppTheme(theme) {
                 Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }, bottomBar = {
-                    if (currentRoute is Routes.Map || currentRoute == Routes.Activities || currentRoute == Routes.Notifications || currentRoute == Routes.Chat
+                    if (currentRoute is Routes.Map || currentRoute == Routes.Activities || currentRoute == Routes.Notifications || currentRoute == Routes.Chat || currentRoute == Routes.Profile(
+                            user?.id ?: ""
+                        )
                     ) {
 
                         NavigationBar(
@@ -233,8 +243,11 @@ class MainActivity : ComponentActivity() {
                             val args = it.toRoute<Routes.Profile>()
                             val viewModel =
                                 hiltViewModel<ProfileViewModel, ProfileViewModel.Factory>(
-                                    creationCallback = { factory -> factory.create(args.userId) }
-                                )
+                                    creationCallback = { factory -> factory.create(args.userId) })
+
+                            if (it.savedStateHandle.get<Boolean>("refresh") == true) {
+                                viewModel.getUserByID(args.userId)
+                            }
 
                             ProfileScreen(
                                 state = viewModel.userData.collectAsStateWithLifecycle().value,
@@ -285,16 +298,14 @@ class MainActivity : ComponentActivity() {
 
                             ChatRoomListScreen(
                                 chatRooms = viewModel.roomPreviews.collectAsStateWithLifecycle().value,
-                                onChatRoomClick = { NavigationManager.navigateTo(Routes.ChatRoom(it)) }
-                            )
+                                onChatRoomClick = { NavigationManager.navigateTo(Routes.ChatRoom(it)) })
                         }
 
                         composable<Routes.ChatRoom> {
                             val args = it.toRoute<Routes.ChatRoom>()
                             val viewModel =
                                 hiltViewModel<ChatRoomViewModel, ChatRoomViewModel.Factory>(
-                                    creationCallback = { factory -> factory.create(args.chatRoomId) }
-                                )
+                                    creationCallback = { factory -> factory.create(args.chatRoomId) })
 
                             ChatRoomScreen(
                                 messages = viewModel.messages.collectAsLazyPagingItems(),
@@ -378,20 +389,36 @@ class MainActivity : ComponentActivity() {
                         }
 
                         composable<Routes.EditProfile> {
-                            val args = it.toRoute<Routes.EditProfile>()
-                            val viewModel =
-                                hiltViewModel<EditProfileViewModel, EditProfileViewModel.Factory>(
-                                    creationCallback = { factory -> factory.create(args.userId) }
+                            val viewModel = hiltViewModel<EditProfileViewModel>()
+
+                            BackHandler {
+                                navController.previousBackStackEntry?.savedStateHandle?.set(
+                                    "refresh", true
                                 )
+                                mainViewModel.refresh()
+                                navController.popBackStack()
+                            }
 
                             EditProfileScreen(
-                                onBack = { navController.navigateUp() },
-                                onUpdateBio = { viewModel.updateBio(it) },
-                                onUpdateUsernameAndDateOfBirth = { username, dateOfBirth ->
-                                    viewModel.updateUsernameAndDateOfBirth(
-                                        username, dateOfBirth
+                                user = viewModel.user.collectAsStateWithLifecycle().value,
+                                username = viewModel.username.collectAsStateWithLifecycle().value,
+                                bio = viewModel.bio.collectAsStateWithLifecycle().value,
+                                profilePictureUri = viewModel.profilePictureUri.collectAsStateWithLifecycle().value,
+                                isLoading = viewModel.isLoading.collectAsStateWithLifecycle().value,
+                                onUpdateProfilePictureUri = viewModel::updateProfilePicture,
+                                onSaveProfilePicture = viewModel::saveProfilePicture,
+                                onUpdateBio = viewModel::updateBio,
+                                onSaveBio = viewModel::saveBio,
+                                onUpdateUsername = viewModel::updateUsername,
+                                onUpdateDateOfBirth = viewModel::updateDateOfBirth,
+                                onSaveUsernameAndDateOfBirth = viewModel::saveUsernameAndDateOfBirth,
+                                onBack = {
+                                    navController.previousBackStackEntry?.savedStateHandle?.set(
+                                        "refresh", true
                                     )
-                                },
+                                    mainViewModel.refresh()
+                                    navController.popBackStack()
+                                }
                             )
                         }
 
@@ -445,16 +472,17 @@ class MainActivity : ComponentActivity() {
                         composable<Routes.Event> { it ->
                             val args = it.toRoute<Routes.Event>()
                             val viewModel = hiltViewModel<EventViewModel, EventViewModel.Factory>(
-                                creationCallback = { factory -> factory.create(args.id) }
-                            )
+                                creationCallback = { factory -> factory.create(args.id) })
+
                             if (it.savedStateHandle.get<Boolean>("refresh") == true) {
-                                viewModel.loadEvent()
+                                viewModel.refresh()
                             }
 
                             EventScreen(
                                 state = viewModel.state.collectAsStateWithLifecycle().value,
+                                isRefresh = viewModel.isRefresh.collectAsStateWithLifecycle().value,
                                 onJoinEvent = { viewModel.joinEvent(args.id) },
-                                onBack = { navController.navigateUp() },
+                                onBack = { navController.popBackStack() },
                                 onGoToAuthor = { NavigationManager.navigateTo(Routes.Profile(it)) },
                                 onLeaveEvent = { viewModel.leaveEvent(args.id) },
                                 onGoToEditEvent = {
@@ -472,8 +500,14 @@ class MainActivity : ComponentActivity() {
                             val args = it.toRoute<Routes.EditEvent>()
                             val viewModel =
                                 hiltViewModel<EditEventViewModel, EditEventViewModel.Factory>(
-                                    creationCallback = { factory -> factory.create(args.id) }
+                                    creationCallback = { factory -> factory.create(args.id) })
+
+                            BackHandler {
+                                navController.previousBackStackEntry?.savedStateHandle?.set(
+                                    "refresh", true
                                 )
+                                navController.popBackStack()
+                            }
 
                             EditEventScreen(
                                 event = viewModel.event.collectAsStateWithLifecycle().value,

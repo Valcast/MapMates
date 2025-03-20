@@ -44,6 +44,11 @@ class FirebaseUserRepositoryImpl(
     private val userPreviewCache = mutableMapOf<String, UserPreview>()
 
     override val authenticationStatus = callbackFlow {
+        val initialUser = firebaseAuth.currentUser
+        if (initialUser != null) {
+            trySend(initialUser)
+        }
+
         val authStateListener = AuthStateListener { authState ->
             trySend(authState.currentUser)
         }
@@ -342,7 +347,7 @@ class FirebaseUserRepositoryImpl(
         }
     }
 
-    override suspend fun uploadProfilePicture(imageUri: Uri): Result<Uri> {
+    override suspend fun updateProfilePicture(imageUri: Uri): Result<Uri> {
         try {
             val storageRef =
                 storage.reference.child("profile_pictures/${firebaseAuth.currentUser!!.uid}")
@@ -350,6 +355,10 @@ class FirebaseUserRepositoryImpl(
             storageRef.putFile(imageUri).await()
 
             val downloadUrl = storageRef.downloadUrl.await()
+
+            db.collection("users").document(firebaseAuth.currentUser!!.uid).update(
+                "profilePictureUri", downloadUrl.toString()
+            )
 
             return Result.Success(downloadUrl)
         } catch (e: Exception) {

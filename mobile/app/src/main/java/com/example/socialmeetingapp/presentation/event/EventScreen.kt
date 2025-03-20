@@ -1,6 +1,11 @@
 package com.example.socialmeetingapp.presentation.event
 
 import android.content.Intent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -20,7 +25,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -28,6 +32,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -75,6 +80,7 @@ import java.util.Locale
 @Composable
 fun EventScreen(
     state: EventState,
+    isRefresh: Boolean,
     onJoinEvent: () -> Unit,
     onBack: () -> Unit,
     onGoToAuthor: (authorId: String) -> Unit,
@@ -128,22 +134,38 @@ fun EventScreen(
                         .weight(1f)
                         .padding(bottom = 40.dp)
                 ) {
-                    Row(
+                    Box(
                         modifier = Modifier
                             .padding(vertical = 8.dp)
                             .fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Button(
+                        FilledTonalButton(
                             onClick = onBack,
                             shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.align(Alignment.CenterStart)
                         ) {
                             Text(text = "Back")
                         }
 
+                        this@Column.AnimatedVisibility(
+                            visible = isRefresh,
+                            enter = fadeIn() + expandVertically(),
+                            exit = fadeOut() + shrinkVertically(),
+                            modifier = Modifier.align(Alignment.Center)
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(RoundedCornerShape(100))
+                                    .padding(8.dp)
+                            )
+                        }
 
-                        Box {
+
+                        Box(
+                            modifier = Modifier.align(Alignment.CenterEnd)
+                        )
+                        {
                             IconButton(
                                 onClick = { eventActionsExpanded = !eventActionsExpanded },
                                 modifier = Modifier.size(24.dp)
