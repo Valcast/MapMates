@@ -31,16 +31,17 @@ import androidx.compose.ui.unit.dp
 import com.example.socialmeetingapp.R
 import com.example.socialmeetingapp.domain.model.User
 import com.example.socialmeetingapp.presentation.event.createevent.DatePickerModalInput
-import kotlinx.datetime.Clock
 import kotlinx.datetime.DatePeriod
-import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.minus
 import kotlinx.datetime.toLocalDateTime
 import java.util.Locale
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalTime::class)
 @Composable
 fun CreateProfileAdditional(
     user: User,

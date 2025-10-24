@@ -1,10 +1,11 @@
 package com.example.socialmeetingapp.domain.model
 
 import com.google.android.gms.maps.model.LatLng
-import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
 data class Event(
     val id: String,
@@ -25,6 +26,7 @@ data class Event(
     val chatRoomId: String? = null
 ) {
     companion object {
+        @OptIn(ExperimentalTime::class)
         val EMPTY = Event(
             id = "",
             title = "",

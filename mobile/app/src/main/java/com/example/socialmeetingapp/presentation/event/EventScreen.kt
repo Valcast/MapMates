@@ -69,14 +69,16 @@ import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberUpdatedMarkerState
-import kotlinx.datetime.Clock
+import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import java.time.format.TextStyle
 import java.util.Locale
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalTime::class)
 @Composable
 fun EventScreen(
     state: EventState,
@@ -270,11 +272,7 @@ fun EventScreen(
                             Spacer(modifier = Modifier.weight(1f))
 
                             Text(
-                                text = "${state.event.startTime.dayOfMonth} ${
-                                    state.event.startTime.month.getDisplayName(
-                                        TextStyle.SHORT_STANDALONE, Locale.getDefault()
-                                    )
-                                } ${state.event.startTime.year}",
+                                text = "${state.event.startTime.day}  ${state.event.startTime.year}",
                                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(
                                     0.5f
                                 ),

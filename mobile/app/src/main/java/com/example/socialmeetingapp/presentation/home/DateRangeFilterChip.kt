@@ -23,6 +23,7 @@ import com.example.socialmeetingapp.R
 import com.example.socialmeetingapp.domain.model.Category
 import com.example.socialmeetingapp.domain.model.DateRange
 import com.example.socialmeetingapp.domain.model.SortOrder
+import kotlinx.datetime.LocalDateTime
 import java.time.format.TextStyle
 import java.util.Locale
 
@@ -54,17 +55,9 @@ fun DateRangeFilterChip(
 
                         String.format(
                             Locale.getDefault(),
-                            "%s %d - %s %d",
-                            startDate.month.getDisplayName(
-                                TextStyle.SHORT_STANDALONE,
-                                Locale.getDefault()
-                            ),
-                            startDate.dayOfMonth,
-                            endDate.month.getDisplayName(
-                                TextStyle.SHORT_STANDALONE,
-                                Locale.getDefault()
-                            ),
-                            endDate.dayOfMonth,
+                            "%s - %d",
+                            startDate.day,
+                            endDate.day,
                         )
                     }
 

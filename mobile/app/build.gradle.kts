@@ -12,12 +12,12 @@ plugins {
 
 android {
     namespace = "com.example.socialmeetingapp"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.socialmeetingapp"
+        applicationId = "com.valcast.mapmates"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
@@ -91,6 +91,7 @@ dependencies {
     implementation(libs.androidx.credentials.playservices)
     implementation(libs.androidx.paging.runtime)
     implementation(libs.androidx.paging.compose)
+    implementation(libs.compose.material.icons.core)
 
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.analytics)

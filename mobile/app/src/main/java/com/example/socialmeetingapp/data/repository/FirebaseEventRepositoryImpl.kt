@@ -20,7 +20,8 @@ import com.google.firebase.firestore.GeoPoint
 import kotlinx.coroutines.tasks.await
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
-import kotlinx.datetime.toJavaInstant
+import kotlin.time.ExperimentalTime
+import kotlin.time.toJavaInstant
 
 class FirebaseEventRepositoryImpl(
     private val db: FirebaseFirestore,
@@ -147,6 +148,7 @@ class FirebaseEventRepositoryImpl(
     }
 
 
+    @OptIn(ExperimentalTime::class)
     override suspend fun createEvent(event: Event): com.example.socialmeetingapp.domain.model.Result<String> {
         return try {
             val currentTime = Timestamp.now()
@@ -182,6 +184,7 @@ class FirebaseEventRepositoryImpl(
         }
     }
 
+    @OptIn(ExperimentalTime::class)
     override suspend fun updateEvent(event: Event): com.example.socialmeetingapp.domain.model.Result<Unit> {
         return try {
 

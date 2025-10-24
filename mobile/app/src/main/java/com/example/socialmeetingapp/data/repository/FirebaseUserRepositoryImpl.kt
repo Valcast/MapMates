@@ -30,12 +30,14 @@ import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
-import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
-import kotlinx.datetime.toJavaInstant
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
+import kotlin.time.toJavaInstant
 
+@OptIn(ExperimentalTime::class)
 class FirebaseUserRepositoryImpl(
     private val firebaseAuth: FirebaseAuth,
     private val db: FirebaseFirestore,
@@ -150,6 +152,7 @@ class FirebaseUserRepositoryImpl(
         return FollowingPagingSource(db, userId)
     }
 
+    @OptIn(ExperimentalTime::class)
     override suspend fun signUp(
         email: String, password: String
     ): Result<Unit> {
@@ -192,6 +195,7 @@ class FirebaseUserRepositoryImpl(
 
     }
 
+    @OptIn(ExperimentalTime::class)
     override suspend fun signUpWithGoogle(idToken: String): Result<SignUpStatus> {
         return try {
             val credential = GoogleAuthProvider.getCredential(idToken, null)

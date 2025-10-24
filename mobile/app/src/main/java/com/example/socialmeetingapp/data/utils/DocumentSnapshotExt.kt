@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalTime::class)
+
 package com.example.socialmeetingapp.data.utils
 
 import android.net.Uri
@@ -15,11 +17,12 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.GeoPoint
-import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import java.util.Locale
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 fun DocumentSnapshot.getRequiredString(field: String): String =
     this.getString(field) ?: throw MissingFieldException(field)
@@ -34,9 +37,10 @@ fun DocumentSnapshot.getList(field: String): List<String> =
 fun DocumentSnapshot.getLocalDateTime(field: String): LocalDateTime {
     val timestamp = getTimestamp(field) ?: throw MissingFieldException(field)
 
-    return Instant.fromEpochSeconds(timestamp.seconds, timestamp.nanoseconds).toLocalDateTime(
-        TimeZone.currentSystemDefault()
-    )
+    return Instant.fromEpochSeconds(timestamp.seconds, timestamp.nanoseconds)
+        .toLocalDateTime(
+            TimeZone.currentSystemDefault()
+        )
 }
 
 fun DocumentSnapshot.getUri(field: String): Uri {

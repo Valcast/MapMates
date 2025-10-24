@@ -12,7 +12,9 @@ import com.google.firebase.firestore.Query
 import kotlinx.coroutines.tasks.await
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
+import kotlin.time.ExperimentalTime
 
+@OptIn(ExperimentalTime::class)
 class FollowersPagingSource(private val db: FirebaseFirestore, private val userId: String) :
     PagingSource<Long, Relationship>() {
     override fun getRefreshKey(state: PagingState<Long, Relationship>): Long? {

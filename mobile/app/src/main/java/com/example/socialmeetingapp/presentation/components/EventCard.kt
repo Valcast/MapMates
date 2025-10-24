@@ -31,14 +31,17 @@ import com.example.socialmeetingapp.R
 import com.example.socialmeetingapp.domain.model.Category
 import com.example.socialmeetingapp.domain.model.Event
 import com.example.socialmeetingapp.domain.model.UserPreview
-import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 import java.time.format.TextStyle
 import java.util.Locale
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
+@OptIn(ExperimentalTime::class)
 @Composable
 fun EventCard(event: Event, onCardClick: (String) -> Unit, modifier: Modifier = Modifier) {
     ElevatedCard(
@@ -128,13 +131,8 @@ fun EventCard(event: Event, onCardClick: (String) -> Unit, modifier: Modifier = 
                         else -> {
                             String.format(
                                 Locale.getDefault(),
-                                "%d %s",
-                                event.startTime.dayOfMonth,
-                                event.startTime.month.getDisplayName(
-                                    TextStyle.FULL_STANDALONE, Locale.getDefault()
-                                ).replaceFirstChar {
-                                    if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
-                                }
+                                "%d",
+                                event.startTime.day,
                             )
                         }
                     },

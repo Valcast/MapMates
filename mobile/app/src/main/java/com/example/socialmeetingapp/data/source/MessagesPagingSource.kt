@@ -11,7 +11,9 @@ import com.google.firebase.firestore.Source
 import kotlinx.coroutines.tasks.await
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
+import kotlin.time.ExperimentalTime
 
+@OptIn(ExperimentalTime::class)
 class MessagesPagingSource(private val db: FirebaseFirestore, private val chatRoomId: String) :
     PagingSource<Long, Message>() {
     override fun getRefreshKey(state: PagingState<Long, Message>): Long? {

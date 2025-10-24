@@ -1,10 +1,11 @@
 package com.example.socialmeetingapp.domain.model
 
 import android.net.Uri
-import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
 data class User(
     val id: String,
@@ -20,6 +21,7 @@ data class User(
 
     ) {
 
+    @OptIn(ExperimentalTime::class)
     companion object {
         val EMPTY = User(
             id = "",

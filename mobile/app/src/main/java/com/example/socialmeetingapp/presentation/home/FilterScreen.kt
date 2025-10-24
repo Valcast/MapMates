@@ -59,15 +59,17 @@ import com.example.socialmeetingapp.R
 import com.example.socialmeetingapp.domain.model.Category
 import com.example.socialmeetingapp.domain.model.DateRange
 import com.example.socialmeetingapp.domain.model.SortOrder
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import java.time.format.TextStyle
 import java.util.Locale
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalTime::class)
 @Composable
 fun FilterScreen(
     filters: Filters = Filters(),
@@ -287,20 +289,7 @@ fun FilterScreen(
                             val startDate = dateRange.startTime
                             val endDate = dateRange.endTime
 
-                            String.format(
-                                Locale.getDefault(),
-                                "%s %d - %s %d",
-                                startDate.month.getDisplayName(
-                                    TextStyle.SHORT_STANDALONE,
-                                    Locale.getDefault()
-                                ),
-                                startDate.dayOfMonth,
-                                endDate.month.getDisplayName(
-                                    TextStyle.SHORT_STANDALONE,
-                                    Locale.getDefault()
-                                ),
-                                endDate.dayOfMonth,
-                            )
+                            TODO()
                         }
                     }
                     Text(
