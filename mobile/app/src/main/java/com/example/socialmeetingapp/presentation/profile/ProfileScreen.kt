@@ -45,8 +45,6 @@ import androidx.paging.compose.LazyPagingItems
 import coil3.compose.AsyncImage
 import com.example.socialmeetingapp.R
 import com.example.socialmeetingapp.domain.model.Relationship
-import com.example.socialmeetingapp.presentation.common.NavigationManager
-import com.example.socialmeetingapp.presentation.common.Routes
 import com.example.socialmeetingapp.presentation.components.EventCard
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -346,13 +344,6 @@ fun ProfileScreen(
                                     modifier = Modifier
                                         .padding(16.dp)
                                         .fillMaxWidth()
-                                        .clickable {
-                                            NavigationManager.navigateTo(
-                                                Routes.Profile(
-                                                    following[followingIndex]?.userPreview?.id ?: ""
-                                                )
-                                            )
-                                        }
                                 ) {
                                     AsyncImage(
                                         model = following[followingIndex]?.userPreview?.profilePictureUri,

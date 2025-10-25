@@ -10,8 +10,6 @@ import com.example.socialmeetingapp.domain.model.onSuccess
 import com.example.socialmeetingapp.domain.repository.ChatRepository
 import com.example.socialmeetingapp.domain.repository.EventRepository
 import com.example.socialmeetingapp.domain.usecase.CreateChatRoomUseCase
-import com.example.socialmeetingapp.presentation.common.NavigationManager
-import com.example.socialmeetingapp.presentation.common.Routes
 import com.example.socialmeetingapp.presentation.common.SnackbarManager
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
@@ -170,9 +168,6 @@ class EditEventViewModel @AssistedInject constructor(
     fun deleteEvent() {
         viewModelScope.launch {
             eventRepository.deleteEvent(eventId)
-                .onSuccess {
-                    NavigationManager.navigateTo(Routes.Activities)
-                }
                 .onFailure { errorMessage ->
                     Log.e(
                         "EditEventViewModel",

@@ -10,10 +10,11 @@
 /.idea/assetWizardSettings.xml
 .kotlin
 .DS_Store
-/build
 /captures
 .idea
 .externalNativeBuild
 .cxx
 local.properties
 secrets.properties
+
+**/build/

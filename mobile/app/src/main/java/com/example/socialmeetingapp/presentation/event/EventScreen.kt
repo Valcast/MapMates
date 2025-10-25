@@ -61,8 +61,6 @@ import androidx.core.net.toUri
 import coil3.compose.AsyncImage
 import com.example.socialmeetingapp.R
 import com.example.socialmeetingapp.domain.model.Category
-import com.example.socialmeetingapp.presentation.common.NavigationManager
-import com.example.socialmeetingapp.presentation.common.Routes
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapUiSettings
@@ -523,12 +521,6 @@ fun EventScreen(
                                 )
                             },
                             onMapClick = {
-                                NavigationManager.navigateTo(
-                                    Routes.Map(
-                                        state.event.locationCoordinates!!.latitude,
-                                        state.event.locationCoordinates!!.longitude
-                                    )
-                                )
                             },
                             uiSettings = MapUiSettings(
                                 zoomControlsEnabled = false,
@@ -623,9 +615,6 @@ fun EventScreen(
                                 modifier = Modifier
                                     .clip(MaterialTheme.shapes.small)
                                     .clickable {
-                                        NavigationManager.navigateTo(
-                                            Routes.Profile(participant.id)
-                                        )
                                     }
                                     .padding(4.dp)) {
                                 AsyncImage(

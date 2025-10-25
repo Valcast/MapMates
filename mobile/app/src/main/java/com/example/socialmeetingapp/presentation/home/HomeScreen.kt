@@ -63,8 +63,6 @@ import com.example.socialmeetingapp.domain.model.Category
 import com.example.socialmeetingapp.domain.model.DateRange
 import com.example.socialmeetingapp.domain.model.Event
 import com.example.socialmeetingapp.domain.model.SortOrder
-import com.example.socialmeetingapp.presentation.common.NavigationManager
-import com.example.socialmeetingapp.presentation.common.Routes
 import com.example.socialmeetingapp.presentation.components.EventCard
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
@@ -496,12 +494,6 @@ fun HomeScreen(
 
         FloatingActionButton(
             onClick = {
-                NavigationManager.navigateTo(
-                    Routes.CreateEvent(
-                        currentLocation?.latitude ?: 52.237049,
-                        currentLocation?.longitude ?: 21.017532
-                    )
-                )
             }, modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(16.dp)

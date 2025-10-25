@@ -26,12 +26,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.example.socialmeetingapp.R
-import com.example.socialmeetingapp.presentation.common.Routes
 
+/*
 @Composable
 fun NavigationBar(
-    currentRoute: Routes,
-    onItemClicked: (Routes) -> Unit,
     profileID: String,
     profileImageUrl: Uri,
     notReadNotifications: Int = 0
@@ -130,3 +128,4 @@ fun NavigationBar(
     }
 }
 
+*/

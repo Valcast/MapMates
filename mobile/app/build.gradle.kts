@@ -81,7 +81,6 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-    implementation(libs.hilt.compose)
 
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.navigation.testing)
@@ -124,5 +123,11 @@ dependencies {
     implementation(libs.typesense.java)
 
     implementation(libs.hilt)
+    implementation(libs.hilt.compose)
     ksp(libs.hilt.compiler)
+
+    implementation(projects.modules.featureLogin.api)
+    implementation(projects.modules.featureLogin.impl)
+    implementation(projects.modules.coreNavigation.api)
+    implementation(projects.modules.coreNavigation.impl)
 }

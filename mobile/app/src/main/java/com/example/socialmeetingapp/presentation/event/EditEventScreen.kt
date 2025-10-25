@@ -55,8 +55,6 @@ import com.example.socialmeetingapp.R
 import com.example.socialmeetingapp.domain.model.Category
 import com.example.socialmeetingapp.domain.model.ChatRoom
 import com.example.socialmeetingapp.domain.model.Event
-import com.example.socialmeetingapp.presentation.common.NavigationManager
-import com.example.socialmeetingapp.presentation.common.Routes
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
@@ -462,11 +460,6 @@ fun EditEventScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .clip(MaterialTheme.shapes.small)
-                            .clickable {
-                                NavigationManager.navigateTo(
-                                    Routes.Profile(participant.id)
-                                )
-                            }
                             .padding(4.dp)) {
                         AsyncImage(
                             model = participant.profilePictureUri,

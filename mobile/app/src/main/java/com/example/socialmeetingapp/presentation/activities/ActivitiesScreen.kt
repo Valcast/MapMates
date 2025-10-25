@@ -36,8 +36,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import coil3.compose.AsyncImage
-import com.example.socialmeetingapp.presentation.common.NavigationManager
-import com.example.socialmeetingapp.presentation.common.Routes
 import com.example.socialmeetingapp.presentation.components.EventCard
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -217,11 +215,6 @@ fun ActivitiesScreen(
                                                             verticalAlignment = Alignment.CenterVertically,
                                                             modifier = Modifier
                                                                 .clip(MaterialTheme.shapes.small)
-                                                                .clickable {
-                                                                    NavigationManager.navigateTo(
-                                                                        Routes.Profile(state.createdEventDetails[event].joinRequests[joinRequest].id)
-                                                                    )
-                                                                }
                                                                 .padding(4.dp)
                                                         ) {
                                                             AsyncImage(

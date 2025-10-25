@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="default_web_client_id">829495539813-4lmga8884viti2uu538o85223dch7l42.apps.googleusercontent.com</string>
+    <!-- Authentication -->
+    <string name="email_placeholder">Email Address</string>
+    <string name="password_hint">Password</string>
+
+    <!-- Login Screen -->
+    <string name="login_title">Welcome Back!</string>
+    <string name="welcome_title">Welcome to MapMates!</string>
+    <string name="login_description">Enter your email address and password to access your account.</string>
+
+    <string name="login_forgot_password_button">Forgot password?</string>
+    <string name="login_button">Sign in</string>
+
+    <string name="login_no_account">No account Register here</string>
+
+    <string name="login_google">Sign in with Google</string>
+    <string name="register_google">Sign up with Google</string>
+    
+    <string name="image1_description">Meet interesting people</string>
+    <string name="image2_description">Feel the collaborative atmosphere</string>
+    <string name="image3_description">Create and join events around you</string>
+</resources>

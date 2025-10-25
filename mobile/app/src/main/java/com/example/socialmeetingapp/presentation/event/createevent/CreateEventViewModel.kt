@@ -13,8 +13,6 @@ import com.example.socialmeetingapp.domain.repository.ChatRepository
 import com.example.socialmeetingapp.domain.repository.EventRepository
 import com.example.socialmeetingapp.domain.repository.LocationRepository
 import com.example.socialmeetingapp.domain.repository.UserRepository
-import com.example.socialmeetingapp.presentation.common.NavigationManager
-import com.example.socialmeetingapp.presentation.common.Routes
 import com.google.android.gms.maps.model.LatLng
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -54,7 +52,6 @@ class CreateEventViewModel @Inject constructor(
                                     )
                                 }
 
-                                NavigationManager.navigateTo(Routes.Event(eventId))
                             }.onFailure { createChatError ->
                                 Log.e(
                                     "CreateEventViewModel",
@@ -62,7 +59,6 @@ class CreateEventViewModel @Inject constructor(
                                 )
                             }
                     } else {
-                        NavigationManager.navigateTo(Routes.Event(eventId))
                     }
                 }.onFailure { createEventError ->
                     Log.e(

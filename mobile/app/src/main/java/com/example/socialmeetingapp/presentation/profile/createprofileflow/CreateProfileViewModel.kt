@@ -7,8 +7,6 @@ import com.example.socialmeetingapp.domain.model.User
 import com.example.socialmeetingapp.domain.model.onFailure
 import com.example.socialmeetingapp.domain.model.onSuccess
 import com.example.socialmeetingapp.domain.repository.UserRepository
-import com.example.socialmeetingapp.presentation.common.NavigationManager
-import com.example.socialmeetingapp.presentation.common.Routes
 import com.example.socialmeetingapp.presentation.common.SnackbarManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -38,9 +36,6 @@ class CreateProfileViewModel @Inject constructor(
         if (uiState.value == CreateProfileFlow.Rules) {
             viewModelScope.launch {
                 userRepository.updateUser(user.value)
-                    .onSuccess {
-                        NavigationManager.navigateTo(Routes.Map())
-                    }
                     .onFailure { error ->
                         SnackbarManager.showMessage(error)
                     }

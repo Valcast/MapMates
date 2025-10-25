@@ -8,8 +8,6 @@ import com.example.socialmeetingapp.domain.model.onFailure
 import com.example.socialmeetingapp.domain.model.onSuccess
 import com.example.socialmeetingapp.domain.repository.UserRepository
 import com.example.socialmeetingapp.presentation.common.CredentialManager
-import com.example.socialmeetingapp.presentation.common.NavigationManager
-import com.example.socialmeetingapp.presentation.common.Routes
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -41,12 +39,6 @@ class RegisterViewModel @Inject constructor(
                         userRepository.signUpWithGoogle(googleIdTokenCredential.idToken)
                             .onSuccess { signUpStatus ->
                                 _uiState.value = RegisterUiState.Success
-                                when (signUpStatus) {
-                                    is SignUpStatus.NewUser -> NavigationManager.navigateTo(Routes.CreateProfile)
-                                    is SignUpStatus.ExistingUser -> NavigationManager.navigateTo(
-                                        Routes.Map()
-                                    )
-                                }
                             }
                             .onFailure { error ->
                                 _uiState.value = RegisterUiState.Error(error)
@@ -72,7 +64,6 @@ class RegisterViewModel @Inject constructor(
                 .onSuccess {
                     _uiState.value = RegisterUiState.Success
                     credentialManager.saveCredential(email, password)
-                    NavigationManager.navigateTo(Routes.CreateProfile)
                 }
                 .onFailure { error ->
                     _uiState.value = RegisterUiState.Error("Failed to register: $error")

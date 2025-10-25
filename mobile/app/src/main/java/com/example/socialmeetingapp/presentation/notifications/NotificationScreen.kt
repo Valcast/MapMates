@@ -27,27 +27,12 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.example.socialmeetingapp.R
 import com.example.socialmeetingapp.domain.model.NotificationType
-import com.example.socialmeetingapp.presentation.common.NavigationManager
-import com.example.socialmeetingapp.presentation.common.Routes
 
 @Composable
 fun NotificationScreen(notification: NotificationUI, onMarkAsRead: (String) -> Unit) {
     Card(
         onClick = {
             onMarkAsRead(notification.id)
-            when (notification.type) {
-                NotificationType.EVENT_CREATED -> NavigationManager.navigateTo(
-                    Routes.Event(
-                        (notification.data as NotificationData.EventCreated).eventId
-                    )
-                )
-
-                NotificationType.JOIN_REQUEST -> NavigationManager.navigateTo(
-                    Routes.Profile(
-                        (notification.data as NotificationData.JoinRequest).userId
-                    )
-                )
-            }
         },
         colors = CardDefaults.cardColors()
             .copy(containerColor = if (notification.isRead) Color.Transparent else MaterialTheme.colorScheme.surfaceVariant),
