@@ -21,8 +21,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.createGraph
-import com.valcast.compose.SocialMeetingAppTheme
-import com.valcast.mapmates.domain.model.Theme
 import com.valcast.mapmates.presentation.common.SnackbarManager
 import com.google.firebase.Firebase
 import com.google.firebase.appcheck.appCheck
@@ -31,6 +29,8 @@ import com.google.firebase.initialize
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
 import mapmates.core.navigation.api.Navigator
+import mapmates.core.ui.Theme
+import mapmates.core.ui.theme.MapMatesTheme
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -87,7 +87,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            SocialMeetingAppTheme(theme) {
+            MapMatesTheme(theme) {
                 Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }, bottomBar = {
 
                 }) { innerPadding ->

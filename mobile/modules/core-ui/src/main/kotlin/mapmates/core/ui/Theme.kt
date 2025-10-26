@@ -1,4 +1,4 @@
-package com.valcast.mapmates.domain.model
+package mapmates.core.ui
 
 enum class Theme {
     SYSTEM,

@@ -13,7 +13,7 @@ android {
     }
 
     defaultConfig {
-        minSdk = 24
+        minSdk = 26
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
@@ -58,12 +58,17 @@ dependencies {
     implementation(projects.modules.coreNavigation.api)
 
     implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.auth)
+    implementation(libs.firebase.firestore)
+    implementation(libs.firebase.storage)
 
     implementation(libs.coil.compose)
     implementation(libs.kotlinx.datetime)
 
     implementation(libs.hilt)
     implementation(libs.hilt.compose)
+    debugImplementation(libs.androidx.compose.ui.tooling)
     ksp(libs.hilt.compiler)
+
+    implementation(projects.modules.coreUi)
+    implementation(projects.modules.featureLogin.api)
 }

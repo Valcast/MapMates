@@ -105,9 +105,15 @@ internal class LoginViewModel @Inject constructor(
     }
 
     fun onSignIn() {
-        if (validateEmail() && validatePassword()) {
-            authenticateWithEmailAndPassword()
+        navigator.navigateTo(Destination("create_account")) {
+            popUpTo(0) {
+                inclusive = true
+            }
+            launchSingleTop = true
         }
+        /*if (validateEmail() && validatePassword()) {
+            authenticateWithEmailAndPassword()
+        }*/
     }
 
     fun onEmailChanged(email: String) = _state.update { state ->

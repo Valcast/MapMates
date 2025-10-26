@@ -35,7 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.valcast.mapmates.R
 import com.valcast.mapmates.domain.model.AppConfig
-import com.valcast.mapmates.domain.model.Theme
+import mapmates.core.ui.Theme
 
 @Composable
 fun SettingsScreen(

@@ -131,4 +131,5 @@ dependencies {
     implementation(projects.modules.featureLogin.impl)
     implementation(projects.modules.coreNavigation.api)
     implementation(projects.modules.coreNavigation.impl)
+    implementation(projects.modules.coreUi)
 }

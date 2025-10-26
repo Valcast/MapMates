@@ -1,17 +1,24 @@
 package mapmates.feature.account.impl.ui.createaccount
 
-import kotlinx.datetime.LocalDateTime
+import android.net.Uri
+import kotlinx.datetime.LocalDate
 import mapmates.feature.account.impl.R as AccountR
 
 internal data class CreateAccountState(
     val uiState: CreateAccountUiState = CreateAccountUiState.INFO,
-    val username: String = "",
+    val firstName: String = "",
+    val middleName: String = "",
+    val lastName: String = "",
     val bio: String = "",
-    val profilePictureUri: String? = null,
-    val dateOfBirth: LocalDateTime? = null,
+    val profilePictureUri: LinkedHashSet<Uri> = linkedSetOf(),
+    val selectedProfilePictureURi: Uri? = null,
+    val dateOfBirth: LocalDate? = null,
     val gender: Gender? = null,
-    val isRulesAccepted: Boolean = false,
+    val isTermsOfServiceAccepted: Boolean = false,
+    val isPrivacyPolicyAccepted: Boolean = false,
     val isNextButtonEnabled: Boolean = false,
+    val isLoading: Boolean = false,
+    val errorMessageResId: Int? = null,
 )
 
 internal enum class CreateAccountUiState {

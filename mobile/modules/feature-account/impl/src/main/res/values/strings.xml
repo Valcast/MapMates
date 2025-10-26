@@ -6,20 +6,27 @@
     <string name="account_submit_button">Submit</string>
 
     <!-- Account Info Screen -->
-    <string name="account_info_title">Tell us about yourself</string>
+    <string name="account_info_title">Who you are?</string>
     <string name="account_info_username_description">This is how you\'ll appear to others on MapMates</string>
-    <string name="account_info_username_hint">Username</string>
-    <string name="account_info_bio_description">You can leave this blank if you want and add bio later.</string>
-    <string name="account_info_bio_hint">Bio (optional)</string>
+    <string name="account_info_firstname_hint">Legal first name</string>
+    <string name="account_info_middlename_hint">Middle name (optional)</string>
+    <string name="account_info_lastname_hint">Legal last name (surname)</string>
+    <string name="account_info_bio_description">Tell us something interesting — how would you describe yourself?</string>    <string name="account_info_bio_hint">Bio (optional)</string>
+    <string name="account_info_name_tip">Please enter the same name as shown on your official ID. This helps avoid issues during identity checks at events or other formal situations.</string>
 
     <!-- Account Picture Screen -->
     <string name="account_picture_title">Add a profile picture</string>
+    <string name="account_picture_upload_first">Upload Photo</string>
+    <string name="account_picture_upload_more">Add More</string>
+    <string name="account_picture_remove">Remove</string>
+    <string name="account_picture_preview_title">Preview</string>
     <string name="account_picture_description">You need a profile picture of yourself to join events</string>
-    <string name="account_picture_upload">Upload a photo ->></string>
+    <string name="account_picture_max_count">You can upload up to 5 photos</string>
 
     <!-- Account Additional Screen -->
     <string name="account_additional_title">Tell us more about yourself</string>
     <string name="account_additional_age_title">When is your birthday?</string>
+    <string name="account_additional_date_picket_confirm">Confirm</string>
     <string name="account_additional_age_description">You need to be at least 18 years old to use MapMates</string>
     <string name="account_additional_gender_title">What is your gender?</string>
     <string name="account_additional_gender_male">Man</string>
@@ -28,6 +35,8 @@
 
     <!-- Account Rules Screen -->
     <string name="account_rules_title">You are almost done</string>
-    <string name="account_rules_name">Terms and conditions</string>
-    <string name="account_rules_accept">I accept the rules</string>
+    <string name="account_rules_privacy_policy">Privacy Policy</string>
+    <string name="account_rules_privacy_policy_accept">I accept Privacy Policy</string>
+    <string name="account_rules_terms_of_service">Terms of Service</string>
+    <string name="account_rules_accept">I accept the Terms of Service</string>
 </resources>

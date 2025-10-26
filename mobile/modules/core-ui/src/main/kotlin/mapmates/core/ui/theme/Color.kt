@@ -1,4 +1,5 @@
-package com.valcast.compose
+package mapmates.core.ui.theme
+
 import androidx.compose.ui.graphics.Color
 
 val primaryLight = Color(0xFF28638A)

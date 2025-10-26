@@ -1,8 +1,9 @@
 package mapmates.feature.account.impl.ui.createaccount.stages
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -11,51 +12,88 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import mapmates.feature.account.impl.ui.createaccount.CreateAccountState
 import mapmates.feature.account.impl.R as AccountR
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun CreateAccountInfoScreen(
     state: CreateAccountState,
-    onUpdateUsername: (String) -> Unit,
+    onUpdateFirstName: (String) -> Unit,
+    onUpdateMiddleName: (String) -> Unit,
+    onUpdateLastName: (String) -> Unit,
     onUpdateBio: (String) -> Unit,
 ) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.padding(vertical = 16.dp)
+    ) {
         Text(
             text = stringResource(id = AccountR.string.account_info_title),
-            style = MaterialTheme.typography.headlineLarge,
+            style = MaterialTheme.typography.headlineMediumEmphasized,
             fontWeight = FontWeight.Bold,
         )
 
         OutlinedTextField(
-            value = state.username,
-            onValueChange = onUpdateUsername,
+            value = state.firstName,
+            onValueChange = onUpdateFirstName,
             singleLine = true,
             label = {
                 Text(
-                    text = stringResource(AccountR.string.account_info_username_hint),
+                    text = stringResource(AccountR.string.account_info_firstname_hint),
                     style = MaterialTheme.typography.labelSmall
                 )
             },
-            trailingIcon = {
+            shape = MaterialTheme.shapes.medium,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp)
+        )
+
+        OutlinedTextField(
+            value = state.middleName,
+            onValueChange = onUpdateMiddleName,
+            singleLine = true,
+            label = {
                 Text(
-                    text = "${state.username.length}/30",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                    text = stringResource(AccountR.string.account_info_middlename_hint),
+                    style = MaterialTheme.typography.labelSmall
                 )
             },
-            modifier = Modifier.padding(top = 16.dp)
+            shape = MaterialTheme.shapes.medium,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp)
+        )
+
+        OutlinedTextField(
+            value = state.lastName,
+            onValueChange = onUpdateLastName,
+            singleLine = true,
+            label = {
+                Text(
+                    text = stringResource(AccountR.string.account_info_lastname_hint),
+                    style = MaterialTheme.typography.labelSmall
+                )
+            },
+            shape = MaterialTheme.shapes.medium,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp)
         )
 
         Text(
-            text = stringResource(AccountR.string.account_info_username_description),
-            style = MaterialTheme.typography.bodyMedium,
+            text = stringResource(AccountR.string.account_info_name_tip),
+            style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 8.dp, bottom = 32.dp)
+            modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
         )
-
+        Text(
+            text = stringResource(AccountR.string.account_info_bio_description),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
         OutlinedTextField(
             value = state.bio,
             onValueChange = onUpdateBio,
@@ -67,14 +105,10 @@ internal fun CreateAccountInfoScreen(
                     style = MaterialTheme.typography.labelSmall
                 )
             },
-        )
-
-        Text(
-            text = stringResource(AccountR.string.account_info_bio_description),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 8.dp)
+            shape = MaterialTheme.shapes.medium,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 4.dp)
         )
     }
 }
