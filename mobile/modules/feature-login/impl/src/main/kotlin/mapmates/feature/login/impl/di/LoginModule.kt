@@ -2,7 +2,6 @@ package mapmates.feature.login.impl.di
 
 import android.content.Context
 import androidx.navigation.compose.composable
-import androidx.navigation.navigation
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -14,6 +13,7 @@ import mapmates.feature.login.api.interactor.IsUserAuthenticatedInteractor
 import mapmates.feature.login.impl.CredentialManager
 import mapmates.feature.login.impl.data.LoginRepository
 import mapmates.feature.login.impl.interactor.IsUserAuthenticatedInteractorImpl
+import mapmates.feature.login.impl.ui.forgotpassword.ForgotPasswordScreen
 import mapmates.feature.login.impl.ui.login.LoginScreen
 import javax.inject.Singleton
 
@@ -40,6 +40,10 @@ internal object LoginModule {
     fun provideAuthGraph(): AppNavGraphBuilder = AppNavGraphBuilder {
         composable("login") {
             LoginScreen()
+        }
+
+        composable("forgotPassword") {
+            ForgotPasswordScreen()
         }
     }
 }

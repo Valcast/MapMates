@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonShapes
 import androidx.compose.material3.CircularWavyProgressIndicator
@@ -28,7 +27,6 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedSecureTextField
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -58,19 +56,17 @@ internal fun LoginScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    val emailTextFieldState = rememberTextFieldState()
     val emailInteractionSource = remember { MutableInteractionSource() }
-
-    val passwordTextFieldState = rememberTextFieldState()
     val passwordInteractionSource = remember { MutableInteractionSource() }
+
 
     LaunchedEffect(emailInteractionSource, passwordInteractionSource) {
         merge(
             emailInteractionSource.interactions,
             passwordInteractionSource.interactions
         ).collect { interaction ->
-            if (interaction is FocusInteraction.Focus && state.showCredentialManager) {
-                viewModel.requestCredential()
+            if (interaction is FocusInteraction.Focus && state.showCredentialManager && !state.isRegisterMode) {
+                viewModel.requestPasswordCredential()
             }
         }
     }
@@ -132,19 +128,23 @@ internal fun LoginScreen(
         }
 
         AnimatedContent(
-            targetState = state.selectedWelcomeImageIndex,
+            targetState = state.selectedWelcomeImageIndex to state.isRegisterMode,
             transitionSpec = {
                 fadeIn().togetherWith(fadeOut())
             },
             label = "TextSwitch",
             modifier = Modifier.padding(vertical = 16.dp)
-        ) { targetSelected ->
+        ) { (imageIndex, registerMode) ->
             Text(
-                text = when (targetSelected) {
+                text = when (imageIndex) {
                     0 -> stringResource(id = LoginR.string.image1_description)
                     1 -> stringResource(id = LoginR.string.image2_description)
                     2 -> stringResource(id = LoginR.string.image3_description)
-                    else -> stringResource(id = LoginR.string.welcome_title)
+                    else -> if (registerMode) {
+                        stringResource(id = LoginR.string.register_title)
+                    } else {
+                        stringResource(id = LoginR.string.welcome_title)
+                    }
                 },
                 style = MaterialTheme.typography.headlineLargeEmphasized,
                 minLines = 2,
@@ -153,8 +153,25 @@ internal fun LoginScreen(
             )
         }
 
+        AnimatedContent(
+            targetState = state.errorMessage,
+            transitionSpec = {
+                fadeIn().togetherWith(fadeOut())
+            }
+        ) { errorMessage ->
+            if (errorMessage != null) {
+                Text(
+                    text = stringResource(errorMessage),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
+        }
+
         OutlinedTextField(
-            state = emailTextFieldState,
+            value = state.email,
+            onValueChange = viewModel::onEmailChanged,
             placeholder = {
                 Text(
                     text = stringResource(id = LoginR.string.email_placeholder),
@@ -167,8 +184,9 @@ internal fun LoginScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
-        OutlinedSecureTextField(
-            state = passwordTextFieldState,
+        OutlinedTextField(
+            value = state.password,
+            onValueChange = viewModel::onPasswordChanged,
             placeholder = {
                 Text(
                     text = stringResource(id = LoginR.string.password_hint),
@@ -182,6 +200,32 @@ internal fun LoginScreen(
                 .fillMaxWidth()
                 .padding(top = 8.dp)
         )
+
+        AnimatedContent(
+            targetState = state.isRegisterMode,
+            transitionSpec = {
+                fadeIn().togetherWith(fadeOut())
+            },
+            label = "ErrorSwitch",
+        ) { isRegisterMode ->
+            if (isRegisterMode) {
+                OutlinedTextField(
+                    value = state.confirmPassword,
+                    onValueChange = viewModel::onConfirmPasswordChanged,
+                    placeholder = {
+                        Text(
+                            text = stringResource(id = LoginR.string.register_confirm_password_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.outline
+                        )
+                    },
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
+                )
+            }
+        }
 
         Row(
             modifier = Modifier
@@ -208,22 +252,27 @@ internal fun LoginScreen(
                         contentDescription = "Google icon",
                         tint = Color.Unspecified
                     )
-                    Text(
-                        text = stringResource(LoginR.string.login_google),
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.padding(start = 8.dp),
-                    )
+
+                    AnimatedContent(
+                        targetState = state.isRegisterMode,
+                        transitionSpec = { fadeIn() togetherWith fadeOut() },
+                        label = "GoogleCtaText"
+                    ) { isRegisterMode ->
+                        Text(
+                            text = if (isRegisterMode)
+                                stringResource(LoginR.string.register_google)
+                            else
+                                stringResource(LoginR.string.login_google),
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
+                    }
                 }
             }
 
             Button(
-                onClick = {
-                    viewModel.onSignIn(
-                        email = emailTextFieldState.text.toString(),
-                        password = passwordTextFieldState.text.toString()
-                    )
-                },
+                onClick = viewModel::onSignIn,
                 enabled = !state.isLoading,
                 shapes = ButtonShapes(
                     shape = MaterialTheme.shapes.extraLarge,
@@ -231,18 +280,28 @@ internal fun LoginScreen(
                 ),
                 modifier = Modifier.weight(0.5f)
             ) {
-                if (state.isLoading) {
-                    CircularWavyProgressIndicator(
-                        modifier = Modifier.size(24.dp)
-                    )
-                } else {
-                    Text(
-                        text = stringResource(id = LoginR.string.login_button),
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                }
+                AnimatedContent(
+                    targetState = state.isRegisterMode,
+                    transitionSpec = { fadeIn() togetherWith fadeOut() },
+                    label = "GoogleCtaText"
+                ) { isRegisterMode ->
+                    if (state.isLoading) {
+                        CircularWavyProgressIndicator(
+                            modifier = Modifier.size(24.dp)
+                        )
+                    } else {
+                        Text(
+                            text = if (isRegisterMode) {
+                                stringResource(id = LoginR.string.register_button)
+                            } else {
+                                stringResource(id = LoginR.string.login_button)
+                            },
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
 
+                }
             }
         }
 
@@ -258,7 +317,11 @@ internal fun LoginScreen(
 
             TextButton(onClick = viewModel::onRegister) {
                 Text(
-                    text = stringResource(id = LoginR.string.login_no_account),
+                    text = if (state.isRegisterMode) {
+                        stringResource(id = LoginR.string.register_have_account)
+                    } else {
+                        stringResource(id = LoginR.string.login_no_account)
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline
                 )

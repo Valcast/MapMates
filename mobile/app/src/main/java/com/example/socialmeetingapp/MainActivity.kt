@@ -102,10 +102,6 @@ class MainActivity : ComponentActivity() {
                     NavHost(
                         navController = navController,
                         graph = navGraph,
-                        enterTransition = { EnterTransition.None },
-                        exitTransition = { ExitTransition.None },
-                        popEnterTransition = { EnterTransition.None },
-                        popExitTransition = { ExitTransition.None },
                         modifier = Modifier
                             .padding(innerPadding)
                             .fillMaxSize()
