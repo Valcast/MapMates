@@ -11,7 +11,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.socialmeetingapp"
+    namespace = "com.valcast.mapmates"
     compileSdk = 36
 
     defaultConfig {
@@ -126,6 +126,7 @@ dependencies {
     implementation(libs.hilt.compose)
     ksp(libs.hilt.compiler)
 
+    implementation(projects.modules.featureAccount.impl)
     implementation(projects.modules.featureLogin.api)
     implementation(projects.modules.featureLogin.impl)
     implementation(projects.modules.coreNavigation.api)

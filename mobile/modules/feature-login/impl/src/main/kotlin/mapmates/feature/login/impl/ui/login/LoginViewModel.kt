@@ -17,6 +17,7 @@ import mapmates.feature.login.impl.CredentialManager.CredentialType
 import mapmates.feature.login.impl.CredentialManager.RequestCredential
 import mapmates.feature.login.impl.interactor.AuthenticateUserInteractor
 import mapmates.feature.login.impl.interactor.RequestCredentialInteractor
+import mapmates.feature.login.impl.interactor.SavePasswordCredentialInteractor
 import mapmates.feature.login.impl.model.AuthenticationMethod
 import mapmates.feature.login.impl.model.AuthenticationResult
 import javax.inject.Inject
@@ -26,6 +27,7 @@ import mapmates.feature.login.impl.R as LoginR
 internal class LoginViewModel @Inject constructor(
     private val authenticateUserInteractor: AuthenticateUserInteractor,
     private val requestCredentialInteractor: RequestCredentialInteractor,
+    private val savePasswordCredentialInteractor: SavePasswordCredentialInteractor,
     private val navigator: Navigator,
 ) : ViewModel() {
 
@@ -73,7 +75,12 @@ internal class LoginViewModel @Inject constructor(
 
                     when (result) {
                         is AuthenticationResult.Success -> if (result.isNewUser) {
-                            // Navigate to onboarding for new users
+                            navigator.navigateTo(Destination("create_account")) {
+                                popUpTo(Destination("login")) {
+                                    inclusive = true
+                                }
+                                launchSingleTop = true
+                            }
                         } else {
                             // Navigate to main app for existing users
                         }
@@ -148,7 +155,16 @@ internal class LoginViewModel @Inject constructor(
 
             when (result) {
                 is AuthenticationResult.Success -> if (result.isNewUser) {
-                    // Navigate to onboarding for new users
+                    savePasswordCredentialInteractor(
+                        username = state.value.email,
+                        password = state.value.password
+                    )
+                    navigator.navigateTo(Destination("create_account")) {
+                        popUpTo(0) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                    }
                 } else {
                     // Navigate to main app for existing users
                 }

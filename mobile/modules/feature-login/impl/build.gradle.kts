@@ -53,11 +53,11 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     implementation(libs.compose.material.icons.core)
     implementation(libs.google.id)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.playservices)
 
     implementation(libs.androidx.navigation.common)
-
     implementation(projects.modules.featureLogin.api)
-
     implementation(projects.modules.coreNavigation.api)
 
     implementation(platform(libs.firebase.bom))

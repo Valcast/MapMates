@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="account_previous_button">Back</string>
+    <string name="account_next_button">Continue</string>
+    <string name="account_submit_button">Submit</string>
+
+    <!-- Account Info Screen -->
+    <string name="account_info_title">Tell us about yourself</string>
+    <string name="account_info_username_description">This is how you\'ll appear to others on MapMates</string>
+    <string name="account_info_username_hint">Username</string>
+    <string name="account_info_bio_description">You can leave this blank if you want and add bio later.</string>
+    <string name="account_info_bio_hint">Bio (optional)</string>
+
+    <!-- Account Picture Screen -->
+    <string name="account_picture_title">Add a profile picture</string>
+    <string name="account_picture_description">You need a profile picture of yourself to join events</string>
+    <string name="account_picture_upload">Upload a photo ->></string>
+
+    <!-- Account Additional Screen -->
+    <string name="account_additional_title">Tell us more about yourself</string>
+    <string name="account_additional_age_title">When is your birthday?</string>
+    <string name="account_additional_age_description">You need to be at least 18 years old to use MapMates</string>
+    <string name="account_additional_gender_title">What is your gender?</string>
+    <string name="account_additional_gender_male">Man</string>
+    <string name="account_additional_gender_female">Female</string>
+    <string name="account_additional_gender_other">Other</string>
+
+    <!-- Account Rules Screen -->
+    <string name="account_rules_title">You are almost done</string>
+    <string name="account_rules_name">Terms and conditions</string>
+    <string name="account_rules_accept">I accept the rules</string>
+</resources>

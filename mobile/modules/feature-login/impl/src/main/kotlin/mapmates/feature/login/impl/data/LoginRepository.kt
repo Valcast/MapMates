@@ -21,11 +21,13 @@ internal class LoginRepository @Inject constructor(
     suspend fun authenticate(authenticationMethod: AuthenticationMethod) =
         when (authenticationMethod) {
             is AuthenticationMethod.Google -> {
+                Log.d("LoginRepository", "Authenticating with Google ID Token")
                 val credential =
                     GoogleAuthProvider.getCredential(authenticationMethod.idToken, null)
                 val result = firebaseAuth.signInWithCredential(credential).await()
 
                 result.additionalUserInfo?.let { additionalUserInfo ->
+                    Log.d("LoginRepository", "Authentication successful with Google")
                     AuthenticationResult.Success(isNewUser = additionalUserInfo.isNewUser)
                 } ?: AuthenticationResult.Failure(LoginR.string.auth_unknown_error)
             }
@@ -45,6 +47,7 @@ internal class LoginRepository @Inject constructor(
                             authenticationMethod.password
                         ).await()
 
+                        Log.d("LoginRepository", "Authentication successful with Email and Password")
                         AuthenticationResult.Success(isNewUser = false)
                     } catch (error: FirebaseAuthException) {
                         Log.e("LoginRepository", "Authentication failed", error)

@@ -1,6 +1,8 @@
 package mapmates.feature.login.impl
 
 import android.content.Context
+import android.util.Log
+import androidx.credentials.CreatePasswordRequest
 import androidx.credentials.Credential
 import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
@@ -32,7 +34,8 @@ internal class CredentialManager(private val context: Context) {
         ).credential as PasswordCredential
 
         RequestCredential.Success(credential)
-    } catch (_: GetCredentialException) {
+    } catch (e: GetCredentialException) {
+        Log.e("CredentialManager", "Password credential request failed", e)
         RequestCredential.Canceled
     }
 
@@ -45,24 +48,20 @@ internal class CredentialManager(private val context: Context) {
 
         RequestCredential.Success(credential)
     } catch (e: GetCredentialException) {
+        Log.e("CredentialManager", "Google credential request failed", e)
         RequestCredential.Canceled
     }
 
 
-    /*suspend fun saveCredential(username: String, password: String): Result<Unit> {
-        return try {
+    suspend fun savePasswordCredential(username: String, password: String) {
+        try {
             credentialManager.createCredential(
-                request = CreatePasswordRequest(username, password),
-                context = context
+                request = CreatePasswordRequest(username, password), context = context
             )
-
-            Result.success(Unit)
-        } catch (e: CreateCredentialCancellationException) {
-            return Result.failure("Registration cancelled")
         } catch (e: Exception) {
-            return Result.failure(e.message ?: "Unknown error")
+            Log.e("CredentialManager", "Failed to save credential", e)
         }
-    }*/
+    }
 
     sealed interface RequestCredential {
         data class Success(val credential: Credential) : RequestCredential

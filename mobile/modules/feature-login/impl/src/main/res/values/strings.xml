@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="default_web_client_id">829495539813-4lmga8884viti2uu538o85223dch7l42.apps.googleusercontent.com</string>
+    <string name="default_web_client_id">829495539813-1t93hba9lbna6dkai68s98nli0kdg4tl.apps.googleusercontent.com</string>
     <!-- Authentication -->
     <string name="email_placeholder">Email Address</string>
     <string name="password_hint">Password</string>

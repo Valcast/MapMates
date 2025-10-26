@@ -1,0 +1,13 @@
+package com.valcast.mapmates.presentation.common
+
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+
+object SnackbarManager {
+    private var _messages = MutableSharedFlow<String>(replay = 1)
+    val messages = _messages.asSharedFlow()
+
+    fun showMessage(message: String) {
+        _messages.tryEmit(message)
+    }
+}
