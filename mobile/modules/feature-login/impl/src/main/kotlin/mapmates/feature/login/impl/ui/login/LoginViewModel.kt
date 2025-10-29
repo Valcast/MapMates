@@ -82,7 +82,12 @@ internal class LoginViewModel @Inject constructor(
                                 launchSingleTop = true
                             }
                         } else {
-                            // Navigate to main app for existing users
+                            navigator.navigateTo(Destination("home")) {
+                                popUpTo(0) {
+                                    inclusive = true
+                                }
+                                launchSingleTop = true
+                            }
                         }
 
                         is AuthenticationResult.Failure -> {
@@ -105,16 +110,11 @@ internal class LoginViewModel @Inject constructor(
     }
 
     fun onSignIn() {
-        navigator.navigateTo(Destination("create_account")) {
-            popUpTo(0) {
-                inclusive = true
-            }
-            launchSingleTop = true
-        }
-        /*if (validateEmail() && validatePassword()) {
+        if (validateEmail() && validatePassword()) {
             authenticateWithEmailAndPassword()
-        }*/
+        }
     }
+
 
     fun onEmailChanged(email: String) = _state.update { state ->
         state.copy(email = email, isError = false, errorMessage = null)
@@ -172,7 +172,12 @@ internal class LoginViewModel @Inject constructor(
                         launchSingleTop = true
                     }
                 } else {
-                    // Navigate to main app for existing users
+                    navigator.navigateTo(Destination("home")) {
+                        popUpTo(0) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                    }
                 }
 
                 is AuthenticationResult.Failure -> {

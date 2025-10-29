@@ -1,4 +1,4 @@
-package com.valcast.mapmates.presentation.home
+package mapmates.feature.home.impl.ui.filters
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -19,19 +19,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.valcast.mapmates.R
-import com.valcast.mapmates.domain.model.Category
-import com.valcast.mapmates.domain.model.DateRange
-import com.valcast.mapmates.domain.model.SortOrder
+import mapmates.feature.event.api.filters.SortOrder
+import mapmates.feature.home.impl.R as HomeR
 
 @Composable
 fun SortOrderFilterChip(
     onClick: () -> Unit,
-    onFiltersApplied: (DateRange?, Category?, SortOrder?) -> Unit,
-    filters: Filters = Filters()
+    onSortOrderReset: () -> Unit,
+    selectedSortOrder: SortOrder? = null
 ) {
     FilterChip(
-        selected = filters.sortOrder != null,
+        selected = selectedSortOrder != null,
         leadingIcon = {
             Icon(
                 Icons.Filled.Settings,
@@ -42,18 +40,18 @@ fun SortOrderFilterChip(
         },
         label = {
             Text(
-                text = when (filters.sortOrder) {
-                    SortOrder.NEXT_DATE -> stringResource(R.string.filter_sort_nextdate)
-                    SortOrder.DISTANCE -> stringResource(R.string.filter_sort_distance)
-                    SortOrder.POPULARITY -> stringResource(R.string.filter_sort_popularity)
-                    else -> stringResource(R.string.filter_sort)
+                text = when (selectedSortOrder) {
+                    SortOrder.NEXT_DATE -> stringResource(HomeR.string.filter_sort_nextdate)
+                    SortOrder.DISTANCE -> stringResource(HomeR.string.filter_sort_distance)
+                    SortOrder.POPULARITY -> stringResource(HomeR.string.filter_sort_popularity)
+                    else -> stringResource(HomeR.string.filter_sort)
                 },
                 style = MaterialTheme.typography.labelMedium,
             )
         },
         trailingIcon = {
             AnimatedVisibility(
-                visible = filters.sortOrder != null,
+                visible = selectedSortOrder != null,
                 enter = expandHorizontally(),
                 exit = shrinkHorizontally()
             ) {
@@ -62,13 +60,7 @@ fun SortOrderFilterChip(
                     contentDescription = "Reset Sort Type",
                     modifier = Modifier
                         .padding(start = 4.dp)
-                        .clickable(onClick = {
-                            onFiltersApplied(
-                                filters.dateRange,
-                                filters.category,
-                                null
-                            )
-                        })
+                        .clickable(onClick = onSortOrderReset)
                 )
             }
         },

@@ -1,4 +1,4 @@
-package com.valcast.mapmates.presentation.home
+package mapmates.feature.home.impl.ui
 
 import android.Manifest
 import android.graphics.BitmapFactory
@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -57,13 +58,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
-import com.valcast.mapmates.domain.model.Category
-import com.valcast.mapmates.domain.model.DateRange
-import com.valcast.mapmates.domain.model.Event
-import com.valcast.mapmates.domain.model.SortOrder
-import com.valcast.mapmates.presentation.components.EventCard
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
@@ -78,31 +76,58 @@ import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.MapsComposeExperimentalApi
 import com.google.maps.android.compose.clustering.Clustering
 import com.google.maps.android.compose.rememberCameraPositionState
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import mapmates.feature.event.api.Event
+import mapmates.feature.event.api.filters.Filter
+import mapmates.feature.event.api.filters.get
+import mapmates.feature.event.ui.EventCard
+import mapmates.feature.home.impl.ui.filters.CategoryFilterChip
+import mapmates.feature.home.impl.ui.filters.DateRangeFilterChip
+import mapmates.feature.home.impl.ui.filters.SortOrderFilterChip
+import kotlin.reflect.KClass
+
+
+@Composable
+internal fun HomeScreen(
+    locationCoordinates: LatLng? = null,
+    viewModel: HomeViewModel = hiltViewModel<HomeViewModel, HomeViewModel.Factory>(
+        creationCallback = { factory ->
+            factory.create(locationCoordinates)
+        }
+    ),
+) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+
+    HomeScreenUi(
+        state = state,
+        onListViewToggle = viewModel::onListViewToggle,
+        onFilterScreenOpen = viewModel::onFilterScreenOpen,
+        onFilterDelete = viewModel::onFilterReset,
+        onEventCardClick = viewModel::onEventCardClick,
+        onMapClick = viewModel::onMapClick,
+        onClusterClick = viewModel::onClusterClick,
+        onClusterItemClick = viewModel::onClusterItemClick,
+        onCenterToCurrentLocation = viewModel::onCenterToCurrentLocation
+    )
+}
 
 @OptIn(
-    ExperimentalMaterial3Api::class,
-    ExperimentalPermissionsApi::class,
+    ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class,
     MapsComposeExperimentalApi::class
 )
 @Composable
-fun HomeScreen(
-    events: List<Event>,
-    isLoading: Boolean,
-    currentLocation: LatLng?,
-    locationCoordinates: LatLng? = null,
-    filters: Filters = Filters(),
-    onEventClick: (String) -> Unit,
-    onLocationRequested: suspend () -> Unit,
-    onFiltersApplied: (DateRange?, Category?, SortOrder?) -> Unit,
+private fun HomeScreenUi(
+    state: HomeState,
+    onListViewToggle: () -> Unit = {},
+    onFilterScreenOpen: () -> Unit = {},
+    onFilterDelete: (KClass<out Filter>) -> Unit = {},
+    onEventCardClick: (String) -> Unit = {},
+    onMapClick: (LatLng?) -> Unit = {},
+    onClusterItemClick: (EventMarker) -> Unit = {},
+    onClusterClick: (List<EventMarker>) -> Unit = {},
+    onCenterToCurrentLocation: () -> Unit = {},
 ) {
-    val lifecycleScope = LocalLifecycleOwner.current.lifecycleScope
-    var isListView by rememberSaveable { mutableStateOf(false) }
     var isRequestPermissionDialogVisible by remember { mutableStateOf(false) }
-    var selectedEventIndex by remember { mutableStateOf<Int?>(null) }
-    var eventCluster by remember { mutableStateOf<List<String>>(emptyList()) }
-    var isFilterScreenVisible by remember { mutableStateOf(false) }
 
     val locationPermissions = rememberMultiplePermissionsState(
         permissions = listOf(
@@ -117,18 +142,20 @@ fun HomeScreen(
         }
     }
 
-    var updateLocationJob by remember { mutableStateOf<Job?>(null) }
-
-
-    val startPosition = locationCoordinates
-        ?: (currentLocation ?: LatLng(
-            52.237049, 21.017532
-        ))
-
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(
-            startPosition, if (locationCoordinates != null) 15f else 10f
+            state.currentLocation, 10f
         )
+    }
+
+    LaunchedEffect(state.currentLocation) {
+        if (state.currentLocation != LatLng(0.0, 0.0)) {
+            cameraPositionState.animate(
+                update = CameraUpdateFactory.newCameraPosition(
+                    CameraPosition.fromLatLngZoom(state.currentLocation, 10f)
+                )
+            )
+        }
     }
 
     Box {
@@ -151,10 +178,10 @@ fun HomeScreen(
                 )
 
                 TextButton(
-                    onClick = { isListView = !isListView }
+                    onClick = onListViewToggle
                 ) {
                     Text(
-                        text = if (isListView) "Switch to map" else "Switch to list",
+                        text = if (state.isListView) "Switch to map" else "Switch to list",
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.animateContentSize()
                     )
@@ -163,7 +190,7 @@ fun HomeScreen(
 
 
 
-            if (isListView) {
+            if (state.isListView) {
                 Row(
                     modifier = Modifier
                         .padding(vertical = 4.dp)
@@ -171,34 +198,28 @@ fun HomeScreen(
                         .horizontalScroll(rememberScrollState())
                 ) {
                     CategoryFilterChip(
-                        onClick = {
-                            isFilterScreenVisible = true
-                        },
-                        onFiltersApplied = onFiltersApplied,
-                        filters = filters
+                        onClick = onFilterScreenOpen,
+                        onCategoryReset = { onFilterDelete(Filter.ByCategory::class) },
+                        selectedCategory = state.filters.get<Filter.ByCategory>()?.category
                     )
 
                     DateRangeFilterChip(
-                        onClick = {
-                            isFilterScreenVisible = true
-                        },
-                        onFiltersApplied = onFiltersApplied,
-                        filters = filters
+                        onClick = onFilterScreenOpen,
+                        onDateRangeReset = { onFilterDelete(Filter.ByDateRange::class) },
+                        selectedDateRange = state.filters.get<Filter.ByDateRange>()?.dateRange
                     )
 
                     SortOrderFilterChip(
-                        onClick = {
-                            isFilterScreenVisible = true
-                        },
-                        onFiltersApplied = onFiltersApplied,
-                        filters = filters
+                        onClick = onFilterScreenOpen,
+                        onSortOrderReset = { onFilterDelete(Filter.BySortOrder::class) },
+                        selectedSortOrder = state.filters.get<Filter.BySortOrder>()?.sortOrder
                     )
                 }
                 LazyColumn {
-                    items(events.size) { index ->
+                    items(state.events) { event ->
                         EventCard(
-                            events[index],
-                            onCardClick = onEventClick,
+                            event = event,
+                            onEventCardClick = onEventCardClick,
                             modifier = Modifier.padding(
                                 top = 16.dp,
                                 start = 8.dp,
@@ -227,31 +248,28 @@ fun HomeScreen(
                             mapToolbarEnabled = false,
                             myLocationButtonEnabled = false
                         ),
-                        onMapClick = {
-                            selectedEventIndex = null
-                            eventCluster = emptyList()
-                        },
+                        onMapClick = onMapClick,
                     ) {
                         Clustering(
-                            items = events.mapNotNull { event ->
+                            items = state.events.mapNotNull { event ->
                                 event.locationCoordinates?.let {
                                     EventMarker(
-                                        it,
+                                        LatLng(
+                                            it.first,
+                                            it.second
+                                        ),
                                         event.title,
                                         event.description,
                                         event.category
                                     )
                                 }
                             },
-                            onClusterItemClick = { event ->
-                                eventCluster = emptyList()
-                                selectedEventIndex =
-                                    events.indexOfFirst { it.title == event.title }
+                            onClusterItemClick = { eventMarker ->
+                                onClusterItemClick(eventMarker)
                                 true
                             },
-                            onClusterClick = { events ->
-                                selectedEventIndex = null
-                                eventCluster = events.items.map { it.title }
+                            onClusterClick = { eventMarkers ->
+                                onClusterClick(eventMarkers.items.toList())
                                 true
                             },
                             clusterContent = { cluster ->
@@ -291,32 +309,26 @@ fun HomeScreen(
                                 .horizontalScroll(rememberScrollState())
                         ) {
                             CategoryFilterChip(
-                                onClick = {
-                                    isFilterScreenVisible = true
-                                },
-                                onFiltersApplied = onFiltersApplied,
-                                filters = filters
+                                onClick = onFilterScreenOpen,
+                                onCategoryReset = { onFilterDelete(Filter.ByCategory::class) },
+                                selectedCategory = state.filters.get<Filter.ByCategory>()?.category
                             )
 
                             DateRangeFilterChip(
-                                onClick = {
-                                    isFilterScreenVisible = true
-                                },
-                                onFiltersApplied = onFiltersApplied,
-                                filters = filters
+                                onClick = onFilterScreenOpen,
+                                onDateRangeReset = { onFilterDelete(Filter.ByDateRange::class) },
+                                selectedDateRange = state.filters.get<Filter.ByDateRange>()?.dateRange
                             )
 
                             SortOrderFilterChip(
-                                onClick = {
-                                    isFilterScreenVisible = true
-                                },
-                                onFiltersApplied = onFiltersApplied,
-                                filters = filters
+                                onClick = onFilterScreenOpen,
+                                onSortOrderReset = { onFilterDelete(Filter.BySortOrder::class) },
+                                selectedSortOrder = state.filters.get<Filter.BySortOrder>()?.sortOrder
                             )
                         }
 
                         AnimatedVisibility(
-                            visible = isLoading,
+                            visible = state.isLoading,
                             enter = fadeIn(),
                             exit = fadeOut(),
                             modifier = Modifier
@@ -334,14 +346,14 @@ fun HomeScreen(
                         }
 
                         AnimatedVisibility(
-                            visible = selectedEventIndex != null,
+                            visible = state.selectedEvent != null,
                             enter = slideInHorizontally() + fadeIn(),
                             exit = fadeOut()
                         ) {
-                            selectedEventIndex?.let {
+                            state.selectedEvent?.let { event ->
                                 EventCard(
-                                    events[it],
-                                    onCardClick = onEventClick,
+                                    event,
+                                    onEventCardClick = onEventCardClick,
                                     modifier = Modifier.padding(
                                         top = 16.dp,
                                         start = 8.dp,
@@ -352,15 +364,15 @@ fun HomeScreen(
                         }
 
                         AnimatedVisibility(
-                            visible = eventCluster.isNotEmpty(),
+                            visible = state.eventCluster.isNotEmpty(),
                             enter = expandVertically(),
                             exit = fadeOut()
                         ) {
                             LazyRow {
-                                items(eventCluster.size) { index ->
+                                items(state.eventCluster) { event ->
                                     EventCard(
-                                        events.first { it.title == eventCluster[index] },
-                                        onCardClick = onEventClick,
+                                        event = event,
+                                        onEventCardClick = onEventCardClick,
                                         modifier = Modifier
                                             .padding(top = 16.dp, start = 8.dp, end = 8.dp)
                                             .height(
@@ -437,35 +449,15 @@ fun HomeScreen(
             }
         }
 
-        if (!isListView) {
+        if (!state.isListView) {
             SmallFloatingActionButton(
                 onClick = {
-                    updateLocationJob?.cancel()
-
                     if (locationPermissions.permissions.all { !it.status.isGranted }) {
                         isRequestPermissionDialogVisible = true
                         return@SmallFloatingActionButton
                     }
 
-                    updateLocationJob = lifecycleScope.launch {
-                        onLocationRequested()
-
-                        currentLocation?.let {
-                            try {
-                                cameraPositionState.animate(
-                                    update = CameraUpdateFactory.newCameraPosition(
-                                        CameraPosition.fromLatLngZoom(
-                                            it, 15f
-                                        )
-                                    ),
-                                    durationMs = 1000
-                                )
-                            } catch (_: Exception) {
-                            }
-                        }
-
-
-                    }
+                    onCenterToCurrentLocation()
                 },
                 modifier = Modifier
                     .align(Alignment.BottomStart)
@@ -503,17 +495,11 @@ fun HomeScreen(
 
 
         AnimatedVisibility(
-            visible = isFilterScreenVisible,
+            visible = state.isFilterScreenVisible,
             enter = expandVertically(),
             exit = shrinkVertically()
         ) {
-            FilterScreen(
-                filters = filters,
-                onCloseFilters = { isFilterScreenVisible = false },
-                onApplyFilters = { dateRange, category, sortType ->
-                    isFilterScreenVisible = false
-                    onFiltersApplied(dateRange, category, sortType)
-                })
+            // TODO: Generate filter screen
         }
     }
 

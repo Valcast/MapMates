@@ -1,4 +1,4 @@
-package com.valcast.mapmates.presentation.home
+package mapmates.feature.home.impl.ui.filters
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -19,19 +19,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.valcast.mapmates.R
-import com.valcast.mapmates.domain.model.Category
-import com.valcast.mapmates.domain.model.DateRange
-import com.valcast.mapmates.domain.model.SortOrder
+import mapmates.feature.event.api.filters.Category
+import mapmates.feature.home.impl.R as HomeR
+
 
 @Composable
 fun CategoryFilterChip(
     onClick: () -> Unit,
-    onFiltersApplied: (DateRange?, Category?, SortOrder?) -> Unit,
-    filters: Filters = Filters()
+    onCategoryReset: () -> Unit,
+    selectedCategory: Category? = null,
 ) {
     FilterChip(
-        selected = filters.category != null,
+        selected = selectedCategory != null,
         leadingIcon = {
             Icon(
                 Icons.Filled.Menu,
@@ -44,15 +43,15 @@ fun CategoryFilterChip(
         label = {
             Text(
                 text = stringResource(
-                    when (filters.category) {
-                        Category.CINEMA -> R.string.filter_category_cinema
-                        Category.CONCERT -> R.string.filter_category_concert
-                        Category.CONFERENCE -> R.string.filter_category_conference
-                        Category.HOUSEPARTY -> R.string.filter_category_houseparty
-                        Category.MEETUP -> R.string.filter_category_meetup
-                        Category.THEATER -> R.string.filter_category_theater
-                        Category.WEBINAR -> R.string.filter_category_webinar
-                        else -> R.string.filter_category
+                    when (selectedCategory) {
+                        Category.CINEMA -> HomeR.string.filter_category_cinema
+                        Category.CONCERT -> HomeR.string.filter_category_concert
+                        Category.CONFERENCE -> HomeR.string.filter_category_conference
+                        Category.HOUSEPARTY -> HomeR.string.filter_category_houseparty
+                        Category.MEETUP -> HomeR.string.filter_category_meetup
+                        Category.THEATER -> HomeR.string.filter_category_theater
+                        Category.WEBINAR -> HomeR.string.filter_category_webinar
+                        else -> HomeR.string.filter_category
                     }
                 ),
                 style = MaterialTheme.typography.labelMedium,
@@ -60,7 +59,7 @@ fun CategoryFilterChip(
         },
         trailingIcon = {
             AnimatedVisibility(
-                visible = filters.category != null,
+                visible = selectedCategory != null,
                 enter = expandHorizontally(),
                 exit = shrinkHorizontally()
             ) {
@@ -69,13 +68,7 @@ fun CategoryFilterChip(
                     contentDescription = "Category",
                     modifier = Modifier
                         .padding(start = 4.dp)
-                        .clickable(onClick = {
-                            onFiltersApplied(
-                                filters.dateRange,
-                                null,
-                                filters.sortOrder
-                            )
-                        })
+                        .clickable(onClick = onCategoryReset)
                 )
             }
         },

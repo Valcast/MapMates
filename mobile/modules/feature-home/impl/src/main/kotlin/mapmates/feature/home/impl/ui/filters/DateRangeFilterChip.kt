@@ -1,4 +1,4 @@
-package com.valcast.mapmates.presentation.home
+package mapmates.feature.home.impl.ui.filters
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -19,20 +19,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.valcast.mapmates.R
-import com.valcast.mapmates.domain.model.Category
-import com.valcast.mapmates.domain.model.DateRange
-import com.valcast.mapmates.domain.model.SortOrder
+import mapmates.feature.event.api.filters.DateRange
 import java.util.Locale
+import mapmates.feature.home.impl.R as HomeR
 
 @Composable
 fun DateRangeFilterChip(
     onClick: () -> Unit,
-    onFiltersApplied: (DateRange?, Category?, SortOrder?) -> Unit,
-    filters: Filters = Filters()
+    onDateRangeReset: () -> Unit,
+    selectedDateRange: DateRange? = null,
 ) {
     FilterChip(
-        selected = filters.dateRange != null,
+        selected = selectedDateRange != null,
         leadingIcon = {
             Icon(
                 Icons.Filled.DateRange,
@@ -43,13 +41,13 @@ fun DateRangeFilterChip(
         },
         label = {
             Text(
-                text = when (filters.dateRange) {
-                    DateRange.Today -> stringResource(R.string.filter_date_today)
-                    DateRange.Tomorrow -> stringResource(R.string.filter_date_tomorrow)
-                    DateRange.ThisWeek -> stringResource(R.string.filter_date_this_week)
+                text = when (selectedDateRange) {
+                    DateRange.Today -> stringResource(HomeR.string.filter_date_today)
+                    DateRange.Tomorrow -> stringResource(HomeR.string.filter_date_tomorrow)
+                    DateRange.ThisWeek -> stringResource(HomeR.string.filter_date_this_week)
                     is DateRange.Custom -> {
-                        val startDate = filters.dateRange.startTime
-                        val endDate = filters.dateRange.endTime
+                        val startDate = selectedDateRange.startTime
+                        val endDate = selectedDateRange.endTime
 
                         String.format(
                             Locale.getDefault(),
@@ -59,7 +57,7 @@ fun DateRangeFilterChip(
                         )
                     }
 
-                    null -> stringResource(R.string.filter_date)
+                    null -> stringResource(HomeR.string.filter_date)
                 },
                 style = MaterialTheme.typography.labelMedium,
                 modifier = Modifier.animateContentSize()
@@ -67,7 +65,7 @@ fun DateRangeFilterChip(
         },
         trailingIcon = {
             AnimatedVisibility(
-                visible = filters.dateRange != null,
+                visible = selectedDateRange != null,
                 enter = expandHorizontally(),
                 exit = shrinkHorizontally()
             ) {
@@ -75,13 +73,7 @@ fun DateRangeFilterChip(
                     Icons.Filled.Clear,
                     contentDescription = "Date Range",
                     modifier = Modifier
-                        .clickable(onClick = {
-                            onFiltersApplied(
-                                null,
-                                filters.category,
-                                filters.sortOrder
-                            )
-                        })
+                        .clickable(onClick = onDateRangeReset)
                 )
             }
         },

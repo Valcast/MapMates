@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
@@ -37,12 +39,10 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
-    kotlinOptions {
-        jvmTarget = "11"
-    }
+
     buildFeatures {
         compose = true
         buildConfig = true
@@ -56,6 +56,12 @@ android {
         }
     }
 
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.assign(JvmTarget.JVM_21)
+    }
 }
 
 secrets {
@@ -127,9 +133,16 @@ dependencies {
     ksp(libs.hilt.compiler)
 
     implementation(projects.modules.featureAccount.impl)
+    implementation(projects.modules.featureEvent.api)
+    implementation(projects.modules.featureEvent.ui)
+    implementation(projects.modules.featureEvent.impl)
+    implementation(projects.modules.featureHome.impl)
     implementation(projects.modules.featureLogin.api)
     implementation(projects.modules.featureLogin.impl)
     implementation(projects.modules.coreNavigation.api)
     implementation(projects.modules.coreNavigation.impl)
     implementation(projects.modules.coreUi)
+    implementation(projects.modules.coreLocation.api)
+    implementation(projects.modules.coreLocation.impl)
+    implementation(projects.modules.coreFirebase)
 }

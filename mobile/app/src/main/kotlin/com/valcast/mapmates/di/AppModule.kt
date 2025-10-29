@@ -69,12 +69,6 @@ object AppModule {
     }
 
     @Provides
-    @Singleton
-    fun provideFusedLocationClient(@ApplicationContext context: Context): FusedLocationProviderClient {
-        return LocationServices.getFusedLocationProviderClient(context)
-    }
-
-    @Provides
     fun provideContentResolver(@ApplicationContext context: Context): ContentResolver =
         context.contentResolver
 

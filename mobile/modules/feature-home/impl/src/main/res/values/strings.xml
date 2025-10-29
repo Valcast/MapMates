@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="filter_category">Category</string>
+    <string name="filter_category_cinema">Cinema</string>
+    <string name="filter_category_concert">Concert</string>
+    <string name="filter_category_conference">Conference</string>
+    <string name="filter_category_festival">Festival</string>
+    <string name="filter_category_houseparty">House Party</string>
+    <string name="filter_category_meetup">Meetup</string>
+    <string name="filter_category_picnic">Picnic</string>
+    <string name="filter_category_theater">Theater</string>
+    <string name="filter_category_webinar">Webinar</string>
+    <string name="filter_category_workshop">Workshop</string>
+
+    <string name="filter_date">Date</string>
+    <string name="filter_date_today">Today</string>
+    <string name="filter_date_tomorrow">Tomorrow</string>
+    <string name="filter_date_this_week">This Week</string>
+
+    <string name="filter_sort">Sort</string>
+    <string name="filter_sort_nextdate">Next Date</string>
+    <string name="filter_sort_popularity">Popularity</string>
+    <string name="filter_sort_distance">Distance</string>
+
+</resources>

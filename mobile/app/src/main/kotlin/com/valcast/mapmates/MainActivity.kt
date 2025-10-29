@@ -87,6 +87,16 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
+            LaunchedEffect(state.isUserAuthenticated) {
+                if (state.isUserAuthenticated) {
+                    navController.navigate("home") {
+                        popUpTo(navController.graph.startDestinationId) {
+                            inclusive = true
+                        }
+                    }
+                }
+            }
+
             MapMatesTheme(theme) {
                 Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }, bottomBar = {
 

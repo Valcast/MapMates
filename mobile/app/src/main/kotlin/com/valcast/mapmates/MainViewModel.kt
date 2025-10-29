@@ -29,12 +29,6 @@ import mapmates.core.navigation.api.Navigator
 import mapmates.feature.login.api.interactor.IsUserAuthenticatedInteractor
 import javax.inject.Inject
 
-data class MainState(
-    val navGraphBuilders: Set<AppNavGraphBuilder>,
-    val isUserAuthenticated: Boolean,
-    val navigatorFlow: SharedFlow<Navigator.Event>
-)
-
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val dataStore: DataStore<Preferences>,
